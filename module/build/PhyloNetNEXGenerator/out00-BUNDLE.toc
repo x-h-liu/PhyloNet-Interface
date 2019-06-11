@@ -1,0 +1,3 @@
+([('PhyloNetNEXGenerator',
+   '/Users/liu/Desktop/PhyloNetGUI/module/dist/PhyloNetNEXGenerator',
+   'EXECUTABLE')],)
