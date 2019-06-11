@@ -1,15 +1,16 @@
 import sys
 import os
-from PyQt4.QtGui import *
-from PyQt4 import QtCore
+from PyQt5.QtGui import *
+from PyQt5.QtWidgets import *
+from PyQt5 import QtCore
 import dendropy
 import datetime
 import subprocess
 import shutil
 
-import TaxamapDlg
-import diploidList
-import paramList
+from module import TaxamapDlg
+from module import diploidList
+from module import paramList
 
 
 def resource_path(relative_path):

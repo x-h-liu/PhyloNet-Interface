@@ -1,12 +1,13 @@
 import os
 import sys
-from PyQt4.QtGui import *
-from PyQt4 import QtCore
+from PyQt5.QtGui import *
+from PyQt5.QtWidgets import *
+from PyQt5 import QtCore
 
-import NetworkMP
-import NetworkML
-import NetworkMPL
-import MCMCGT
+from module import NetworkMP
+from module import NetworkML
+from module import NetworkMPL
+from module import MCMCGT
 
 
 def resource_path(relative_path):

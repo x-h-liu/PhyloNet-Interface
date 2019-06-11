@@ -1,15 +1,16 @@
 import os
 import sys
-from PyQt4.QtGui import *
-from PyQt4 import QtCore
+from PyQt5.QtGui import *
+from PyQt5.QtWidgets import *
+from PyQt5 import QtCore
 
-import PNetworkMP
-import PNetworkML
-import PNetworkMPL
-import PMCMCGT
-import PMCMCSEQ
-import PMCMCBi
-import PMLEBi
+import PostProcessingModule.PNetworkMP
+import PostProcessingModule.PNetworkML
+import PostProcessingModule.PNetworkMPL
+import PostProcessingModule.PMCMCGT
+import PostProcessingModule.PMCMCSEQ
+import PostProcessingModule.PMCMCBi
+import PostProcessingModule.PMLEBi
 
 
 def resource_path(relative_path):

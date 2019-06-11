@@ -1,10 +1,11 @@
 import os
 import sys
-from PyQt4 import QtGui
-from PyQt4 import QtCore
+from PyQt5 import QtGui
+from PyQt5 import QtCore
+from PyQt5 import QtWidgets
 
-import SecondPage
-import BiAllelicMethodsPage
+from module import SecondPage
+from module import BiAllelicMethodsPage
 
 
 def resource_path(relative_path):
@@ -19,7 +20,7 @@ def resource_path(relative_path):
     return os.path.join(os.path.abspath("."), relative_path)
 
 
-class Launcher(QtGui.QMainWindow):
+class Launcher(QtWidgets.QMainWindow):
     def __init__(self):
         super(Launcher, self).__init__()
 
@@ -29,11 +30,11 @@ class Launcher(QtGui.QMainWindow):
         """
         Initialize GUI.
         """
-        wid = QtGui.QWidget()
+        wid = QtWidgets.QWidget()
         self.setCentralWidget(wid)
 
         # Menubar and action.
-        aboutAction = QtGui.QAction('About', self)
+        aboutAction = QtWidgets.QAction('About', self)
         aboutAction.triggered.connect(self.aboutMessage)
         aboutAction.setShortcut("Ctrl+A")
 
@@ -42,7 +43,7 @@ class Launcher(QtGui.QMainWindow):
         menuMenu.addAction(aboutAction)
 
         # Queston label and two options
-        questionLabel = QtGui.QLabel()
+        questionLabel = QtWidgets.QLabel()
         questionLabel.setText("What is your input data type?")
 
         questionFont = QtGui.QFont()
@@ -50,8 +51,8 @@ class Launcher(QtGui.QMainWindow):
         questionFont.setFamily("Copperplate")
         questionLabel.setFont(questionFont)  # Font of the question label.
 
-        self.alignBox = QtGui.QCheckBox("Multiple sequence alignments of unlinked loci", self)
-        self.biAllelicBox = QtGui.QCheckBox("Unlinked bi-allelic markers", self)
+        self.alignBox = QtWidgets.QCheckBox("Multiple sequence alignments of unlinked loci", self)
+        self.biAllelicBox = QtWidgets.QCheckBox("Unlinked bi-allelic markers", self)
 
         self.alignBox.stateChanged.connect(self.onChecked)
         self.biAllelicBox.stateChanged.connect(self.onChecked)  # Implement mutually exclusive check boxes
@@ -63,17 +64,17 @@ class Launcher(QtGui.QMainWindow):
         self.biAllelicBox.setFont(checkBoxFont)  # Font of two checkboxes.
 
         # OK and Cancel buttons
-        buttonBox = QtGui.QDialogButtonBox(QtGui.QDialogButtonBox.Ok | QtGui.QDialogButtonBox.Cancel)
-        buttonBox.button(QtGui.QDialogButtonBox.Ok).setDefault(True)
+        buttonBox = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel)
+        buttonBox.button(QtWidgets.QDialogButtonBox.Ok).setDefault(True)
 
-        buttonBox.button(QtGui.QDialogButtonBox.Cancel).clicked.connect(self.close)
-        buttonBox.button(QtGui.QDialogButtonBox.Ok).clicked.connect(self.okClicked)
+        buttonBox.button(QtWidgets.QDialogButtonBox.Cancel).clicked.connect(self.close)
+        buttonBox.button(QtWidgets.QDialogButtonBox.Ok).clicked.connect(self.okClicked)
 
         # Image and Title
         pix = QtGui.QPixmap(resource_path("logo.png"))
-        image = QtGui.QLabel(self)
+        image = QtWidgets.QLabel(self)
         image.setPixmap(pix)
-        lbl = QtGui.QLabel("PhyloNet")
+        lbl = QtWidgets.QLabel("PhyloNet")
 
         titleFont = QtGui.QFont()
         titleFont.setPointSize(24)
@@ -81,18 +82,18 @@ class Launcher(QtGui.QMainWindow):
         lbl.setFont(titleFont)  # Font of the PhyloNet title.
 
         # Separation line
-        line = QtGui.QFrame(self)
-        line.setFrameShape(QtGui.QFrame.HLine)
-        line.setFrameShadow(QtGui.QFrame.Sunken)
+        line = QtWidgets.QFrame(self)
+        line.setFrameShape(QtWidgets.QFrame.HLine)
+        line.setFrameShadow(QtWidgets.QFrame.Sunken)
 
         # Layouts
         # Top level logo and title.
-        top = QtGui.QHBoxLayout()
+        top = QtWidgets.QHBoxLayout()
         top.addWidget(image)
         top.addWidget(lbl)
 
         # Main vertical layout.
-        vbox = QtGui.QVBoxLayout()
+        vbox = QtWidgets.QVBoxLayout()
         vbox.addLayout(top)
         vbox.addWidget(line)
         vbox.addWidget(questionLabel)
@@ -103,7 +104,7 @@ class Launcher(QtGui.QMainWindow):
         wid.setLayout(vbox)
 
         # Bottom button box layout.
-        hbox = QtGui.QHBoxLayout()
+        hbox = QtWidgets.QHBoxLayout()
         hbox.addStretch()
         hbox.addWidget(buttonBox)
 
@@ -115,8 +116,8 @@ class Launcher(QtGui.QMainWindow):
         self.setWindowIcon(QtGui.QIcon(resource_path("logo.png")))
 
     def aboutMessage(self):
-        msg = QtGui.QMessageBox()
-        msg.setIcon(QtGui.QMessageBox.Information)
+        msg = QtWidgets.QMessageBox()
+        msg.setIcon(QtWidgets.QMessageBox.Information)
         msg.setText("PhyloNet is a tool designed mainly for analyzing, "
                     "reconstructing, and evaluating reticulate "
                     "(or non-treelike) evolutionary relationships, "
@@ -168,7 +169,7 @@ class Launcher(QtGui.QMainWindow):
 
 
 if __name__ == '__main__':
-    app = QtGui.QApplication(sys.argv)
+    app = QtWidgets.QApplication(sys.argv)
     ex = Launcher()
     ex.show()
     sys.exit(app.exec_())
