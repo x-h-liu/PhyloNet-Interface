@@ -23,7 +23,7 @@ def resource_path(relative_path):
     return os.path.join(os.path.abspath("."), relative_path)
 
 
-class MCMCGTPage(QMainWindow):
+class MCMCGTPage(QWizardPage):
     def __init__(self):
         super(MCMCGTPage, self).__init__()
 
@@ -38,17 +38,17 @@ class MCMCGTPage(QMainWindow):
         """
         Initialize GUI.
         """
-        wid = QWidget()
-        scroll = QScrollArea()
-        self.setCentralWidget(scroll)
+       # wid = QWidget()
+       # scroll = QScrollArea()
+       # self.setCentralWidget(scroll)
 
         # Menubar and action
         aboutAction = QAction('About', self)
         aboutAction.triggered.connect(self.aboutMessage)
         aboutAction.setShortcut("Ctrl+A")
 
-        menubar = self.menuBar()
-        menuMenu = menubar.addMenu('Menu')
+        self.menubar = QMenuBar(self)
+        menuMenu = self.menubar.addMenu('Menu')
         menuMenu.addAction(aboutAction)
 
         # Title (MCMC_GT)
@@ -309,13 +309,13 @@ class MCMCGTPage(QMainWindow):
         topLevelLayout.addLayout(btnLayout)
 
         # Scroll bar
-        wid.setLayout(topLevelLayout)
-        scroll.setWidget(wid)
-        scroll.setWidgetResizable(True)
-        scroll.setMinimumWidth(695)
-        scroll.setMinimumHeight(690)
+        self.setLayout(topLevelLayout)
+       # scroll.setWidget(wid)
+       # scroll.setWidgetResizable(True)
+       # scroll.setMinimumWidth(695)
+       # scroll.setMinimumHeight(690)
 
-        menubar.setNativeMenuBar(False)
+        self.menubar.setNativeMenuBar(False)
         self.setWindowTitle('PhyloNetNEXGenerator')
         self.setWindowIcon(QIcon(resource_path("logo.png")))
 

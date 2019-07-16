@@ -23,7 +23,7 @@ def resource_path(relative_path):
     return os.path.join(os.path.abspath("."), relative_path)
 
 
-class NetworkMPLPage(QMainWindow):
+class NetworkMPLPage(QWizardPage):
     def __init__(self):
         super(NetworkMPLPage, self).__init__()
 
@@ -38,17 +38,17 @@ class NetworkMPLPage(QMainWindow):
         """
         Initialize GUI.
         """
-        wid = QWidget()
-        scroll = QScrollArea()
-        self.setCentralWidget(scroll)
+      #  wid = QWidget()
+      #  scroll = QScrollArea()
+      #  self.setCentralWidget(scroll)
 
         # Menubar and action
         aboutAction = QAction('About', self)
         aboutAction.triggered.connect(self.aboutMessage)
         aboutAction.setShortcut("Ctrl+A")
 
-        menubar = self.menuBar()
-        menuMenu = menubar.addMenu('Menu')
+        self.menubar = QMenuBar(self)
+        menuMenu = self.menubar.addMenu('Menu')
         menuMenu.addAction(aboutAction)
 
         # Title (InferNetwork_MPL)
@@ -446,13 +446,13 @@ class NetworkMPLPage(QMainWindow):
         topLevelLayout.addLayout(btnLayout)
 
         # Scroll bar
-        wid.setLayout(topLevelLayout)
-        scroll.setWidget(wid)
-        scroll.setWidgetResizable(True)
-        scroll.setMinimumWidth(695)
-        scroll.setMinimumHeight(750)
+        self.setLayout(topLevelLayout)
+       # scroll.setWidget(wid)
+       # scroll.setWidgetResizable(True)
+       # scroll.setMinimumWidth(695)
+       # scroll.setMinimumHeight(750)
 
-        menubar.setNativeMenuBar(False)
+        self.menubar.setNativeMenuBar(False)
         self.setWindowTitle('PhyloNetNEXGenerator')
         self.setWindowIcon(QIcon(resource_path("logo.png")))
 
@@ -628,24 +628,14 @@ class NetworkMPLPage(QMainWindow):
         Store all the user uploaded gene tree files.
         Execute when file selection button is clicked.
         """
-        if (not self.newick.isChecked()) and (not self.nexus.isChecked()):
-            QMessageBox.warning(self, "Warning", "Please select a file type.", QMessageBox.Ok)
-        else:
-            fname = QFileDialog.getOpenFileName(self, 'Open file', '/')
-            if fname:
-                extension = os.path.splitext(str(fname))[1]
-                if self.nexus.isChecked():
-                    if extension != ".nexus" and extension != ".nex":
-                        QMessageBox.warning(self, "Warning", "Please upload only .nexus files!", QMessageBox.Ok)
-                    else:
-                        self.geneTreesEdit.append(fname)
-                        self.inputFiles.append(str(fname))
-                else:
-                    if extension != ".newick":
-                        QMessageBox.warning(self, "Warning", "Please upload only .newick files!", QMessageBox.Ok)
-                    else:
-                        self.geneTreesEdit.append(fname)
-                        self.inputFiles.append(str(fname))
+        fname = QFileDialog.getOpenFileNames(self, 'Open file', '/')
+        if fname:
+            if self.nexus.isChecked():
+                self.geneTreesEdit.append(fname[0])
+                self.inputFiles.append(str(fname))
+            else:
+                self.geneTreesEdit.append(fname[0])
+                self.inputFiles.append(str(fname))
 
     def selectDest(self):
         """

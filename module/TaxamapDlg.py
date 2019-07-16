@@ -35,8 +35,8 @@ class TaxamapDlg(QDialog):
         self.table.setRowCount(len(self.namespace))
         self.table.setColumnCount(2)
         header = self.table.horizontalHeader()
-        header.setResizeMode(0, QHeaderView.ResizeToContents)
-        header.setResizeMode(1, QHeaderView.Stretch)
+        header.setSectionResizeMode(0, QHeaderView.ResizeToContents)
+        header.setSectionResizeMode(1, QHeaderView.Stretch)
         self.table.setHorizontalHeaderItem(0, QTableWidgetItem("taxon"))
         self.table.setHorizontalHeaderItem(1, QTableWidgetItem("species"))
 

@@ -18,10 +18,19 @@ def resource_path(relative_path):
         return os.path.join(sys._MEIPASS, relative_path)
     return os.path.join(os.path.abspath("."), relative_path)
 
-
-class Main(QMainWindow):
+class Main(QDialog):
     def __init__(self):
         super(Main, self).__init__()
+        SM = SubMain()
+        
+        mainLayout = QVBoxLayout()
+        mainLayout.addWidget(SM)
+
+        self.setLayout(mainLayout)
+
+class SubMain(QMainWindow):
+    def __init__(self):
+        super(SubMain, self).__init__()
 
         self.initUI()
 
@@ -114,12 +123,10 @@ class Main(QMainWindow):
     def openModule(self):
         self.nexGenerator = module.launcher.Launcher()
         self.nexGenerator.show()
-        self.close()
 
     def openPostProcess(self):
         self.outputSummarizer = PostProcessingModule.menu.MenuPage()
         self.outputSummarizer.show()
-        self.close()
 
 
 if __name__ == '__main__':

@@ -22,7 +22,7 @@ def resource_path(relative_path):
     return os.path.join(os.path.abspath("."), relative_path)
 
 
-class TreeMethodsPage(QMainWindow):
+class TreeMethodsPage(QWizardPage):
     def __init__(self):
         super(TreeMethodsPage, self).__init__()
 
@@ -32,16 +32,16 @@ class TreeMethodsPage(QMainWindow):
         """
         Initialize GUI.
         """
-        wid = QWidget()
-        self.setCentralWidget(wid)
+      #  wid = QWidget()
+      #  self.setCentralWidget(wid)
 
         # Menubar and action
         aboutAction = QAction('About', self)
         aboutAction.triggered.connect(self.aboutMessage)
         aboutAction.setShortcut("Ctrl+A")
 
-        menubar = self.menuBar()
-        menuMenu = menubar.addMenu('Menu')
+        self.menubar = QMenuBar(self)
+        menuMenu = self.menubar.addMenu('Menu')
         menuMenu.addAction(aboutAction)
 
         # Queston label and two options
@@ -55,15 +55,21 @@ class TreeMethodsPage(QMainWindow):
         questionLabel.setFont(questionFont)  # Font of the question label.
 
         # Drop-down menu of commands
-        self.methods = QComboBox(self)
-        self.methods.addItem("InferNetwork_MP (Parsimony)")
-        self.methods.addItem("InferNetwork_ML (Likelihood)")
-        self.methods.addItem("InferNetwork_MPL (Pseudo likelihood)")
-        self.methods.addItem("MCMC_GT (Bayesian)")
+        self.methods1 = QRadioButton("Inference under the MDC Criterion (parsimony)")
+        self.methods2 = QRadioButton("Inference under maximum likelihood")
+        self.methods3  = QRadioButton("Inference under maximum pseudo-likelihood")
+        self.methods4 = QRadioButton("Bayenesian MCMC posterior estimation")
+        self.methodgroup = QCheckBox("")
+        self.registerField("methodgroup*", self.methodgroup)
+
+        self.methods1.toggled.connect(self.onChecked)
+        self.methods2.toggled.connect(self.onChecked)
+        self.methods3.toggled.connect(self.onChecked)
+        self.methods4.toggled.connect(self.onChecked)
 
         # Launch button
-        launchBtn = QPushButton("Launch", self)
-        launchBtn.clicked.connect(self.launch)
+      #  launchBtn = QPushButton("Launch", self)
+      #  launchBtn.clicked.connect(self.launch)
 
         # Link to PhyloNet documentation page
         hyperlink = QLabel()
@@ -99,17 +105,26 @@ class TreeMethodsPage(QMainWindow):
         vbox.addLayout(top)
         vbox.addWidget(line)
         vbox.addWidget(questionLabel)
-        vbox.addWidget(self.methods)
         vbox.addWidget(hyperlink)
-        vbox.addWidget(launchBtn)
-        wid.setLayout(vbox)
+        vbox.addWidget(self.methods1)
+        vbox.addWidget(self.methods2)
+        vbox.addWidget(self.methods3)
+        vbox.addWidget(self.methods4)
+      #  vbox.addWidget(launchBtn)
+        self.setLayout(vbox)
 
         vbox.setContentsMargins(50, 10, 50, 10)
 
-        menubar.setNativeMenuBar(False)
+        self.menubar.setNativeMenuBar(False)
         self.setWindowTitle('PhyloNetNEXGenerator')
         self.setWindowIcon(QIcon(resource_path("logo.png")))
 
+    def onChecked(self):
+        """
+        Process checkbox's stateChanged signal to implement mutual exclusion.
+        """
+        self.methodgroup.setCheckState(True)
+    
     def aboutMessage(self):
         msg = QMessageBox()
         msg.setIcon(QMessageBox.Information)
@@ -140,23 +155,23 @@ class TreeMethodsPage(QMainWindow):
         """
         QDesktopServices.openUrl(QtCore.QUrl(linkStr))
 
-    def launch(self):
-        if str(self.methods.currentText()) == "InferNetwork_MP (Parsimony)":
-            self.networkMP = NetworkMP.NetworkMPPage()
-            self.networkMP.show()
-            self.close()
-        elif str(self.methods.currentText()) == "InferNetwork_ML (Likelihood)":
-            self.networkML = NetworkML.NetworkMLPage()
-            self.networkML.show()
-            self.close()
-        elif str(self.methods.currentText()) == "InferNetwork_MPL (Pseudo likelihood)":
-            self.networkMPL = NetworkMPL.NetworkMPLPage()
-            self.networkMPL.show()
-            self.close()
-        elif str(self.methods.currentText()) == "MCMC_GT (Bayesian)":
-            self.MCMCGT = MCMCGT.MCMCGTPage()
-            self.MCMCGT.show()
-            self.close()
+  #  def launch(self):
+  #      if str(self.methods.currentText()) == "InferNetwork_MP (Parsimony)":
+  #          self.networkMP = NetworkMP.NetworkMPPage()
+  #          self.networkMP.show()
+  #          self.close()
+  #      elif str(self.methods.currentText()) == "InferNetwork_ML (Likelihood)":
+  #          self.networkML = NetworkML.NetworkMLPage()
+  #          self.networkML.show()
+  #          self.close()
+  #      elif str(self.methods.currentText()) == "InferNetwork_MPL (Pseudo likelihood)":
+  #          self.networkMPL = NetworkMPL.NetworkMPLPage()
+  #          self.networkMPL.show()
+  #          self.close()
+  #      elif str(self.methods.currentText()) == "MCMC_GT (Bayesian)":
+  #          self.MCMCGT = MCMCGT.MCMCGTPage()
+  #          self.MCMCGT.show()
+  #          self.close()
 
 
 

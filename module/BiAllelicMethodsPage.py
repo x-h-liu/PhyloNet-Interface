@@ -20,7 +20,7 @@ def resource_path(relative_path):
     return os.path.join(os.path.abspath("."), relative_path)
 
 
-class BiAllelicMethodsPage(QMainWindow):
+class BiAllelicMethodsPage(QWizardPage):
     def __init__(self):
         super(BiAllelicMethodsPage, self).__init__()
 
@@ -30,16 +30,16 @@ class BiAllelicMethodsPage(QMainWindow):
         """
         Initialize GUI.
         """
-        wid = QWidget()
-        self.setCentralWidget(wid)
+      #  wid = QWidget()
+      #  self.setCentralWidget(wid)
 
         # Menubar and action
         aboutAction = QAction('About', self)
         aboutAction.triggered.connect(self.aboutMessage)
         aboutAction.setShortcut("Ctrl+A")
 
-        menubar = self.menuBar()
-        menuMenu = menubar.addMenu('Menu')
+        self.menubar = QMenuBar(self)
+        menuMenu = self.menubar.addMenu('Menu')
         menuMenu.addAction(aboutAction)
 
         # Queston label and two options
@@ -99,11 +99,11 @@ class BiAllelicMethodsPage(QMainWindow):
         vbox.addWidget(self.methods)
         vbox.addWidget(hyperlink)
         vbox.addWidget(launchBtn)
-        wid.setLayout(vbox)
+        self.setLayout(vbox)
 
         vbox.setContentsMargins(50, 10, 50, 10)
 
-        menubar.setNativeMenuBar(False)
+        self.menubar.setNativeMenuBar(False)
         self.setWindowTitle('PhyloNetNEXGenerator')
         self.setWindowIcon(QIcon(resource_path("logo.png")))
 

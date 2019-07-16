@@ -23,9 +23,153 @@ def resource_path(relative_path):
     return os.path.join(os.path.abspath("."), relative_path)
 
 
-class NetworkMPPage(QMainWindow):
+class NetworkMPPage(QWizardPage):
     def __init__(self):
+
         super(NetworkMPPage, self).__init__()
+
+        self.inputFiles = []
+        self.geneTreeNames = []
+        self.taxamap = {}
+
+        self.initUI()
+   
+    def initUI(self):
+        """
+        Initialize GUI.
+        """
+      #  wid = QWidget()
+      #  scroll = QScrollArea()
+      #  self.setCentralWidget(scroll)
+
+        # Menubar and action
+        aboutAction = QAction('About', self)
+        aboutAction.triggered.connect(self.aboutMessage)
+        aboutAction.setShortcut("Ctrl+A")
+
+        self.menubar = QMenuBar(self)
+        menuMenu = self.menubar.addMenu('Menu')
+        menuMenu.addAction(aboutAction)
+
+        # Title (InferNetwork_MP)
+        titleLabel = QLabel()
+        titleLabel.setText("InferNetwork_MP")
+
+        titleFont = QFont()
+        titleFont.setPointSize(24)
+        titleFont.setFamily("Helvetica")
+        titleFont.setBold(True)
+        titleLabel.setFont(titleFont)
+
+        hyperlink = QLabel()
+        hyperlink.setText('Details of this method can be found '
+                          '<a href="https://wiki.rice.edu/confluence/display/PHYLONET/InferNetwork_MP">'
+                          'here</a>.')
+        hyperlink.linkActivated.connect(self.link)
+
+        # Separation lines
+        line1 = QFrame(self)
+        line1.setFrameShape(QFrame.HLine)
+        line1.setFrameShadow(QFrame.Sunken)
+
+        # Two subtitles (mandatory and optional commands)
+        mandatoryLabel = QLabel()
+        mandatoryLabel.setText("Input Data")
+
+        subTitleFont = QFont()
+        subTitleFont.setPointSize(18)
+        subTitleFont.setFamily("Times New Roman")
+        subTitleFont.setBold(True)
+        mandatoryLabel.setFont(subTitleFont)
+
+        # Mandatory parameter labels
+        geneTreeFileLbl = QLabel("Gene tree files:")
+        numReticulationsLbl = QLabel("Maximum number of reticulations to add:")
+
+        # Mandatory parameter inputs
+        self.geneTreesEdit = QLineEdit()
+        self.geneTreesEdit.setReadOnly(True)
+
+        fileSelctionBtn = QToolButton()
+        fileSelctionBtn.setText("Browse")
+        fileSelctionBtn.clicked.connect(self.selectFile)
+
+        self.numReticulationsEdit = QLineEdit()
+
+        # Layouts
+        # Layout of each parameter (label and input)
+        fileFormatLayout = QVBoxLayout()
+        fileFormatLayout.addWidget(geneTreeFileLbl)
+        geneTreeFileLayout = QHBoxLayout()
+        geneTreeFileLayout.addLayout(fileFormatLayout)
+        geneTreeFileLayout.addWidget(self.geneTreesEdit)
+        geneTreeFileLayout.addWidget(fileSelctionBtn)
+
+        numReticulationsLayout = QHBoxLayout()
+        numReticulationsLayout.addWidget(numReticulationsLbl)
+        numReticulationsLayout.addWidget(self.numReticulationsEdit)
+
+        # Main layout
+        topLevelLayout = QVBoxLayout()
+        topLevelLayout.addWidget(titleLabel)
+        topLevelLayout.addWidget(hyperlink)
+        topLevelLayout.addWidget(line1)
+        topLevelLayout.addWidget(mandatoryLabel)
+        topLevelLayout.addLayout(geneTreeFileLayout)
+        topLevelLayout.addLayout(numReticulationsLayout)
+
+        # Scroll bar
+        self.setLayout(topLevelLayout)
+      #  scroll.setWidget(wid)
+      #  scroll.setWidgetResizable(True)
+      #  scroll.setMinimumWidth(695)
+      #  scroll.setMinimumHeight(750)
+
+        self.menubar.setNativeMenuBar(False)
+        self.setWindowTitle('PhyloNetNEXGenerator')
+        self.setWindowIcon(QIcon(resource_path("logo.png")))
+
+    def aboutMessage(self):
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Information)
+        msg.setText("Infers a species network(s) with a specified number of reticulation nodes under MDC criterion "
+                    "using parsimony-based method. The reticulation nodes in the inferred network will have inferred "
+                    "inheritance probabilities associated with them. To find the optimal network, steepest descent is "
+                    "used. The species network and gene trees must be specified in the Rich Newick Format. However, "
+                    "only topologies of them are used in the method.")
+        font = QFont()
+        font.setPointSize(13)
+        font.setFamily("Times New Roman")
+        font.setBold(False)
+
+        msg.setFont(font)
+        msg.exec_()
+
+    def link(self, linkStr):
+        """
+        Open the website of PhyloNet if user clicks on the hyperlink.
+        """
+        QDesktopServices.openUrl(QtCore.QUrl(linkStr))
+
+    def selectFile(self):
+        """
+        Store all the user uploaded gene tree files.
+        Execute when file selection button is clicked.
+        """
+        fname = QFileDialog.getOpenFileNames(self, 'Open file', '/', 'Nexus files (*.nexus *.nex);;Newick files (*.newick)')
+        if fname[1] == 'Nexus files (*.nexus *.nex)':
+            self.geneTreesEdit.insert(fname[0])
+            self.inputFiles.append(str(fname[0]))
+        elif fname[1] == 'Newick files (*.newick)':
+            self.geneTreesEdit.insert(fname[0])
+            self.inputFiles.append(str(fname[0]))
+        else:
+            return
+
+class NetworkMPPage2(QWizardPage):
+    def __init__(self):
+
+        super(NetworkMPPage2, self).__init__()
 
         self.inputFiles = []
         self.geneTreeNames = []
@@ -37,17 +181,17 @@ class NetworkMPPage(QMainWindow):
         """
         Initialize GUI.
         """
-        wid = QWidget()
-        scroll = QScrollArea()
-        self.setCentralWidget(scroll)
+      #  wid = QWidget()
+      #  scroll = QScrollArea()
+      #  self.setCentralWidget(scroll)
 
         # Menubar and action
         aboutAction = QAction('About', self)
         aboutAction.triggered.connect(self.aboutMessage)
         aboutAction.setShortcut("Ctrl+A")
 
-        menubar = self.menuBar()
-        menuMenu = menubar.addMenu('Menu')
+        self.menubar = QMenuBar(self)
+        menuMenu = self.menubar.addMenu('Menu')
         menuMenu.addAction(aboutAction)
 
         # Title (InferNetwork_MP)
@@ -75,44 +219,15 @@ class NetworkMPPage(QMainWindow):
         line2.setFrameShape(QFrame.HLine)
         line2.setFrameShadow(QFrame.Sunken)
 
-        line3 = QFrame(self)
-        line3.setFrameShape(QFrame.HLine)
-        line3.setFrameShadow(QFrame.Sunken)
-
         # Two subtitles (mandatory and optional commands)
-        mandatoryLabel = QLabel()
-        mandatoryLabel.setText("Mandatory commands")
         optionalLabel = QLabel()
-        optionalLabel.setText("Optional commands")
+        optionalLabel.setText("Input Options")
 
         subTitleFont = QFont()
         subTitleFont.setPointSize(18)
         subTitleFont.setFamily("Times New Roman")
         subTitleFont.setBold(True)
-        mandatoryLabel.setFont(subTitleFont)
         optionalLabel.setFont(subTitleFont)
-
-        # Mandatory parameter labels
-        geneTreeFileLbl = QLabel("Gene tree files:")
-        self.nexus = QCheckBox(".nexus")
-        self.nexus.setObjectName("nexus")
-        self.newick = QCheckBox(".newick")
-        self.newick.setObjectName("newick")
-        self.nexus.stateChanged.connect(self.format)
-        self.newick.stateChanged.connect(self.format)  # Implement mutually exclusive check boxes
-
-        numReticulationsLbl = QLabel("Maximum number of reticulations to add:")
-
-        # Mandatory parameter inputs
-        self.geneTreesEdit = QTextEdit()
-        self.geneTreesEdit.setFixedHeight(50)
-        self.geneTreesEdit.setReadOnly(True)
-
-        fileSelctionBtn = QToolButton()
-        fileSelctionBtn.setText("...")
-        fileSelctionBtn.clicked.connect(self.selectFile)
-
-        self.numReticulationsEdit = QLineEdit()
 
         # Optional parameter labels
         self.thresholdLbl = QCheckBox("Gene trees bootstrap threshold:", self)
@@ -221,7 +336,7 @@ class NetworkMPPage(QMainWindow):
         self.outDestEdit = QLineEdit()
         self.outDestEdit.setReadOnly(True)
         self.outDestBtn = QToolButton()
-        self.outDestBtn.setText("...")
+        self.outDestBtn.setText("Browse")
         self.outDestBtn.clicked.connect(self.selectNEXDest)
 
         # Launch button
@@ -230,19 +345,6 @@ class NetworkMPPage(QMainWindow):
 
         # Layouts
         # Layout of each parameter (label and input)
-        fileFormatLayout = QVBoxLayout()
-        fileFormatLayout.addWidget(geneTreeFileLbl)
-        fileFormatLayout.addWidget(self.nexus)
-        fileFormatLayout.addWidget(self.newick)
-        geneTreeFileLayout = QHBoxLayout()
-        geneTreeFileLayout.addLayout(fileFormatLayout)
-        geneTreeFileLayout.addWidget(self.geneTreesEdit)
-        geneTreeFileLayout.addWidget(fileSelctionBtn)
-
-        numReticulationsLayout = QHBoxLayout()
-        numReticulationsLayout.addWidget(numReticulationsLbl)
-        numReticulationsLayout.addWidget(self.numReticulationsEdit)
-
         thresholdLayout = QHBoxLayout()
         thresholdLayout.addWidget(self.thresholdLbl)
         thresholdLayout.addStretch(1)
@@ -318,11 +420,7 @@ class NetworkMPPage(QMainWindow):
         topLevelLayout.addWidget(titleLabel)
         topLevelLayout.addWidget(hyperlink)
         topLevelLayout.addWidget(line1)
-        topLevelLayout.addWidget(mandatoryLabel)
-        topLevelLayout.addLayout(geneTreeFileLayout)
-        topLevelLayout.addLayout(numReticulationsLayout)
-
-        topLevelLayout.addWidget(line2)
+        
         topLevelLayout.addWidget(optionalLabel)
         topLevelLayout.addLayout(thresholdLayout)
         topLevelLayout.addLayout(taxamapLayout)
@@ -338,20 +436,21 @@ class NetworkMPPage(QMainWindow):
         topLevelLayout.addLayout(diLayout)
         topLevelLayout.addLayout(fileDestLayout)
 
-        topLevelLayout.addWidget(line3)
+        topLevelLayout.addWidget(line2)
         topLevelLayout.addLayout(outDestLayout)
         topLevelLayout.addLayout(btnLayout)
 
         # Scroll bar
-        wid.setLayout(topLevelLayout)
-        scroll.setWidget(wid)
-        scroll.setWidgetResizable(True)
-        scroll.setMinimumWidth(695)
-        scroll.setMinimumHeight(750)
+        self.setLayout(topLevelLayout)
+      #  scroll.setWidget(wid)
+      #  scroll.setWidgetResizable(True)
+      #  scroll.setMinimumWidth(695)
+      #  scroll.setMinimumHeight(750)
 
-        menubar.setNativeMenuBar(False)
+        self.menubar.setNativeMenuBar(False)
         self.setWindowTitle('PhyloNetNEXGenerator')
         self.setWindowIcon(QIcon(resource_path("logo.png")))
+
 
     def __inverseMapping(self, map):
         """
@@ -364,6 +463,7 @@ class NetworkMPPage(QMainWindow):
             else:
                 o[v] = [k]
         return o
+
 
     def aboutMessage(self):
         msg = QMessageBox()
@@ -380,7 +480,6 @@ class NetworkMPPage(QMainWindow):
 
         msg.setFont(font)
         msg.exec_()
-
     def onChecked(self):
         """
         When user clicks the checkbox for an optional command,
@@ -451,6 +550,7 @@ class NetworkMPPage(QMainWindow):
         else:
             pass
 
+
     def link(self, linkStr):
         """
         Open the website of PhyloNet if user clicks on the hyperlink.
@@ -480,30 +580,6 @@ class NetworkMPPage(QMainWindow):
                 self.inputFiles = []
                 self.geneTreeNames = []
                 self.taxamap = {}
-
-    def selectFile(self):
-        """
-        Store all the user uploaded gene tree files.
-        Execute when file selection button is clicked.
-        """
-        if (not self.newick.isChecked()) and (not self.nexus.isChecked()):
-            QMessageBox.warning(self, "Warning", "Please select a file type.", QMessageBox.Ok)
-        else:
-            fname = QFileDialog.getOpenFileName(self, 'Open file', '/')
-            if fname:
-                extension = os.path.splitext(str(fname))[1]
-                if self.nexus.isChecked():
-                    if extension != ".nexus" and extension != ".nex":
-                        QMessageBox.warning(self, "Warning", "Please upload only .nexus files!", QMessageBox.Ok)
-                    else:
-                        self.geneTreesEdit.append(fname)
-                        self.inputFiles.append(str(fname))
-                else:
-                    if extension != ".newick":
-                        QMessageBox.warning(self, "Warning", "Please upload only .newick files!", QMessageBox.Ok)
-                    else:
-                        self.geneTreesEdit.append(fname)
-                        self.inputFiles.append(str(fname))
 
     def selectDest(self):
         """

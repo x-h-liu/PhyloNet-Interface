@@ -20,7 +20,7 @@ def resource_path(relative_path):
     return os.path.join(os.path.abspath("."), relative_path)
 
 
-class SecondPage(QMainWindow):
+class SecondPage(QWizardPage):
     def __init__(self):
         super(SecondPage, self).__init__()
 
@@ -30,16 +30,16 @@ class SecondPage(QMainWindow):
         """
         Initialize GUI.
         """
-        wid = QWidget()
-        self.setCentralWidget(wid)
+       # wid = QWidget()
+       # self.setCentralWidget(wid)
 
         # Menubar and action
         aboutAction = QAction('About', self)
         aboutAction.triggered.connect(self.aboutMessage)
         aboutAction.setShortcut("Ctrl+A")
 
-        menubar = self.menuBar()
-        menuMenu = menubar.addMenu('Menu')
+        self.menubar = QMenuBar(self)
+        menuMenu = self.menubar.addMenu('Menu')
         menuMenu.addAction(aboutAction)
 
         # Queston label and two options
@@ -93,11 +93,11 @@ class SecondPage(QMainWindow):
         vbox.addWidget(questionLabel)
         vbox.addSpacing(20)
         vbox.addLayout(buttonBox)
-        wid.setLayout(vbox)
+        self.setLayout(vbox)
 
         vbox.setContentsMargins(50, 10, 50, 10)
 
-        menubar.setNativeMenuBar(False)
+        self.menubar.setNativeMenuBar(False)
         self.setWindowTitle('PhyloNetNEXGenerator')
         self.setWindowIcon(QIcon(resource_path("logo.png")))
 
