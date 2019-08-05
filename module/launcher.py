@@ -36,17 +36,18 @@ class Launcher(QtWidgets.QWizard):
     Page_DirectInf4 = 7
     Page_NetworkMP = 8
     Page_NetworkMP2 = 9
-    Page_NetworkML = 10
-    Page_NetworkML2 = 11
-    Page_NetworkMPL = 12
-    Page_MCMCGT = 13
+    Page_NetworkMP3 = 10
+    Page_NetworkMP4 = 11
+    Page_NetworkML = 12
+    Page_NetworkML2 = 13
+    Page_NetworkMPL = 14
+    Page_MCMCGT = 15
 
 
     def __init__(self):
         super(Launcher, self).__init__()
 
-        self.setDefaultProperty("QTextEdit", "toPlainText", QtWidgets.QTextEdit.textChanged)
-        
+        self.setDefaultProperty("QTextEdit", "plainText", QtWidgets.QTextEdit.textChanged)
         self.Intro = IntroPage()
         self.BiAllelic = BiAllelicMethodsPage.BiAllelicMethodsPage()
         self.DirectInf = MCMCSEQ.MCMCSEQPage1(parent=self)
@@ -56,6 +57,8 @@ class Launcher(QtWidgets.QWizard):
         self.GeneTreeEst = TreeMethodsPage.TreeMethodsPage()
         self.NetworkMP = NetworkMP.NetworkMPPage()
         self.NetworkMP2 = NetworkMP.NetworkMPPage2()
+        self.NetworkMP3 = NetworkMP.NetworkMPPage3()
+        self.NetworkMP4 = NetworkMP.NetworkMPPage4()
         self.NetworkML = NetworkML.NetworkMLPage()
         self.NetworkML2 = NetworkML.NetworkMLPage2()
         self.NetworkMPL = NetworkMPL.NetworkMPLPage()
@@ -75,6 +78,8 @@ class Launcher(QtWidgets.QWizard):
         self.setPage(self.Page_MCMCGT, self.MCMCGT)
         self.setPage(self.Page_NetworkMP2, self.NetworkMP2)
         self.setPage(self.Page_NetworkML2, self.NetworkML2)
+        self.setPage(self.Page_NetworkMP3, self.NetworkMP3)
+        self.setPage(self.Page_NetworkMP4, self.NetworkMP4)
 
         self.initUI()
 
@@ -126,6 +131,10 @@ class Launcher(QtWidgets.QWizard):
             return self.Page_NetworkMP2
         elif id == Launcher.Page_NetworkML:
             return self.Page_NetworkML2
+        elif id == Launcher.Page_NetworkMP2:
+            return self.Page_NetworkMP3
+        elif id == Launcher.Page_NetworkMP3:
+            return self.Page_NetworkMP4
         else:    
             return -1
 
