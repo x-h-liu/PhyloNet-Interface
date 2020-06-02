@@ -1235,11 +1235,11 @@ class MCMCSEQPage4(QWizardPage):
                     data.extend(currentFile)
 
                 # Write out TREES block.
-                path = str(directory[0]) + ".nexus"
+                path = str(directory[0])
                 data.write(path=path, schema="nexus", suppress_taxa_blocks=True, unquoted_underscores=True)
             else:
                 # If not, just create a file to write.
-                path = str(directory[0]) + ".nexus"
+                path = str(directory[0])
             with open(path, "a") as outputFile:
                 # Write #NEXUS or not depends on the existence of TREES block.
                 if self.sgtFileLbl.isChecked() and (self.sgtNexus.isChecked() or self.sgtNewick.isChecked()):
