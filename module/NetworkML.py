@@ -199,21 +199,23 @@ class NetworkMLPage(QWizardPage):
         if (not self.newick.isChecked()) and (not self.nexus.isChecked()):
             QMessageBox.warning(self, "Warning", "Please select a file type.", QMessageBox.Ok)
         else:
-            fname = QFileDialog.getOpenFileName(self, 'Open file', '/')
+            fname = QFileDialog.getOpenFileNames(self, 'Open file', '/', 'Nexus files (*.nexus *.nex);;Newick files (*.newick)')
             if fname:
-                extension = os.path.splitext(str(fname))[1]
+                extension = fname[1]
                 if self.nexus.isChecked():
-                    if extension != ".nexus" and extension != ".nex":
+                    if extension != 'Nexus files (*.nexus *.nex)':
                         QMessageBox.warning(self, "Warning", "Please upload only .nexus files!", QMessageBox.Ok)
                     else:
-                        self.geneTreesEdit.append(fname)
-                        self.inputFiles.append(str(fname))
+                        for onefname in fname[0]:
+                            self.geneTreesEdit.append(onefname)
+                            self.inputFiles.append(str(onefname))
                 else:
-                    if extension != ".newick":
+                    if extension != 'Newick files (*.newick)':
                         QMessageBox.warning(self, "Warning", "Please upload only .newick files!", QMessageBox.Ok)
                     else:
-                        self.geneTreesEdit.append(fname)
-                        self.inputFiles.append(str(fname))
+                        for onefname in fname[0]:
+                            self.geneTreesEdit.append(onefname)
+                            self.inputFiles.append(str(onefname))
 
 class NetworkMLPage2(QWizardPage):
     def __init__(self):
