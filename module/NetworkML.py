@@ -795,7 +795,9 @@ class NetworkMLPage2(QWizardPage):
     def generate(self):
         """
         Generate NEXUS file based on user input.
-        """
+        """ 
+        directory = QFileDialog.getSaveFileName(self, "Save File", "/", "Nexus Files (*.nexus)")
+        
         class emptyFileError(Exception):
             pass
 
@@ -850,7 +852,7 @@ class NetworkMLPage2(QWizardPage):
                 raise Exception("No tree data found in data file")
 
             # Write out TREES block.
-            #path = str(self.outDestEdit.text()) + "/" + str(datetime.datetime.now().strftime('%H-%M-%S')) + ".nexus"
+            path = str(directory[0])
             data.write(path=path, schema="nexus", suppress_taxa_blocks=True, unquoted_underscores=True)
 
             # Ready to write PHYLONET block.
