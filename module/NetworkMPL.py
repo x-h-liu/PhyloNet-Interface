@@ -197,9 +197,6 @@ class NetworkMPLPage(QWizardPage):
         self.diLbl = QCheckBox("Output Rich Newick string that can be read by Dendroscope.")
         self.diLbl.stateChanged.connect(self.onChecked)
 
-        self.fileDestLbl = QCheckBox("Specify file destination for command output:")
-        self.fileDestLbl.setObjectName("resultOutputFile")
-        self.fileDestLbl.stateChanged.connect(self.onChecked)
 
         # Optional parameter inputs
         self.thresholdEdit = QLineEdit()
@@ -267,13 +264,6 @@ class NetworkMPLPage(QWizardPage):
         self.numProcEdit = QLineEdit()
         self.numProcEdit.setDisabled(True)
         self.numProcEdit.setPlaceholderText("1")
-
-        self.fileDestEdit = QLineEdit()
-        self.fileDestEdit.setDisabled(True)
-        self.fileDestBtn = QToolButton()
-        self.fileDestBtn.setText("...")
-        self.fileDestBtn.setDisabled(True)
-        self.fileDestBtn.clicked.connect(self.selectDest)
 
         # Launch button
         launchBtn = QPushButton("Generate", self)
@@ -386,10 +376,6 @@ class NetworkMPLPage(QWizardPage):
         diLayout = QHBoxLayout()
         diLayout.addWidget(self.diLbl)
 
-        fileDestLayout = QHBoxLayout()
-        fileDestLayout.addWidget(self.fileDestLbl)
-        fileDestLayout.addWidget(self.fileDestEdit)
-        fileDestLayout.addWidget(self.fileDestBtn)
 
         btnLayout = QHBoxLayout()
         btnLayout.addStretch(1)
@@ -426,7 +412,6 @@ class NetworkMPLPage(QWizardPage):
         topLevelLayout.addLayout(maxBlLayout)
         topLevelLayout.addLayout(numProcLayout)
         topLevelLayout.addLayout(diLayout)
-        topLevelLayout.addLayout(fileDestLayout)
 
         topLevelLayout.addWidget(line3)
         topLevelLayout.addLayout(btnLayout)
@@ -569,13 +554,6 @@ class NetworkMPLPage(QWizardPage):
                 self.numProcEdit.setDisabled(True)
             else:
                 self.numProcEdit.setDisabled(False)
-        elif self.sender().objectName() == "resultOutputFile":
-            if self.fileDestEdit.isEnabled():
-                self.fileDestEdit.setDisabled(True)
-                self.fileDestBtn.setDisabled(True)
-            else:
-                self.fileDestEdit.setDisabled(False)
-                self.fileDestBtn.setDisabled(False)
         else:
             pass
 
@@ -614,22 +592,18 @@ class NetworkMPLPage(QWizardPage):
         Store all the user uploaded gene tree files.
         Execute when file selection button is clicked.
         """
-        fname = QFileDialog.getOpenFileNames(self, 'Open file', '/')
+        fname = QFileDialog.getOpenFileNames(self, 'Open file', '/', 'Nexus files (*.nexus *.nex);;Newick files (*.newick)')
         if fname:
-            if self.nexus.isChecked():
-                self.geneTreesEdit.append(fname[0])
-                self.inputFiles.append(str(fname))
+            if fname[1] == 'Nexus files (*.nexus *.nex)':
+                for onefname in fname[0]:
+                    self.geneTreesEdit.append(str(onefname))
+                    self.inputFiles.append(str(onefname))
+            elif fname[1] == 'Newick files (*.newick)':
+                for onefname in fname[0]:
+                    self.geneTreesEdit.append(str(onefname))
+                    self.inputFiles.append(str(onefname))
             else:
-                self.geneTreesEdit.append(fname[0])
-                self.inputFiles.append(str(fname))
-
-    def selectDest(self):
-        """
-        Select and store destination for PhyloNet output.
-        """
-        fname = QFileDialog.getOpenFileName(self, 'Open file', '/')
-        if fname:
-            self.fileDestEdit.setText(fname)
+                return
 
     def getTaxamap(self):
         """
@@ -702,7 +676,7 @@ class NetworkMPLPage(QWizardPage):
                 raise emptyFileError
             if len(self.inputFiles) == 0:
                 raise emptyFileError
-            if self.numReticulationsEdit.text().isEmpty():
+            if self.numReticulationsEdit.text() == "":
                 raise emptyNumReticulationError
 
             # the file format to read
@@ -822,7 +796,7 @@ class NetworkMPLPage(QWizardPage):
 
                 # -b threshold command
                 if self.thresholdLbl.isChecked():
-                    if self.thresholdEdit.text().isEmpty():
+                    if self.thresholdEdit.text() == "":
                         pass
                     else:
                         outputFile.write(" -b ")
@@ -830,7 +804,7 @@ class NetworkMPLPage(QWizardPage):
 
                 # -s startingNetwork command
                 if self.sNetLbl.isChecked():
-                    if self.sNetEdit.text().isEmpty():
+                    if self.sNetEdit.text() == "":
                         pass
                     else:
                         outputFile.write(" -s ")
@@ -838,7 +812,7 @@ class NetworkMPLPage(QWizardPage):
 
                 # -n numNetReturned command
                 if self.nNetRetLbl.isChecked():
-                    if self.nNetRetEdit.text().isEmpty():
+                    if self.nNetRetEdit.text() == "":
                         pass
                     else:
                         outputFile.write(" -n ")
@@ -846,7 +820,7 @@ class NetworkMPLPage(QWizardPage):
 
                 # -h {s1 [, s2...]} command
                 if self.hybridLbl.isChecked():
-                    if self.hybridEdit.text().isEmpty():
+                    if self.hybridEdit.text() == "":
                         pass
                     else:
                         outputFile.write(" -h ")
@@ -854,7 +828,7 @@ class NetworkMPLPage(QWizardPage):
 
                 # -w (w1, ..., w6) command
                 if self.wetOpLbl.isChecked():
-                    if self.wetOpEdit.text().isEmpty():
+                    if self.wetOpEdit.text() == "":
                         pass
                     else:
                         outputFile.write(" -w ")
@@ -862,7 +836,7 @@ class NetworkMPLPage(QWizardPage):
 
                 # -x numRuns command
                 if self.numRunLbl.isChecked():
-                    if self.numRunEdit.text().isEmpty():
+                    if self.numRunEdit.text() == "":
                         pass
                     else:
                         outputFile.write(" -x ")
@@ -870,7 +844,7 @@ class NetworkMPLPage(QWizardPage):
 
                 # -m maxNetExamined command
                 if self.nNetExamLbl.isChecked():
-                    if self.nNetExamEdit.text().isEmpty():
+                    if self.nNetExamEdit.text() == "":
                         pass
                     else:
                         outputFile.write(" -m ")
@@ -878,7 +852,7 @@ class NetworkMPLPage(QWizardPage):
 
                 # -md maxDiameter command
                 if self.maxDiaLbl.isChecked():
-                    if self.maxDiaEdit.text().isEmpty():
+                    if self.maxDiaEdit.text() == "":
                         pass
                     else:
                         outputFile.write(" -md ")
@@ -886,7 +860,7 @@ class NetworkMPLPage(QWizardPage):
 
                 # -rd reticulationDiameter command
                 if self.retDiaLbl.isChecked():
-                    if self.retDiaEdit.text().isEmpty():
+                    if self.retDiaEdit.text() == "":
                         pass
                     else:
                         outputFile.write(" -rd ")
@@ -894,7 +868,7 @@ class NetworkMPLPage(QWizardPage):
 
                 # -f maxFailure command
                 if self.maxFLbl.isChecked():
-                    if self.maxFEdit.text().isEmpty():
+                    if self.maxFEdit.text() == "":
                         pass
                     else:
                         outputFile.write(" -f ")
@@ -910,7 +884,7 @@ class NetworkMPLPage(QWizardPage):
 
                 # -p command
                 if self.stopCriterionLbl.isChecked():
-                    if self.stopCriterionEdit.text().isEmpty():
+                    if self.stopCriterionEdit.text() == "":
                         pass
                     else:
                         outputFile.write(" -p ")
@@ -918,7 +892,7 @@ class NetworkMPLPage(QWizardPage):
 
                 # -r command
                 if self.maxRoundLbl.isChecked():
-                    if self.maxRoundEdit.text().isEmpty():
+                    if self.maxRoundEdit.text() == "":
                         pass
                     else:
                         outputFile.write(" -r ")
@@ -926,7 +900,7 @@ class NetworkMPLPage(QWizardPage):
 
                 # -t command
                 if self.maxTryPerBrLbl.isChecked():
-                    if self.maxTryPerBrEdit.text().isEmpty():
+                    if self.maxTryPerBrEdit.text() == "":
                         pass
                     else:
                         outputFile.write(" -t ")
@@ -934,7 +908,7 @@ class NetworkMPLPage(QWizardPage):
 
                 # -i command
                 if self.improveThresLbl.isChecked():
-                    if self.maxTryPerBrEdit.text().isEmpty():
+                    if self.maxTryPerBrEdit.text() == "":
                         pass
                     else:
                         outputFile.write(" -i ")
@@ -942,7 +916,7 @@ class NetworkMPLPage(QWizardPage):
 
                 # -l command
                 if self.maxBlLbl.isChecked():
-                    if self.maxBlEdit.text().isEmpty():
+                    if self.maxBlEdit.text() == "":
                         pass
                     else:
                         outputFile.write(" -l ")
@@ -950,7 +924,7 @@ class NetworkMPLPage(QWizardPage):
 
                 # -pl numProcessors command
                 if self.numProcLbl.isChecked():
-                    if self.numProcEdit.text().isEmpty():
+                    if self.numProcEdit.text() == "":
                         pass
                     else:
                         outputFile.write(" -pl ")
@@ -960,15 +934,6 @@ class NetworkMPLPage(QWizardPage):
                 if self.diLbl.isChecked():
                     outputFile.write(" -di")
 
-                # resultOutputFile command
-                if self.fileDestLbl.isChecked():
-                    if self.fileDestEdit.text().isEmpty():
-                        pass
-                    else:
-                        outputFile.write(" ")
-                        outputFile.write('"')
-                        outputFile.write(self.fileDestEdit.text())
-                        outputFile.write('"')
 
                 # End of NEXUS
                 outputFile.write(";\n\n")
@@ -1008,7 +973,7 @@ class NetworkMPLPage(QWizardPage):
         """
         try:
             subprocess.check_output(
-                ["java", "-jar", resource_path("testphylonet.jar"),
+                ["java", "-jar", resource_path("module/testphylonet.jar"),
                  filePath, "checkParams"], stderr=subprocess.STDOUT)
         except subprocess.CalledProcessError as e:
             # If an error is encountered, delete the generated file and display the error to user.
