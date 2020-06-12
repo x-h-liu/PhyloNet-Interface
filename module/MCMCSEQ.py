@@ -833,6 +833,7 @@ class MCMCSEQPage4(QWizardPage):
         self.GTR = GTR
         self.nchar = nchar
         self.loci = loci
+        self.taxamap = taxamap
         self.initUI()
 
     def initUI(self):
@@ -1041,6 +1042,19 @@ class MCMCSEQPage4(QWizardPage):
         self.setWindowTitle('PhyloNetNEXGenerator')
         self.setWindowIcon(QIcon(resource_path("logo.png")))
 
+    
+    def __inverseMapping(self, map):
+        """
+        Convert a mapping from taxon to species to a mapping from species to a list of taxon.
+        """
+        o = {}
+        for k, v in map.items():
+            if v in o:
+                o[v].append(k)
+            else:
+                o[v] = [k]
+        return o
+        
     def aboutMessage(self):
 
         msg = QMessageBox()

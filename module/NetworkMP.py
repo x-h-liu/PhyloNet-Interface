@@ -461,7 +461,6 @@ class NetworkMPPage2(QWizardPage):
         """
         class emptyFileError(Exception):
             pass
-
         try:
             if len(self.inputFiles) == 0:
                 raise emptyFileError
