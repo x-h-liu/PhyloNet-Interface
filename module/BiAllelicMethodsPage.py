@@ -38,25 +38,15 @@ class BiAllelicMethodsPage(QWizardPage):
         aboutAction.triggered.connect(self.aboutMessage)
         aboutAction.setShortcut("Ctrl+A")
 
-        self.menubar = QMenuBar(self)
-        menuMenu = self.menubar.addMenu('Menu')
-        menuMenu.addAction(aboutAction)
-
         # Queston label and two options
         questionLabel = QLabel()
+        questionLabel.setObjectName("questionLabel")
         questionLabel.setText("Please select a method:")
-        questionLabel.setWordWrap(True)
-
-        questionFont = QFont()
-        questionFont.setPointSize(24)
-        questionFont.setFamily("Copperplate")
-        questionLabel.setFont(questionFont)  # Font of the question label.
 
         # Drop-down menu of commands
         self.methods = QComboBox(self)
         self.methods.addItem("MCMC_BiMarkers (Bayesian)")
         self.methods.addItem("MLE_BiMarkers (Pseudo likelihood)")
-
 
         # Launch button
         launchBtn = QPushButton("Launch", self)
@@ -69,32 +59,10 @@ class BiAllelicMethodsPage(QWizardPage):
                           'here</a>')
         hyperlink.linkActivated.connect(self.link)
 
-        # Image and Title
-        pix = QPixmap(resource_path("logo.png"))
-        image = QLabel(self)
-        image.setPixmap(pix)
-        lbl = QLabel("PhyloNet")
-
-        titleFont = QFont()
-        titleFont.setPointSize(24)
-        titleFont.setBold(True)
-        lbl.setFont(titleFont)  # Font of the PhyloNet title.
-
-        # Separation line
-        line = QFrame(self)
-        line.setFrameShape(QFrame.HLine)
-        line.setFrameShadow(QFrame.Sunken)
-
         # Layouts
-        # Top level logo and title.
-        top = QHBoxLayout()
-        top.addWidget(image)
-        top.addWidget(lbl)
 
         # Main vertical layout.
         vbox = QVBoxLayout()
-        vbox.addLayout(top)
-        vbox.addWidget(line)
         vbox.addWidget(questionLabel)
         vbox.addWidget(self.methods)
         vbox.addWidget(hyperlink)
@@ -103,7 +71,6 @@ class BiAllelicMethodsPage(QWizardPage):
 
         vbox.setContentsMargins(50, 10, 50, 10)
 
-        self.menubar.setNativeMenuBar(False)
         self.setWindowTitle('PhyloNetNEXGenerator')
         self.setWindowIcon(QIcon(resource_path("logo.png")))
 

@@ -9,6 +9,8 @@ from module import NetworkML
 from module import NetworkMPL
 from module import MCMCGT
 
+from functions import *
+
 
 def resource_path(relative_path):
     """
@@ -40,24 +42,17 @@ class TreeMethodsPage(QWizardPage):
         aboutAction.triggered.connect(self.aboutMessage)
         aboutAction.setShortcut("Ctrl+A")
 
-        self.menubar = QMenuBar(self)
-        menuMenu = self.menubar.addMenu('Menu')
-        menuMenu.addAction(aboutAction)
-
         # Queston label and two options
         questionLabel = QLabel()
         questionLabel.setText("Please select a method:")
-        questionLabel.setWordWrap(True)
-
-        questionFont = QFont()
-        questionFont.setPointSize(24)
-        questionFont.setFamily("Copperplate")
-        questionLabel.setFont(questionFont)  # Font of the question label.
+        questionLabel.setObjectName("questionLabel")
 
         # Drop-down menu of commands
-        self.methods1 = QRadioButton("Inference under the MDC Criterion (parsimony)")
+        self.methods1 = QRadioButton(
+            "Inference under the MDC Criterion (parsimony)")
         self.methods2 = QRadioButton("Inference under maximum likelihood")
-        self.methods3  = QRadioButton("Inference under maximum pseudo-likelihood")
+        self.methods3 = QRadioButton(
+            "Inference under maximum pseudo-likelihood")
         self.methods4 = QRadioButton("Bayenesian MCMC posterior estimation")
         self.methodgroup = QCheckBox("")
         self.registerField("methodgroup*", self.methodgroup)
@@ -78,32 +73,9 @@ class TreeMethodsPage(QWizardPage):
                           'here</a>')
         hyperlink.linkActivated.connect(self.link)
 
-        # Image and Title
-        pix = QPixmap(resource_path("logo.png"))
-        image = QLabel(self)
-        image.setPixmap(pix)
-        lbl = QLabel("PhyloNet")
-
-        titleFont = QFont()
-        titleFont.setPointSize(24)
-        titleFont.setBold(True)
-        lbl.setFont(titleFont)  # Font of the PhyloNet title.
-
-        # Separation line
-        line = QFrame(self)
-        line.setFrameShape(QFrame.HLine)
-        line.setFrameShadow(QFrame.Sunken)
-
         # Layouts
-        # Top level logo and title.
-        top = QHBoxLayout()
-        top.addWidget(image)
-        top.addWidget(lbl)
-
         # Main vertical layout.
         vbox = QVBoxLayout()
-        vbox.addLayout(top)
-        vbox.addWidget(line)
         vbox.addWidget(questionLabel)
         vbox.addWidget(hyperlink)
         vbox.addWidget(self.methods1)
@@ -115,7 +87,6 @@ class TreeMethodsPage(QWizardPage):
 
         vbox.setContentsMargins(50, 10, 50, 10)
 
-        self.menubar.setNativeMenuBar(False)
         self.setWindowTitle('PhyloNetNEXGenerator')
         self.setWindowIcon(QIcon(resource_path("logo.png")))
 
@@ -124,7 +95,7 @@ class TreeMethodsPage(QWizardPage):
         Process checkbox's stateChanged signal to implement mutual exclusion.
         """
         self.methodgroup.setCheckState(True)
-    
+
     def aboutMessage(self):
         msg = QMessageBox()
         msg.setIcon(QMessageBox.Information)
@@ -172,7 +143,6 @@ class TreeMethodsPage(QWizardPage):
   #          self.MCMCGT = MCMCGT.MCMCGTPage()
   #          self.MCMCGT.show()
   #          self.close()
-
 
 
 if __name__ == '__main__':

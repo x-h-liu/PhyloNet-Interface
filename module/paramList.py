@@ -12,6 +12,7 @@ class ParamListDlg(QDialog):
     A>C, A>G, A>T, C>G, C>T and G>T, and values are values
     for these parameters. Both key and value should be string.
     """
+
     def __init__(self, currentList, parent=None):
         super(ParamListDlg, self).__init__(parent)
 
@@ -104,7 +105,9 @@ class ParamListDlg(QDialog):
 
         # Buttons
         cancel = QPushButton("Cancel")
+        cancel.setObjectName("cancel")
         set = QPushButton("Set")
+        set.setObjectName("set")
         set.setDefault(True)
         set.clicked.connect(self.accept)
         cancel.clicked.connect(self.reject)
@@ -191,7 +194,8 @@ class ParamListDlg(QDialog):
 
             QDialog.accept(self)
         except emptyInputError:
-            QMessageBox.warning(self, "Warning", "Please provide all parameters.", QMessageBox.Ok)
+            QMessageBox.warning(
+                self, "Warning", "Please provide all parameters.", QMessageBox.Ok)
 
     def getParamList(self):
         """

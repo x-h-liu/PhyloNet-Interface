@@ -47,10 +47,6 @@ class MCMCGTPage(QWizardPage):
         aboutAction.triggered.connect(self.aboutMessage)
         aboutAction.setShortcut("Ctrl+A")
 
-        self.menubar = QMenuBar(self)
-        menuMenu = self.menubar.addMenu('Menu')
-        menuMenu.addAction(aboutAction)
-
         # Title (MCMC_GT)
         titleLabel = QLabel()
         titleLabel.setText("MCMC_GT")
@@ -95,14 +91,15 @@ class MCMCGTPage(QWizardPage):
 
         # Mandatory parameter labels
         geneTreeFileLbl = QLabel("Gene tree files:\n(one file per locus)")
-        geneTreeFileLbl.setToolTip("All trees in one file are considered to be from one locus.")
+        geneTreeFileLbl.setToolTip(
+            "All trees in one file are considered to be from one locus.")
         self.nexus = QCheckBox(".nexus")
         self.nexus.setObjectName("nexus")
         self.newick = QCheckBox(".newick")
         self.newick.setObjectName("newick")
         self.nexus.stateChanged.connect(self.format)
-        self.newick.stateChanged.connect(self.format)  # Implement mutually exclusive check boxes
-
+        # Implement mutually exclusive check boxes
+        self.newick.stateChanged.connect(self.format)
 
         # Mandatory parameter inputs
         self.geneTreesEdit = QTextEdit()
@@ -112,15 +109,16 @@ class MCMCGTPage(QWizardPage):
         fileSelctionBtn = QToolButton()
         fileSelctionBtn.setText("...")
         fileSelctionBtn.clicked.connect(self.selectFile)
-        fileSelctionBtn.setToolTip("All trees in one file are considered to be from one locus.")
-
+        fileSelctionBtn.setToolTip(
+            "All trees in one file are considered to be from one locus.")
 
         # Optional parameter labels
         self.chainLengthLbl = QCheckBox("The length of the MCMC chain:", self)
         self.chainLengthLbl.setObjectName("-cl")
         self.chainLengthLbl.stateChanged.connect(self.onChecked)
 
-        self.burnInLengthLbl = QCheckBox("The number of iterations in burn-in period:", self)
+        self.burnInLengthLbl = QCheckBox(
+            "The number of iterations in burn-in period:", self)
         self.burnInLengthLbl.setObjectName("-bl")
         self.burnInLengthLbl.stateChanged.connect(self.onChecked)
 
@@ -132,32 +130,38 @@ class MCMCGTPage(QWizardPage):
         self.seedLbl.setObjectName("-sd")
         self.seedLbl.stateChanged.connect(self.onChecked)
 
-        self.ppLbl = QCheckBox("The Poisson parameter in the prior on the number of reticulation nodes:", self)
+        self.ppLbl = QCheckBox(
+            "The Poisson parameter in the prior on the number of reticulation nodes:", self)
         self.ppLbl.setObjectName("-pp")
         self.ppLbl.stateChanged.connect(self.onChecked)
 
-        self.maxRetLbl = QCheckBox("The maximum number of reticulation nodes in the sampled phylogenetic networks:", self)
+        self.maxRetLbl = QCheckBox(
+            "The maximum number of reticulation nodes in the sampled phylogenetic networks:", self)
         self.maxRetLbl.setObjectName("-mr")
         self.maxRetLbl.stateChanged.connect(self.onChecked)
 
-        self.numProcLbl = QCheckBox("Number of threads running in parallel:", self)
+        self.numProcLbl = QCheckBox(
+            "Number of threads running in parallel:", self)
         self.numProcLbl.setObjectName("-pl")
         self.numProcLbl.stateChanged.connect(self.onChecked)
 
-        self.tempListLbl = QCheckBox("The list of temperatures for the Metropolis-coupled MCMC chains:", self)
+        self.tempListLbl = QCheckBox(
+            "The list of temperatures for the Metropolis-coupled MCMC chains:", self)
         self.tempListLbl.setObjectName("-tp")
         self.tempListLbl.stateChanged.connect(self.onChecked)
 
-        self.sNetListLbl = QCheckBox("Comma delimited list of network identifiers:", self)
+        self.sNetListLbl = QCheckBox(
+            "Comma delimited list of network identifiers:", self)
         self.sNetListLbl.setObjectName("-sn")
         self.sNetListLbl.stateChanged.connect(self.onChecked)
 
-        self.taxamapLbl = QCheckBox("Gene tree / species tree taxa association:", self)
+        self.taxamapLbl = QCheckBox(
+            "Gene tree / species tree taxa association:", self)
         self.taxamapLbl.setObjectName("-tm")
         self.taxamapLbl.stateChanged.connect(self.onChecked)
 
-        self.pseudoLbl = QCheckBox("Use pseudo likelihood instead of full likelihood to reduce runtime", self)
-
+        self.pseudoLbl = QCheckBox(
+            "Use pseudo likelihood instead of full likelihood to reduce runtime", self)
 
         # Optional parameter inputs
         self.chainLengthEdit = QLineEdit()
@@ -198,8 +202,6 @@ class MCMCGTPage(QWizardPage):
         self.taxamapEdit = QPushButton("Set taxa map")
         self.taxamapEdit.setDisabled(True)
         self.taxamapEdit.clicked.connect(self.getTaxamap)
-
-
 
         # Launch button
         launchBtn = QPushButton("Generate", self)
@@ -267,7 +269,6 @@ class MCMCGTPage(QWizardPage):
         pseudoLayout = QHBoxLayout()
         pseudoLayout.addWidget(self.pseudoLbl)
 
-
         btnLayout = QHBoxLayout()
         btnLayout.addStretch(1)
         btnLayout.addWidget(launchBtn)
@@ -304,7 +305,6 @@ class MCMCGTPage(QWizardPage):
        # scroll.setMinimumWidth(695)
        # scroll.setMinimumHeight(690)
 
-        self.menubar.setNativeMenuBar(False)
         self.setWindowTitle('PhyloNetNEXGenerator')
         self.setWindowIcon(QIcon(resource_path("logo.png")))
 
@@ -427,9 +427,11 @@ class MCMCGTPage(QWizardPage):
         Execute when file selection button is clicked.
         """
         if (not self.newick.isChecked()) and (not self.nexus.isChecked()):
-            QMessageBox.warning(self, "Warning", "Please select a file type.", QMessageBox.Ok)
+            QMessageBox.warning(
+                self, "Warning", "Please select a file type.", QMessageBox.Ok)
         else:
-            fname = QFileDialog.getOpenFileNames(self, 'Open file', '/', 'Nexus files (*.nexus *.nex);;Newick files (*.newick)')
+            fname = QFileDialog.getOpenFileNames(
+                self, 'Open file', '/', 'Nexus files (*.nexus *.nex);;Newick files (*.newick)')
             if fname:
                 if fname[1] == 'Nexus files (*.nexus *.nex)':
                     for onefname in fname[0]:
@@ -482,12 +484,14 @@ class MCMCGTPage(QWizardPage):
                         break
 
             # Execute TaxamapDlg
-            dialog = TaxamapDlg.TaxamapDlg(data.taxon_namespace, self.taxamap, self)
+            dialog = TaxamapDlg.TaxamapDlg(
+                data.taxon_namespace, self.taxamap, self)
             if dialog.exec_():
                 self.taxamap = dialog.getTaxamap()
 
         except emptyFileError:
-            QMessageBox.warning(self, "Warning", "Please select a file type and upload data!", QMessageBox.Ok)
+            QMessageBox.warning(
+                self, "Warning", "Please select a file type and upload data!", QMessageBox.Ok)
             return
         except Exception as e:
             QMessageBox.warning(self, "Warning", str(e), QMessageBox.Ok)
@@ -497,8 +501,9 @@ class MCMCGTPage(QWizardPage):
         """
         Generate NEXUS file based on user input.
         """
-        directory = QFileDialog.getSaveFileName(self, "Save File", "/", "Nexus Files (*.nexus)")
-        
+        directory = QFileDialog.getSaveFileName(
+            self, "Save File", "/", "Nexus Files (*.nexus)")
+
         class emptyFileError(Exception):
             pass
 
@@ -523,7 +528,8 @@ class MCMCGTPage(QWizardPage):
                 fileName = os.path.splitext(os.path.basename(file))[0]
                 currentFile = dendropy.TreeList()
                 # read in gene trees
-                currentFile.read(path=file, schema=schema, preserve_underscores=True)
+                currentFile.read(path=file, schema=schema,
+                                 preserve_underscores=True)
                 if len(currentFile) > 1:
                     # If a file contains multiple trees, assume those trees come from one locus
                     self.multiTreesPerLocus = True
@@ -549,7 +555,8 @@ class MCMCGTPage(QWizardPage):
 
             # Write out TREES block.
             path = str(directory[0])
-            data.write(path=path, schema="nexus", suppress_taxa_blocks=True, unquoted_underscores=True)
+            data.write(path=path, schema="nexus",
+                       suppress_taxa_blocks=True, unquoted_underscores=True)
 
             # Ready to write PHYLONET block.
             with open(path, "a") as outputFile:
@@ -677,7 +684,8 @@ class MCMCGTPage(QWizardPage):
                         for firstSpecies in speciesToTaxonMap:
                             outputFile.write(firstSpecies)
                             outputFile.write(":")
-                            outputFile.write(speciesToTaxonMap[firstSpecies][0])
+                            outputFile.write(
+                                speciesToTaxonMap[firstSpecies][0])
                             for taxon in speciesToTaxonMap[firstSpecies][1:]:
                                 outputFile.write(",")
                                 outputFile.write(taxon)
@@ -712,10 +720,12 @@ class MCMCGTPage(QWizardPage):
             self.validateFile(path)
 
         except emptyFileError:
-            QMessageBox.warning(self, "Warning", "Please select a file type and upload data!", QMessageBox.Ok)
+            QMessageBox.warning(
+                self, "Warning", "Please select a file type and upload data!", QMessageBox.Ok)
             return
         except emptyDesinationError:
-            QMessageBox.warning(self, "Warning", "Please specify destination for generated NEXUS file.", QMessageBox.Ok)
+            QMessageBox.warning(
+                self, "Warning", "Please specify destination for generated NEXUS file.", QMessageBox.Ok)
             return
         except Exception as e:
             self.geneTreeNames = []
