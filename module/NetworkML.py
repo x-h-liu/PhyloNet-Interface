@@ -10,6 +10,9 @@ import shutil
 
 from module import TaxamapDlg
 
+inputFiles = []
+geneTreesNames = []
+taxamap = {}
 
 def resource_path(relative_path):
     """
@@ -26,9 +29,9 @@ class NetworkMLPage(QWizardPage):
     def __init__(self):
         super(NetworkMLPage, self).__init__()
 
-        self.inputFiles = []
-        self.geneTreeNames = []
-        self.taxamap = {}
+        self.inputFiles = inputFiles
+        self.geneTreeNames = geneTreesNames
+        self.taxamap = taxamap
         self.multiTreesPerLocus = False
 
         self.initUI()
@@ -90,20 +93,21 @@ class NetworkMLPage(QWizardPage):
         self.newick.setObjectName("newick")
         self.nexus.stateChanged.connect(self.format)
         self.newick.stateChanged.connect(self.format)  # Implement mutually exclusive check boxes
-
         numReticulationsLbl = QLabel("Maximum number of reticulations to add:")
 
         # Mandatory parameter inputs
-        self.geneTreesEdit = QTextEdit()
-        self.geneTreesEdit.setFixedHeight(50)
-        self.geneTreesEdit.setReadOnly(True)
+        self.geneTreesEditML = QTextEdit()
+        self.geneTreesEditML.setFixedHeight(50)
+        self.geneTreesEditML.setReadOnly(True)
+        self.registerField("geneTreesEditML*", self.geneTreesEditML, "plainText", self.geneTreesEditML.textChanged)
 
         fileSelctionBtn = QToolButton()
         fileSelctionBtn.setText("Browse")
         fileSelctionBtn.clicked.connect(self.selectFile)
         fileSelctionBtn.setToolTip("All trees in one file are considered to be from one locus.")
 
-        self.numReticulationsEdit = QLineEdit()
+        self.numReticulationsEditML = QLineEdit()
+        self.registerField("numReticulationsEditML*", self.numReticulationsEditML)
 
         # Layouts
         # Layout of each parameter (label and input)
@@ -113,12 +117,12 @@ class NetworkMLPage(QWizardPage):
         fileFormatLayout.addWidget(self.newick)
         geneTreeFileLayout = QHBoxLayout()
         geneTreeFileLayout.addLayout(fileFormatLayout)
-        geneTreeFileLayout.addWidget(self.geneTreesEdit)
+        geneTreeFileLayout.addWidget(self.geneTreesEditML)
         geneTreeFileLayout.addWidget(fileSelctionBtn)
 
         numReticulationsLayout = QHBoxLayout()
         numReticulationsLayout.addWidget(numReticulationsLbl)
-        numReticulationsLayout.addWidget(self.numReticulationsEdit)
+        numReticulationsLayout.addWidget(self.numReticulationsEditML)
 
         # Main layout
         topLevelLayout = QVBoxLayout()
@@ -176,7 +180,7 @@ class NetworkMLPage(QWizardPage):
                 pass
             else:
                 self.newick.setChecked(False)
-                self.geneTreesEdit.clear()
+                self.geneTreesEditML.clear()
                 self.inputFiles = []
                 self.geneTreeNames = []
                 self.taxamap = {}
@@ -186,7 +190,7 @@ class NetworkMLPage(QWizardPage):
             else:
                 self.nexus.setChecked(False)
                 self.newick.setChecked(True)
-                self.geneTreesEdit.clear()
+                self.geneTreesEditML.clear()
                 self.inputFiles = []
                 self.geneTreeNames = []
                 self.taxamap = {}
@@ -200,6 +204,8 @@ class NetworkMLPage(QWizardPage):
             QMessageBox.warning(self, "Warning", "Please select a file type.", QMessageBox.Ok)
         else:
             fname = QFileDialog.getOpenFileNames(self, 'Open file', '/', 'Nexus files (*.nexus *.nex);;Newick files (*.newick)')
+            self.fileType = QLineEdit(fname[1])
+            self.registerField("fileType", self.fileType)
             if fname:
                 extension = fname[1]
                 if self.nexus.isChecked():
@@ -207,23 +213,27 @@ class NetworkMLPage(QWizardPage):
                         QMessageBox.warning(self, "Warning", "Please upload only .nexus files!", QMessageBox.Ok)
                     else:
                         for onefname in fname[0]:
-                            self.geneTreesEdit.append(onefname)
+                            self.geneTreesEditML.append(onefname)
                             self.inputFiles.append(str(onefname))
                 else:
                     if extension != 'Newick files (*.newick)':
                         QMessageBox.warning(self, "Warning", "Please upload only .newick files!", QMessageBox.Ok)
                     else:
                         for onefname in fname[0]:
-                            self.geneTreesEdit.append(onefname)
+                            self.geneTreesEditML.append(onefname)
                             self.inputFiles.append(str(onefname))
-
+       
 class NetworkMLPage2(QWizardPage):
+    def initializePage(self):
+        self.fileType = self.field("fileType")
+        self.geneTreesEditML = self.field("geneTreesEditML")
+        self.numReticulationsEditML = self.field("numReticulationsEditML")
     def __init__(self):
         super(NetworkMLPage2, self).__init__()
 
-        self.inputFiles = []
-        self.geneTreeNames = []
-        self.taxamap = {}
+        self.inputFiles = inputFiles
+        self.geneTreeNames = geneTreesNames
+        self.taxamap = taxamap
         self.multiTreesPerLocus = False
 
         self.initUI()
@@ -363,10 +373,6 @@ class NetworkMLPage2(QWizardPage):
         self.diLbl = QCheckBox("Output Rich Newick string that can be read by Dendroscope.")
         self.diLbl.stateChanged.connect(self.onChecked)
 
-        self.fileDestLbl = QCheckBox("Specify file destination for command output:")
-        self.fileDestLbl.setObjectName("resultOutputFile")
-        self.fileDestLbl.stateChanged.connect(self.onChecked)
-
         # Optional parameter inputs
         self.thresholdEdit = QLineEdit()
         self.thresholdEdit.setDisabled(True)
@@ -433,21 +439,6 @@ class NetworkMLPage2(QWizardPage):
         self.numProcEdit = QLineEdit()
         self.numProcEdit.setDisabled(True)
         self.numProcEdit.setPlaceholderText("1")
-
-        self.fileDestEdit = QLineEdit()
-        self.fileDestEdit.setDisabled(True)
-        self.fileDestBtn = QToolButton()
-        self.fileDestBtn.setText("...")
-        self.fileDestBtn.setDisabled(True)
-        self.fileDestBtn.clicked.connect(self.selectDest)
-
-        # Input for where the NEXUS file should be generated.
-        outDestLbl = QLabel("Please specify destination for generated nexus file:")
-        self.outDestEdit = QLineEdit()
-        self.outDestEdit.setReadOnly(True)
-        self.outDestBtn = QToolButton()
-        self.outDestBtn.setText("Browse")
-        self.outDestBtn.clicked.connect(self.selectNEXDest)
 
         # Launch button
         launchBtn = QPushButton("Generate", self)
@@ -550,15 +541,7 @@ class NetworkMLPage2(QWizardPage):
         diLayout = QHBoxLayout()
         diLayout.addWidget(self.diLbl)
 
-        fileDestLayout = QHBoxLayout()
-        fileDestLayout.addWidget(self.fileDestLbl)
-        fileDestLayout.addWidget(self.fileDestEdit)
-        fileDestLayout.addWidget(self.fileDestBtn)
 
-        outDestLayout = QHBoxLayout()
-        outDestLayout.addWidget(outDestLbl)
-        outDestLayout.addWidget(self.outDestEdit)
-        outDestLayout.addWidget(self.outDestBtn)
 
         btnLayout = QHBoxLayout()
         btnLayout.addStretch(1)
@@ -591,10 +574,8 @@ class NetworkMLPage2(QWizardPage):
         topLevelLayout.addLayout(maxBlLayout)
         topLevelLayout.addLayout(numProcLayout)
         topLevelLayout.addLayout(diLayout)
-        topLevelLayout.addLayout(fileDestLayout)
 
         topLevelLayout.addWidget(line2)
-        topLevelLayout.addLayout(outDestLayout)
         topLevelLayout.addLayout(btnLayout)
 
         # Scroll bar
@@ -731,13 +712,6 @@ class NetworkMLPage2(QWizardPage):
                 self.numProcEdit.setDisabled(True)
             else:
                 self.numProcEdit.setDisabled(False)
-        elif self.sender().objectName() == "resultOutputFile":
-            if self.fileDestEdit.isEnabled():
-                self.fileDestEdit.setDisabled(True)
-                self.fileDestBtn.setDisabled(True)
-            else:
-                self.fileDestEdit.setDisabled(False)
-                self.fileDestBtn.setDisabled(False)
         else:
             pass
 
@@ -747,37 +721,25 @@ class NetworkMLPage2(QWizardPage):
         """
         QDesktopServices.openUrl(QtCore.QUrl(linkStr))
 
-    def selectDest(self):
-        """
-        Select and store destination for PhyloNet output.
-        """
-        fname = QFileDialog.getOpenFileName(self, 'Open file', '/')
-        if fname:
-            self.fileDestEdit.setText(fname)
-
-    def selectNEXDest(self):
-        """
-        Select and display the absolute output path for NEXUS file generated by this program.
-        The NEXUS file will be generated at the path as displayed on QLineEdit.
-        """
-        directory = str(QFileDialog.getExistingDirectory(self, "Select Directory"))
-        if directory:
-            self.outDestEdit.setText(directory)
-
     def getTaxamap(self):
         """
         When user clicks "Set taxa map", open up TaxamapDlg for user input
         and update taxa map.
         """
+
+        #stop gap way to get inputFiles
+        fileNames = self.geneTreesEditML.split('=')[0]
+        inputFiles = fileNames.split('\n')
+        self.inputFiles = inputFiles
+
         class emptyFileError(Exception):
             pass
-
         try:
             if len(self.inputFiles) == 0:
                 raise emptyFileError
 
             # Read files
-            if self.nexus.isChecked():
+            if self.fileType == 'Nexus files (*.nexus *.nex)':
                 schema = "nexus"
             else:
                 schema = "newick"
@@ -818,7 +780,14 @@ class NetworkMLPage2(QWizardPage):
     def generate(self):
         """
         Generate NEXUS file based on user input.
-        """
+        """ 
+        directory = QFileDialog.getSaveFileName(self, "Save File", "/", "Nexus Files (*.nexus)")
+  
+        #stop gap way to get inputFiles
+        fileNames = self.geneTreesEditML.split('=')[0]
+        inputFiles = fileNames.split('\n')
+        self.inputFiles = inputFiles
+
         class emptyFileError(Exception):
             pass
 
@@ -829,17 +798,15 @@ class NetworkMLPage2(QWizardPage):
             pass
 
         try:
-            if (not self.nexus.isChecked()) and (not self.newick.isChecked()):
-                raise emptyFileError
             if len(self.inputFiles) == 0:
                 raise emptyFileError
-            if self.numReticulationsEdit.text().isEmpty():
+            if self.numReticulationsEditML == "":
                 raise emptyNumReticulationError
-            if self.outDestEdit.text().isEmpty():
+            if directory[0] == "":
                 raise emptyDesinationError
 
             # the file format to read
-            if self.nexus.isChecked():
+            if self.fileType == 'Nexus files (*.nexus *.nex)':
                 schema = "nexus"
             else:
                 schema = "newick"
@@ -875,7 +842,7 @@ class NetworkMLPage2(QWizardPage):
                 raise Exception("No tree data found in data file")
 
             # Write out TREES block.
-            path = str(self.outDestEdit.text()) + "/" + str(datetime.datetime.now().strftime('%H-%M-%S')) + ".nexus"
+            path = str(directory[0])
             data.write(path=path, schema="nexus", suppress_taxa_blocks=True, unquoted_underscores=True)
 
             # Ready to write PHYLONET block.
@@ -921,7 +888,7 @@ class NetworkMLPage2(QWizardPage):
                     outputFile.write(") ")
 
                 # Write out maximum number of reticulation to add.
-                numReticulations = str(self.numReticulationsEdit.text())
+                numReticulations = self.numReticulationsEditML
                 outputFile.write(numReticulations)
 
                 # -a taxa map command
@@ -959,7 +926,7 @@ class NetworkMLPage2(QWizardPage):
 
                 # -b threshold command
                 if self.thresholdLbl.isChecked():
-                    if self.thresholdEdit.text().isEmpty():
+                    if self.thresholdEdit.text() == "":
                         pass
                     else:
                         outputFile.write(" -b ")
@@ -967,7 +934,7 @@ class NetworkMLPage2(QWizardPage):
 
                 # -s startingNetwork command
                 if self.sNetLbl.isChecked():
-                    if self.sNetEdit.text().isEmpty():
+                    if self.sNetEdit.text() == "":
                         pass
                     else:
                         outputFile.write(" -s ")
@@ -975,7 +942,7 @@ class NetworkMLPage2(QWizardPage):
 
                 # -n numNetReturned command
                 if self.nNetRetLbl.isChecked():
-                    if self.nNetRetEdit.text().isEmpty():
+                    if self.nNetRetEdit.text() == "":
                         pass
                     else:
                         outputFile.write(" -n ")
@@ -983,7 +950,7 @@ class NetworkMLPage2(QWizardPage):
 
                 # -h {s1 [, s2...]} command
                 if self.hybridLbl.isChecked():
-                    if self.hybridEdit.text().isEmpty():
+                    if self.hybridEdit.text() == "":
                         pass
                     else:
                         outputFile.write(" -h ")
@@ -991,7 +958,7 @@ class NetworkMLPage2(QWizardPage):
 
                 # -w (w1, ..., w6) command
                 if self.wetOpLbl.isChecked():
-                    if self.wetOpEdit.text().isEmpty():
+                    if self.wetOpEdit.text() == "":
                         pass
                     else:
                         outputFile.write(" -w ")
@@ -999,7 +966,7 @@ class NetworkMLPage2(QWizardPage):
 
                 # -x numRuns command
                 if self.numRunLbl.isChecked():
-                    if self.numRunEdit.text().isEmpty():
+                    if self.numRunEdit.text() == "":
                         pass
                     else:
                         outputFile.write(" -x ")
@@ -1007,7 +974,7 @@ class NetworkMLPage2(QWizardPage):
 
                 # -m maxNetExamined command
                 if self.nNetExamLbl.isChecked():
-                    if self.nNetExamEdit.text().isEmpty():
+                    if self.nNetExamEdit.text() == "":
                         pass
                     else:
                         outputFile.write(" -m ")
@@ -1015,7 +982,7 @@ class NetworkMLPage2(QWizardPage):
 
                 # -md maxDiameter command
                 if self.maxDiaLbl.isChecked():
-                    if self.maxDiaEdit.text().isEmpty():
+                    if self.maxDiaEdit.text() == "":
                         pass
                     else:
                         outputFile.write(" -md ")
@@ -1023,7 +990,7 @@ class NetworkMLPage2(QWizardPage):
 
                 # -rd reticulationDiameter command
                 if self.retDiaLbl.isChecked():
-                    if self.retDiaEdit.text().isEmpty():
+                    if self.retDiaEdit.text() == "":
                         pass
                     else:
                         outputFile.write(" -rd ")
@@ -1031,7 +998,7 @@ class NetworkMLPage2(QWizardPage):
 
                 # -f maxFailure command
                 if self.maxFLbl.isChecked():
-                    if self.maxFEdit.text().isEmpty():
+                    if self.maxFEdit.text() == "":
                         pass
                     else:
                         outputFile.write(" -f ")
@@ -1047,7 +1014,7 @@ class NetworkMLPage2(QWizardPage):
 
                 # -p command
                 if self.stopCriterionLbl.isChecked():
-                    if self.stopCriterionEdit.text().isEmpty():
+                    if self.stopCriterionEdit.text() == "":
                         pass
                     else:
                         outputFile.write(" -p ")
@@ -1055,7 +1022,7 @@ class NetworkMLPage2(QWizardPage):
 
                 # -r command
                 if self.maxRoundLbl.isChecked():
-                    if self.maxRoundEdit.text().isEmpty():
+                    if self.maxRoundEdit.text() == "":
                         pass
                     else:
                         outputFile.write(" -r ")
@@ -1063,7 +1030,7 @@ class NetworkMLPage2(QWizardPage):
 
                 # -t command
                 if self.maxTryPerBrLbl.isChecked():
-                    if self.maxTryPerBrEdit.text().isEmpty():
+                    if self.maxTryPerBrEdit.text() == "":
                         pass
                     else:
                         outputFile.write(" -t ")
@@ -1071,7 +1038,7 @@ class NetworkMLPage2(QWizardPage):
 
                 # -i command
                 if self.improveThresLbl.isChecked():
-                    if self.maxTryPerBrEdit.text().isEmpty():
+                    if self.maxTryPerBrEdit.text() == "":
                         pass
                     else:
                         outputFile.write(" -i ")
@@ -1079,7 +1046,7 @@ class NetworkMLPage2(QWizardPage):
 
                 # -l command
                 if self.maxBlLbl.isChecked():
-                    if self.maxBlEdit.text().isEmpty():
+                    if self.maxBlEdit.text() == "":
                         pass
                     else:
                         outputFile.write(" -l ")
@@ -1087,7 +1054,7 @@ class NetworkMLPage2(QWizardPage):
 
                 # -pl numProcessors command
                 if self.numProcLbl.isChecked():
-                    if self.numProcEdit.text().isEmpty():
+                    if self.numProcEdit.text() == "":
                         pass
                     else:
                         outputFile.write(" -pl ")
@@ -1097,16 +1064,6 @@ class NetworkMLPage2(QWizardPage):
                 if self.diLbl.isChecked():
                     outputFile.write(" -di")
 
-                # resultOutputFile command
-                if self.fileDestLbl.isChecked():
-                    if self.fileDestEdit.text().isEmpty():
-                        pass
-                    else:
-                        outputFile.write(" ")
-                        outputFile.write('"')
-                        outputFile.write(self.fileDestEdit.text())
-                        outputFile.write('"')
-
                 # End of NEXUS
                 outputFile.write(";\n\n")
                 outputFile.write("END;")
@@ -1114,7 +1071,7 @@ class NetworkMLPage2(QWizardPage):
             self.geneTreeNames = []
             self.inputFiles = []
             self.taxamap = {}
-            self.geneTreesEdit.clear()
+            self.geneTreesEditML = ""
             self.multiTreesPerLocus = False
 
             # Validate the generated file.
@@ -1133,7 +1090,7 @@ class NetworkMLPage2(QWizardPage):
             self.geneTreeNames = []
             self.inputFiles = []
             self.taxamap = {}
-            self.geneTreesEdit.clear()
+            self.geneTreesEditML = ""
             self.multiTreesPerLocus = False
             QMessageBox.warning(self, "Warning", str(e), QMessageBox.Ok)
             return
@@ -1145,7 +1102,7 @@ class NetworkMLPage2(QWizardPage):
         """
         try:
             subprocess.check_output(
-                ["java", "-jar", resource_path("testphylonet.jar"),
+                ["java", "-jar", resource_path("module/testphylonet.jar"),
                  filePath, "checkParams"], stderr=subprocess.STDOUT)
         except subprocess.CalledProcessError as e:
             # If an error is encountered, delete the generated file and display the error to user.

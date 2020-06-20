@@ -444,13 +444,6 @@ class NetworkMPPage2(QWizardPage):
                 self.numProcEdit.setDisabled(True)
             else:
                 self.numProcEdit.setDisabled(False)
-        elif self.sender().objectName() == "resultOutputFile":
-            if self.fileDestEdit.isEnabled():
-                self.fileDestEdit.setDisabled(True)
-                self.fileDestBtn.setDisabled(True)
-            else:
-                self.fileDestEdit.setDisabled(False)
-                self.fileDestBtn.setDisabled(False)
         else:
             pass
 
@@ -468,7 +461,6 @@ class NetworkMPPage2(QWizardPage):
         """
         class emptyFileError(Exception):
             pass
-
         try:
             if len(self.inputFiles) == 0:
                 raise emptyFileError
@@ -757,13 +749,6 @@ class NetworkMPPage3(QWizardPage):
                 self.numProcEdit.setDisabled(True)
             else:
                 self.numProcEdit.setDisabled(False)
-        elif self.sender().objectName() == "resultOutputFile":
-            if self.fileDestEdit.isEnabled():
-                self.fileDestEdit.setDisabled(True)
-                self.fileDestBtn.setDisabled(True)
-            else:
-                self.fileDestEdit.setDisabled(False)
-                self.fileDestBtn.setDisabled(False)
         else:
             pass
 
@@ -875,17 +860,6 @@ class NetworkMPPage4(QWizardPage):
         self.diLbl = QCheckBox("Output Rich Newick string that can be read by Dendroscope.")
         self.diLbl.stateChanged.connect(self.onChecked)
 
-        self.fileDestLbl = QCheckBox("Specify file destination for command output:")
-        self.fileDestLbl.setObjectName("resultOutputFile")
-        self.fileDestLbl.stateChanged.connect(self.onChecked)
-
-        # Edits
-        self.fileDestEdit = QLineEdit()
-        self.fileDestEdit.setDisabled(True)
-        self.fileDestBtn = QToolButton()
-        self.fileDestBtn.setText("Browse")
-        self.fileDestBtn.setDisabled(True)
-        self.fileDestBtn.clicked.connect(self.selectDest)
 
         # Launch button
         launchBtn = QPushButton("Generate", self)
@@ -893,11 +867,6 @@ class NetworkMPPage4(QWizardPage):
 
         diLayout = QHBoxLayout()
         diLayout.addWidget(self.diLbl)
-
-        fileDestLayout = QHBoxLayout()
-        fileDestLayout.addWidget(self.fileDestLbl)
-        fileDestLayout.addWidget(self.fileDestEdit)
-        fileDestLayout.addWidget(self.fileDestBtn)
 
         btnLayout = QHBoxLayout()
         btnLayout.addStretch(1)
@@ -908,7 +877,6 @@ class NetworkMPPage4(QWizardPage):
         topLevelLayout.addWidget(hyperlink)
         topLevelLayout.addWidget(line1)
         topLevelLayout.addLayout(diLayout)
-        topLevelLayout.addLayout(fileDestLayout)
 
         topLevelLayout.addWidget(line2)
         topLevelLayout.addLayout(btnLayout)
@@ -1010,24 +978,8 @@ class NetworkMPPage4(QWizardPage):
                 self.numProcEdit.setDisabled(True)
             else:
                 self.numProcEdit.setDisabled(False)
-        elif self.sender().objectName() == "resultOutputFile":
-            if self.fileDestEdit.isEnabled():
-                self.fileDestEdit.setDisabled(True)
-                self.fileDestBtn.setDisabled(True)
-            else:
-                self.fileDestEdit.setDisabled(False)
-                self.fileDestBtn.setDisabled(False)
         else:
             pass
-
-    def selectDest(self):
-        """
-        Select and store destination for PhyloNet output.
-        """
-        fname = str(QFileDialog.getExistingDirectory(self, 'Open file', '/'))
-        if fname:
-            self.fileDestEdit.setText(fname)
-
 
     def generate(self):
         """
@@ -1079,7 +1031,7 @@ class NetworkMPPage4(QWizardPage):
                 raise Exception("No tree data found in data file")
 
             # Write out TREES block.
-            path = str(directory[0]) + ".nexus"
+            path = str(directory[0])
             data.write(path=path, schema="nexus", suppress_taxa_blocks=True, unquoted_underscores=True)
 
             # Ready to write PHYLONET block.
@@ -1198,15 +1150,6 @@ class NetworkMPPage4(QWizardPage):
                 if self.diLbl.isChecked():
                     outputFile.write(" -di")
 
-                # resultOutputFile command
-                if self.fileDestEdit.text() == "":
-                    pass
-                else:
-                    outputFile.write(" ")
-                    outputFile.write('"')
-                    outputFile.write(self.fileDestEdit.text())
-                    outputFile.write('"')
-
                 # End of NEXUS
                 outputFile.write(";\n\n")
                 outputFile.write("END;")
@@ -1217,7 +1160,6 @@ class NetworkMPPage4(QWizardPage):
             self.geneTreesEdit = ""
 
             # Validate the generated file.
-            print(self.fileDestEdit.text())
             self.validateFile(path)
 
         except emptyFileError:
