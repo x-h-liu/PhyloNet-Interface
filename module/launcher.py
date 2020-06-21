@@ -12,12 +12,19 @@ from module import NetworkML
 from module import NetworkMPL
 from module import MCMCGT
 
+import PostProcessingModule.menu
+
+from functions import *
+from main import *
+
+
 def resource_path(relative_path):
     """
     Refer to the location of a file at run-time.
     This function is from
     https://www.reddit.com/r/learnpython/comments/4kjie3/how_to_include_gui_images_with_pyinstaller/
-    For more information, visit https://pythonhosted.org/PyInstaller/runtime-information.html#run-time-information
+    # run-time-information
+    For more information, visit https://pythonhosted.org/PyInstaller/runtime-information.html
     """
     if hasattr(sys, '_MEIPASS'):
         return os.path.join(sys._MEIPASS, relative_path)
@@ -25,8 +32,7 @@ def resource_path(relative_path):
 
 
 class Launcher(QtWidgets.QWizard):
-   
-    
+
     Page_Intro = 1
     Page_BiAllelic = 2
     Page_DirectInf = 3
@@ -43,11 +49,11 @@ class Launcher(QtWidgets.QWizard):
     Page_NetworkMPL = 14
     Page_MCMCGT = 15
 
-
     def __init__(self):
         super(Launcher, self).__init__()
 
-        self.setDefaultProperty("QTextEdit", "plainText", QtWidgets.QTextEdit.textChanged)
+        self.setDefaultProperty("QTextEdit", "plainText",
+                                QtWidgets.QTextEdit.textChanged)
         self.Intro = IntroPage()
         self.BiAllelic = BiAllelicMethodsPage.BiAllelicMethodsPage()
         self.DirectInf = MCMCSEQ.MCMCSEQPage1(parent=self)
@@ -63,7 +69,6 @@ class Launcher(QtWidgets.QWizard):
         self.NetworkML2 = NetworkML.NetworkMLPage2()
         self.NetworkMPL = NetworkMPL.NetworkMPLPage()
         self.MCMCGT = MCMCGT.MCMCGTPage()
-
 
         self.setPage(self.Page_Intro, self.Intro)
         self.setPage(self.Page_DirectInf, self.DirectInf)
@@ -89,15 +94,14 @@ class Launcher(QtWidgets.QWizard):
        # scrollArea.setMinimumWidth(695)
        # scrollArea.setMinimumHeight(750)
 
-
     def initUI(self):
         """
-        Initialize GUI.
+
+         GUI.
         """
        # wid = QtWidgets.QWidget()
        # self.setCentralWidget(wid)
         self.setModal(1)
-
 
     def nextId(self):
         id = self.currentId()
@@ -108,8 +112,9 @@ class Launcher(QtWidgets.QWizard):
                 return self.Page_GeneTreeEst
             elif self.Intro.inputOption3.isChecked():
                 return self.Page_BiAllelic
-            else: 
-                return self.Page_DirectInf # Page doesn't matter, just can't be finish, this way the next button still has an "id"
+            else:
+                # Page doesn't matter, just can't be finish, this way the next button still has an "id"
+                return self.Page_DirectInf
         elif id == Launcher.Page_DirectInf:
             return self.Page_DirectInf2
         elif id == Launcher.Page_DirectInf2:
@@ -126,7 +131,7 @@ class Launcher(QtWidgets.QWizard):
             elif self.GeneTreeEst.methods4.isChecked():
                 return self.Page_MCMCGT
             else:
-                return self.Page_NetworkMP #Like above doesn't matter, cant be finish
+                return self.Page_NetworkMP  # Like above doesn't matter, cant be finish
         elif id == Launcher.Page_NetworkMP:
             return self.Page_NetworkMP2
         elif id == Launcher.Page_NetworkML:
@@ -135,39 +140,28 @@ class Launcher(QtWidgets.QWizard):
             return self.Page_NetworkMP3
         elif id == Launcher.Page_NetworkMP3:
             return self.Page_NetworkMP4
-        else:    
+        else:
             return -1
+
 
 class IntroPage(QtWidgets.QWizardPage):
     def __init__(self, parent=Launcher):
         super(IntroPage, self).__init__()
 
         self.initUI()
-    
-    def initUI(self):
-    
-        # Menubar and action.
-        aboutAction = QtWidgets.QAction('About', self)
-        aboutAction.triggered.connect(self.aboutMessage)
-        aboutAction.setShortcut("Ctrl+A")
 
-        self.menubar = QtWidgets.QMenuBar(self)
-        menuMenu = self.menubar.addMenu('Menu')
-        menuMenu.addAction(aboutAction)
+    def initUI(self):
 
         # Queston label and two options
         questionLabel = QtWidgets.QLabel()
+        questionLabel.setObjectName("questionLabel")
         questionLabel.setText("What is your input data type?")
 
-        questionFont = QtGui.QFont()
-        questionFont.setPointSize(24)
-        questionFont.setFamily("Copperplate")
-        questionLabel.setFont(questionFont)  # Font of the question label.
-
-
-        self.inputOption1 = QtWidgets.QRadioButton("Multiple sequence alignments of unlinked loci (direct inference)")
+        self.inputOption1 = QtWidgets.QRadioButton(
+            "Multiple sequence alignments of unlinked loci (direct inference)")
         self.inputOption2 = QtWidgets.QRadioButton("Gene tree estimates")
-        self.inputOption3 = QtWidgets.QRadioButton("Unlinked bi-allelic markers")
+        self.inputOption3 = QtWidgets.QRadioButton(
+            "Unlinked bi-allelic markers")
         self.invisButton = QtWidgets.QCheckBox("")
         self.registerField("invisButton*", self.invisButton)
       #  self.registerField("alignBox*", self.alignBox)
@@ -176,9 +170,7 @@ class IntroPage(QtWidgets.QWizardPage):
         self.inputOption1.toggled.connect(self.onChecked)
         self.inputOption2.toggled.connect(self.onChecked)
         self.inputOption3.toggled.connect(self.onChecked)
-      #  checkBoxFont = QtGui.QFont()
-      #  checkBoxFont.setFamily("Times New Roman")
-      #  checkBoxFont.setPointSize(15)
+
       #  self.alignBox.setFont(checkBoxFont)
       #  self.biAllelicBox.setFont(checkBoxFont)  # Font of two checkboxes.
 
@@ -189,57 +181,31 @@ class IntroPage(QtWidgets.QWizardPage):
       #  buttonBox.button(QtWidgets.QDialogButtonBox.Cancel).clicked.connect(self.close)
       #  buttonBox.button(QtWidgets.QDialogButtonBox.Ok).clicked.connect(self.okClicked)
 
-        # Image and Title
-        pix = QtGui.QPixmap(resource_path("logo.png"))
-        image = QtWidgets.QLabel(self)
-        image.setPixmap(pix)
-        lbl = QtWidgets.QLabel("PhyloNet")
-
-        titleFont = QtGui.QFont()
-        titleFont.setPointSize(24)
-        titleFont.setBold(True)
-        lbl.setFont(titleFont)  # Font of the PhyloNet title.
-
-        # Separation line
-        line = QtWidgets.QFrame(self)
-        line.setFrameShape(QtWidgets.QFrame.HLine)
-        line.setFrameShadow(QtWidgets.QFrame.Sunken)
-
         # Layouts
-        # Top level logo and title.
-        top = QtWidgets.QHBoxLayout()
-        top.addWidget(image)
-        top.addWidget(lbl)
-
         # Main vertical layout.
         vbox = QtWidgets.QVBoxLayout()
-        vbox.addLayout(top)
-        vbox.addWidget(line)
+        vbox.setObjectName("vbox")
+
+        vbox.addWidget(getInfoButton(self))
         vbox.addWidget(questionLabel)
-        vbox.addSpacing(20)
         vbox.addWidget(self.inputOption1)
         vbox.addWidget(self.inputOption2)
         vbox.addWidget(self.inputOption3)
-      #  vbox.addSpacing(20)
-      #  vbox.addWidget(self.biAllelicBox)
+
         self.setLayout(vbox)
-      #  self.setFixedSize(750,700)
 
-        # Bottom button box layout.
-       # hbox = QtWidgets.QHBoxLayout()
-       # hbox.addStretch()
-       # hbox.addWidget(buttonBox)
-
-      #  vbox.addLayout(hbox)
-      #  vbox.setContentsMargins(50, 10, 50, 10)
-
-        self.menubar.setNativeMenuBar(False)
         self.setWindowTitle('PhyloNetNEXGenerator')
         self.setWindowIcon(QtGui.QIcon(resource_path("logo.png")))
 
+    def onChecked(self):
+        """
+        Process checkbox's stateChanged signal to implement mutual exclusion.
+        """
+        self.invisButton.setCheckState(True)
+
     def aboutMessage(self):
-        msg = QtWidgets.QMessageBox()
-        msg.setIcon(QtWidgets.QMessageBox.Information)
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Information)
         msg.setText("PhyloNet is a tool designed mainly for analyzing, "
                     "reconstructing, and evaluating reticulate "
                     "(or non-treelike) evolutionary relationships, "
@@ -253,7 +219,7 @@ class IntroPage(QtWidgets.QWizardPage):
                     "which is lead by Professor Luay Nakhleh (nakhleh@cs.rice.edu). "
                     "For more details related to this group please visit "
                     "http://bioinfo.cs.rice.edu.")
-        font = QtGui.QFont()
+        font = QFont()
         font.setPointSize(13)
         font.setFamily("Times New Roman")
         font.setBold(False)
@@ -262,14 +228,14 @@ class IntroPage(QtWidgets.QWizardPage):
         msg.exec_()
 
 
-    def onChecked(self):
-        """
-        Process checkbox's stateChanged signal to implement mutual exclusion.
-        """
-        self.invisButton.setCheckState(True)
+def openModule(self):
+    self.nexGenerator = module.launcher.Launcher()
+    self.nexGenerator.show()
+
 
 if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)
+    app.setStyleSheet(style)
     ex = Launcher()
     ex.show()
     sys.exit(app.exec_())

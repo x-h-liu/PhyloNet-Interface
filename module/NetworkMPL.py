@@ -10,6 +10,8 @@ import shutil
 
 from module import TaxamapDlg
 
+from functions import *
+
 
 def resource_path(relative_path):
     """
@@ -47,19 +49,8 @@ class NetworkMPLPage(QWizardPage):
         aboutAction.triggered.connect(self.aboutMessage)
         aboutAction.setShortcut("Ctrl+A")
 
-        self.menubar = QMenuBar(self)
-        menuMenu = self.menubar.addMenu('Menu')
-        menuMenu.addAction(aboutAction)
-
         # Title (InferNetwork_MPL)
-        titleLabel = QLabel()
-        titleLabel.setText("InferNetwork_MPL")
-
-        titleFont = QFont()
-        titleFont.setPointSize(24)
-        titleFont.setFamily("Helvetica")
-        titleFont.setBold(True)
-        titleLabel.setFont(titleFont)
+        titleLabel = titleHeader("InferNetwork_MPL")
 
         hyperlink = QLabel()
         hyperlink.setText('Details of this method can be found '
@@ -68,17 +59,7 @@ class NetworkMPLPage(QWizardPage):
         hyperlink.linkActivated.connect(self.link)
 
         # Separation lines
-        line1 = QFrame(self)
-        line1.setFrameShape(QFrame.HLine)
-        line1.setFrameShadow(QFrame.Sunken)
-
-        line2 = QFrame(self)
-        line2.setFrameShape(QFrame.HLine)
-        line2.setFrameShadow(QFrame.Sunken)
-
-        line3 = QFrame(self)
-        line3.setFrameShape(QFrame.HLine)
-        line3.setFrameShadow(QFrame.Sunken)
+        line = lineSeparator(self)
 
         # Two subtitles (mandatory and optional commands)
         mandatoryLabel = QLabel()
@@ -95,13 +76,15 @@ class NetworkMPLPage(QWizardPage):
 
         # Mandatory parameter labels
         geneTreeFileLbl = QLabel("Gene tree files:\n(one file per locus)")
-        geneTreeFileLbl.setToolTip("All trees in one file are considered to be from one locus.")
+        geneTreeFileLbl.setToolTip(
+            "All trees in one file are considered to be from one locus.")
         self.nexus = QCheckBox(".nexus")
         self.nexus.setObjectName("nexus")
         self.newick = QCheckBox(".newick")
         self.newick.setObjectName("newick")
         self.nexus.stateChanged.connect(self.format)
-        self.newick.stateChanged.connect(self.format)  # Implement mutually exclusive check boxes
+        # Implement mutually exclusive check boxes
+        self.newick.stateChanged.connect(self.format)
 
         numReticulationsLbl = QLabel("Maximum number of reticulations to add:")
 
@@ -113,7 +96,8 @@ class NetworkMPLPage(QWizardPage):
         fileSelctionBtn = QToolButton()
         fileSelctionBtn.setText("...")
         fileSelctionBtn.clicked.connect(self.selectFile)
-        fileSelctionBtn.setToolTip("All trees in one file are considered to be from one locus.")
+        fileSelctionBtn.setToolTip(
+            "All trees in one file are considered to be from one locus.")
 
         self.numReticulationsEdit = QLineEdit()
 
@@ -122,7 +106,8 @@ class NetworkMPLPage(QWizardPage):
         self.thresholdLbl.setObjectName("-b")
         self.thresholdLbl.stateChanged.connect(self.onChecked)
 
-        self.taxamapLbl = QCheckBox("Gene tree / species tree taxa association:", self)
+        self.taxamapLbl = QCheckBox(
+            "Gene tree / species tree taxa association:", self)
         self.taxamapLbl.setObjectName("-a")
         self.taxamapLbl.stateChanged.connect(self.onChecked)
 
@@ -130,7 +115,8 @@ class NetworkMPLPage(QWizardPage):
         self.sNetLbl.setObjectName("-s")
         self.sNetLbl.stateChanged.connect(self.onChecked)
 
-        self.nNetRetLbl = QCheckBox("Number of optimal networks to return:", self)
+        self.nNetRetLbl = QCheckBox(
+            "Number of optimal networks to return:", self)
         self.nNetRetLbl.setObjectName("-n")
         self.nNetRetLbl.stateChanged.connect(self.onChecked)
 
@@ -138,7 +124,8 @@ class NetworkMPLPage(QWizardPage):
         self.hybridLbl.setObjectName("-h")
         self.hybridLbl.stateChanged.connect(self.onChecked)
 
-        self.wetOpLbl = QCheckBox("Weights of operations for network arrangement during the network search:", self)
+        self.wetOpLbl = QCheckBox(
+            "Weights of operations for network arrangement during the network search:", self)
         self.wetOpLbl.setObjectName("-w")
         self.wetOpLbl.stateChanged.connect(self.onChecked)
 
@@ -146,19 +133,23 @@ class NetworkMPLPage(QWizardPage):
         self.numRunLbl.setObjectName("-x")
         self.numRunLbl.stateChanged.connect(self.onChecked)
 
-        self.nNetExamLbl = QCheckBox("Maximum number of network topologies to examine:", self)
+        self.nNetExamLbl = QCheckBox(
+            "Maximum number of network topologies to examine:", self)
         self.nNetExamLbl.setObjectName("-m")
         self.nNetExamLbl.stateChanged.connect(self.onChecked)
 
-        self.maxDiaLbl = QCheckBox("Maximum diameter to make an arrangement during network search:", self)
+        self.maxDiaLbl = QCheckBox(
+            "Maximum diameter to make an arrangement during network search:", self)
         self.maxDiaLbl.setObjectName("-md")
         self.maxDiaLbl.stateChanged.connect(self.onChecked)
 
-        self.retDiaLbl = QCheckBox("Maximum diameter for a reticulation event:", self)
+        self.retDiaLbl = QCheckBox(
+            "Maximum diameter for a reticulation event:", self)
         self.retDiaLbl.setObjectName("-rd")
         self.retDiaLbl.stateChanged.connect(self.onChecked)
 
-        self.maxFLbl = QCheckBox("Maximum consecutive number of failures for hill climbing:", self)
+        self.maxFLbl = QCheckBox(
+            "Maximum consecutive number of failures for hill climbing:", self)
         self.maxFLbl.setObjectName("-f")
         self.maxFLbl.stateChanged.connect(self.onChecked)
 
@@ -168,11 +159,13 @@ class NetworkMPLPage(QWizardPage):
         self.poLabel = QCheckBox("Optimize branch lengths and inheritance probabilities for returned species networks "
                                  "after the search", self)
 
-        self.stopCriterionLbl = QCheckBox("The original stopping criterion of Brent's algorithm:", self)
+        self.stopCriterionLbl = QCheckBox(
+            "The original stopping criterion of Brent's algorithm:", self)
         self.stopCriterionLbl.setObjectName("-p")
         self.stopCriterionLbl.stateChanged.connect(self.onChecked)
 
-        self.maxRoundLbl = QCheckBox("Maximum number of rounds to optimize branch lengths for a network topology:", self)
+        self.maxRoundLbl = QCheckBox(
+            "Maximum number of rounds to optimize branch lengths for a network topology:", self)
         self.maxRoundLbl.setObjectName("-r")
         self.maxRoundLbl.stateChanged.connect(self.onChecked)
 
@@ -194,15 +187,21 @@ class NetworkMPLPage(QWizardPage):
         self.numProcLbl.setObjectName("-pl")
         self.numProcLbl.stateChanged.connect(self.onChecked)
 
-        self.diLbl = QCheckBox("Output Rich Newick string that can be read by Dendroscope.")
+        self.diLbl = QCheckBox(
+            "Output Rich Newick string that can be read by Dendroscope.")
         self.diLbl.stateChanged.connect(self.onChecked)
 
+        self.fileDestLbl = QCheckBox(
+            "Specify file destination for command output:")
+        self.fileDestLbl.setObjectName("resultOutputFile")
+        self.fileDestLbl.stateChanged.connect(self.onChecked)
 
         # Optional parameter inputs
         self.thresholdEdit = QLineEdit()
         self.thresholdEdit.setDisabled(True)
 
         self.taxamapEdit = QPushButton("Set taxa map")
+
         self.taxamapEdit.setDisabled(True)
         self.taxamapEdit.clicked.connect(self.getTaxamap)
 
@@ -264,6 +263,22 @@ class NetworkMPLPage(QWizardPage):
         self.numProcEdit = QLineEdit()
         self.numProcEdit.setDisabled(True)
         self.numProcEdit.setPlaceholderText("1")
+
+        self.fileDestEdit = QLineEdit()
+        self.fileDestEdit.setDisabled(True)
+        self.fileDestBtn = QToolButton()
+        self.fileDestBtn.setText("...")
+        self.fileDestBtn.setDisabled(True)
+        self.fileDestBtn.clicked.connect(self.selectDest)
+
+        # Input for where the NEXUS file should be generated.
+        outDestLbl = QLabel(
+            "Please specify destination for generated nexus file:")
+        self.outDestEdit = QLineEdit()
+        self.outDestEdit.setReadOnly(True)
+        self.outDestBtn = QToolButton()
+        self.outDestBtn.setText("...")
+        self.outDestBtn.clicked.connect(self.selectNEXDest)
 
         # Launch button
         launchBtn = QPushButton("Generate", self)
@@ -376,6 +391,15 @@ class NetworkMPLPage(QWizardPage):
         diLayout = QHBoxLayout()
         diLayout.addWidget(self.diLbl)
 
+        fileDestLayout = QHBoxLayout()
+        fileDestLayout.addWidget(self.fileDestLbl)
+        fileDestLayout.addWidget(self.fileDestEdit)
+        fileDestLayout.addWidget(self.fileDestBtn)
+
+        outDestLayout = QHBoxLayout()
+        outDestLayout.addWidget(outDestLbl)
+        outDestLayout.addWidget(self.outDestEdit)
+        outDestLayout.addWidget(self.outDestBtn)
 
         btnLayout = QHBoxLayout()
         btnLayout.addStretch(1)
@@ -385,12 +409,12 @@ class NetworkMPLPage(QWizardPage):
         topLevelLayout = QVBoxLayout()
         topLevelLayout.addWidget(titleLabel)
         topLevelLayout.addWidget(hyperlink)
-        topLevelLayout.addWidget(line1)
+        topLevelLayout.addWidget(line)
         topLevelLayout.addWidget(mandatoryLabel)
         topLevelLayout.addLayout(geneTreeFileLayout)
         topLevelLayout.addLayout(numReticulationsLayout)
 
-        topLevelLayout.addWidget(line2)
+        topLevelLayout.addWidget(line)
         topLevelLayout.addWidget(optionalLabel)
         topLevelLayout.addLayout(thresholdLayout)
         topLevelLayout.addLayout(taxamapLayout)
@@ -412,8 +436,10 @@ class NetworkMPLPage(QWizardPage):
         topLevelLayout.addLayout(maxBlLayout)
         topLevelLayout.addLayout(numProcLayout)
         topLevelLayout.addLayout(diLayout)
+        topLevelLayout.addLayout(fileDestLayout)
 
-        topLevelLayout.addWidget(line3)
+        topLevelLayout.addWidget(line)
+        topLevelLayout.addLayout(outDestLayout)
         topLevelLayout.addLayout(btnLayout)
 
         # Scroll bar
@@ -423,7 +449,6 @@ class NetworkMPLPage(QWizardPage):
        # scroll.setMinimumWidth(695)
        # scroll.setMinimumHeight(750)
 
-        self.menubar.setNativeMenuBar(False)
         self.setWindowTitle('PhyloNetNEXGenerator')
         self.setWindowIcon(QIcon(resource_path("logo.png")))
 
@@ -554,6 +579,13 @@ class NetworkMPLPage(QWizardPage):
                 self.numProcEdit.setDisabled(True)
             else:
                 self.numProcEdit.setDisabled(False)
+        elif self.sender().objectName() == "resultOutputFile":
+            if self.fileDestEdit.isEnabled():
+                self.fileDestEdit.setDisabled(True)
+                self.fileDestBtn.setDisabled(True)
+            else:
+                self.fileDestEdit.setDisabled(False)
+                self.fileDestBtn.setDisabled(False)
         else:
             pass
 
@@ -592,18 +624,32 @@ class NetworkMPLPage(QWizardPage):
         Store all the user uploaded gene tree files.
         Execute when file selection button is clicked.
         """
-        fname = QFileDialog.getOpenFileNames(self, 'Open file', '/', 'Nexus files (*.nexus *.nex);;Newick files (*.newick)')
+        fname = QFileDialog.getOpenFileNames(self, 'Open file', '/')
         if fname:
-            if fname[1] == 'Nexus files (*.nexus *.nex)':
-                for onefname in fname[0]:
-                    self.geneTreesEdit.append(str(onefname))
-                    self.inputFiles.append(str(onefname))
-            elif fname[1] == 'Newick files (*.newick)':
-                for onefname in fname[0]:
-                    self.geneTreesEdit.append(str(onefname))
-                    self.inputFiles.append(str(onefname))
+            if self.nexus.isChecked():
+                self.geneTreesEdit.append(fname[0])
+                self.inputFiles.append(str(fname))
             else:
-                return
+                self.geneTreesEdit.append(fname[0])
+                self.inputFiles.append(str(fname))
+
+    def selectDest(self):
+        """
+        Select and store destination for PhyloNet output.
+        """
+        fname = QFileDialog.getOpenFileName(self, 'Open file', '/')
+        if fname:
+            self.fileDestEdit.setText(fname)
+
+    def selectNEXDest(self):
+        """
+        Select and display the absolute output path for NEXUS file generated by this program.
+        The NEXUS file will be generated at the path as displayed on QLineEdit.
+        """
+        directory = str(QFileDialog.getExistingDirectory(
+            self, "Select Directory"))
+        if directory:
+            self.outDestEdit.setText(directory)
 
     def getTaxamap(self):
         """
@@ -645,12 +691,14 @@ class NetworkMPLPage(QWizardPage):
                         break
 
             # Execute TaxamapDlg
-            dialog = TaxamapDlg.TaxamapDlg(data.taxon_namespace, self.taxamap, self)
+            dialog = TaxamapDlg.TaxamapDlg(
+                data.taxon_namespace, self.taxamap, self)
             if dialog.exec_():
                 self.taxamap = dialog.getTaxamap()
 
         except emptyFileError:
-            QMessageBox.warning(self, "Warning", "Please select a file type and upload data!", QMessageBox.Ok)
+            QMessageBox.warning(
+                self, "Warning", "Please select a file type and upload data!", QMessageBox.Ok)
             return
         except Exception as e:
             QMessageBox.warning(self, "Warning", str(e), QMessageBox.Ok)
@@ -660,8 +708,6 @@ class NetworkMPLPage(QWizardPage):
         """
         Generate NEXUS file based on user input.
         """
-        directory = QFileDialog.getSaveFileName(self, "Save File", "/", "Nexus Files (*.nexus)")
-        
         class emptyFileError(Exception):
             pass
 
@@ -676,8 +722,10 @@ class NetworkMPLPage(QWizardPage):
                 raise emptyFileError
             if len(self.inputFiles) == 0:
                 raise emptyFileError
-            if self.numReticulationsEdit.text() == "":
+            if self.numReticulationsEdit.text().isEmpty():
                 raise emptyNumReticulationError
+            if self.outDestEdit.text().isEmpty():
+                raise emptyDesinationError
 
             # the file format to read
             if self.nexus.isChecked():
@@ -691,7 +739,8 @@ class NetworkMPLPage(QWizardPage):
                 fileName = os.path.splitext(os.path.basename(file))[0]
                 currentFile = dendropy.TreeList()
                 # read in gene trees
-                currentFile.read(path=file, schema=schema, preserve_underscores=True)
+                currentFile.read(path=file, schema=schema,
+                                 preserve_underscores=True)
                 if len(currentFile) > 1:
                     # If a file contains multiple trees, assume those trees come from one locus
                     self.multiTreesPerLocus = True
@@ -716,8 +765,10 @@ class NetworkMPLPage(QWizardPage):
                 raise Exception("No tree data found in data file")
 
             # Write out TREES block.
-            path = str(directory[0])
-            data.write(path=path, schema="nexus", suppress_taxa_blocks=True, unquoted_underscores=True)
+            path = str(self.outDestEdit.text()) + "/" + \
+                str(datetime.datetime.now().strftime('%H-%M-%S')) + ".nexus"
+            data.write(path=path, schema="nexus",
+                       suppress_taxa_blocks=True, unquoted_underscores=True)
 
             # Ready to write PHYLONET block.
             with open(path, "a") as outputFile:
@@ -777,7 +828,8 @@ class NetworkMPLPage(QWizardPage):
                         for firstSpecies in speciesToTaxonMap:
                             outputFile.write(firstSpecies)
                             outputFile.write(":")
-                            outputFile.write(speciesToTaxonMap[firstSpecies][0])
+                            outputFile.write(
+                                speciesToTaxonMap[firstSpecies][0])
                             for taxon in speciesToTaxonMap[firstSpecies][1:]:
                                 outputFile.write(",")
                                 outputFile.write(taxon)
@@ -796,7 +848,7 @@ class NetworkMPLPage(QWizardPage):
 
                 # -b threshold command
                 if self.thresholdLbl.isChecked():
-                    if self.thresholdEdit.text() == "":
+                    if self.thresholdEdit.text().isEmpty():
                         pass
                     else:
                         outputFile.write(" -b ")
@@ -804,7 +856,7 @@ class NetworkMPLPage(QWizardPage):
 
                 # -s startingNetwork command
                 if self.sNetLbl.isChecked():
-                    if self.sNetEdit.text() == "":
+                    if self.sNetEdit.text().isEmpty():
                         pass
                     else:
                         outputFile.write(" -s ")
@@ -812,7 +864,7 @@ class NetworkMPLPage(QWizardPage):
 
                 # -n numNetReturned command
                 if self.nNetRetLbl.isChecked():
-                    if self.nNetRetEdit.text() == "":
+                    if self.nNetRetEdit.text().isEmpty():
                         pass
                     else:
                         outputFile.write(" -n ")
@@ -820,7 +872,7 @@ class NetworkMPLPage(QWizardPage):
 
                 # -h {s1 [, s2...]} command
                 if self.hybridLbl.isChecked():
-                    if self.hybridEdit.text() == "":
+                    if self.hybridEdit.text().isEmpty():
                         pass
                     else:
                         outputFile.write(" -h ")
@@ -828,7 +880,7 @@ class NetworkMPLPage(QWizardPage):
 
                 # -w (w1, ..., w6) command
                 if self.wetOpLbl.isChecked():
-                    if self.wetOpEdit.text() == "":
+                    if self.wetOpEdit.text().isEmpty():
                         pass
                     else:
                         outputFile.write(" -w ")
@@ -836,7 +888,7 @@ class NetworkMPLPage(QWizardPage):
 
                 # -x numRuns command
                 if self.numRunLbl.isChecked():
-                    if self.numRunEdit.text() == "":
+                    if self.numRunEdit.text().isEmpty():
                         pass
                     else:
                         outputFile.write(" -x ")
@@ -844,7 +896,7 @@ class NetworkMPLPage(QWizardPage):
 
                 # -m maxNetExamined command
                 if self.nNetExamLbl.isChecked():
-                    if self.nNetExamEdit.text() == "":
+                    if self.nNetExamEdit.text().isEmpty():
                         pass
                     else:
                         outputFile.write(" -m ")
@@ -852,7 +904,7 @@ class NetworkMPLPage(QWizardPage):
 
                 # -md maxDiameter command
                 if self.maxDiaLbl.isChecked():
-                    if self.maxDiaEdit.text() == "":
+                    if self.maxDiaEdit.text().isEmpty():
                         pass
                     else:
                         outputFile.write(" -md ")
@@ -860,7 +912,7 @@ class NetworkMPLPage(QWizardPage):
 
                 # -rd reticulationDiameter command
                 if self.retDiaLbl.isChecked():
-                    if self.retDiaEdit.text() == "":
+                    if self.retDiaEdit.text().isEmpty():
                         pass
                     else:
                         outputFile.write(" -rd ")
@@ -868,7 +920,7 @@ class NetworkMPLPage(QWizardPage):
 
                 # -f maxFailure command
                 if self.maxFLbl.isChecked():
-                    if self.maxFEdit.text() == "":
+                    if self.maxFEdit.text().isEmpty():
                         pass
                     else:
                         outputFile.write(" -f ")
@@ -884,7 +936,7 @@ class NetworkMPLPage(QWizardPage):
 
                 # -p command
                 if self.stopCriterionLbl.isChecked():
-                    if self.stopCriterionEdit.text() == "":
+                    if self.stopCriterionEdit.text().isEmpty():
                         pass
                     else:
                         outputFile.write(" -p ")
@@ -892,7 +944,7 @@ class NetworkMPLPage(QWizardPage):
 
                 # -r command
                 if self.maxRoundLbl.isChecked():
-                    if self.maxRoundEdit.text() == "":
+                    if self.maxRoundEdit.text().isEmpty():
                         pass
                     else:
                         outputFile.write(" -r ")
@@ -900,7 +952,7 @@ class NetworkMPLPage(QWizardPage):
 
                 # -t command
                 if self.maxTryPerBrLbl.isChecked():
-                    if self.maxTryPerBrEdit.text() == "":
+                    if self.maxTryPerBrEdit.text().isEmpty():
                         pass
                     else:
                         outputFile.write(" -t ")
@@ -908,7 +960,7 @@ class NetworkMPLPage(QWizardPage):
 
                 # -i command
                 if self.improveThresLbl.isChecked():
-                    if self.maxTryPerBrEdit.text() == "":
+                    if self.maxTryPerBrEdit.text().isEmpty():
                         pass
                     else:
                         outputFile.write(" -i ")
@@ -916,7 +968,7 @@ class NetworkMPLPage(QWizardPage):
 
                 # -l command
                 if self.maxBlLbl.isChecked():
-                    if self.maxBlEdit.text() == "":
+                    if self.maxBlEdit.text().isEmpty():
                         pass
                     else:
                         outputFile.write(" -l ")
@@ -924,7 +976,7 @@ class NetworkMPLPage(QWizardPage):
 
                 # -pl numProcessors command
                 if self.numProcLbl.isChecked():
-                    if self.numProcEdit.text() == "":
+                    if self.numProcEdit.text().isEmpty():
                         pass
                     else:
                         outputFile.write(" -pl ")
@@ -934,6 +986,15 @@ class NetworkMPLPage(QWizardPage):
                 if self.diLbl.isChecked():
                     outputFile.write(" -di")
 
+                # resultOutputFile command
+                if self.fileDestLbl.isChecked():
+                    if self.fileDestEdit.text().isEmpty():
+                        pass
+                    else:
+                        outputFile.write(" ")
+                        outputFile.write('"')
+                        outputFile.write(self.fileDestEdit.text())
+                        outputFile.write('"')
 
                 # End of NEXUS
                 outputFile.write(";\n\n")
@@ -949,13 +1010,16 @@ class NetworkMPLPage(QWizardPage):
             self.validateFile(path)
 
         except emptyFileError:
-            QMessageBox.warning(self, "Warning", "Please select a file type and upload data!", QMessageBox.Ok)
+            QMessageBox.warning(
+                self, "Warning", "Please select a file type and upload data!", QMessageBox.Ok)
             return
         except emptyNumReticulationError:
-            QMessageBox.warning(self, "Warning", "Please enter the maximum number of reticulations.", QMessageBox.Ok)
+            QMessageBox.warning(
+                self, "Warning", "Please enter the maximum number of reticulations.", QMessageBox.Ok)
             return
         except emptyDesinationError:
-            QMessageBox.warning(self, "Warning", "Please specify destination for generated NEXUS file.", QMessageBox.Ok)
+            QMessageBox.warning(
+                self, "Warning", "Please specify destination for generated NEXUS file.", QMessageBox.Ok)
             return
         except Exception as e:
             self.geneTreeNames = []
@@ -973,7 +1037,7 @@ class NetworkMPLPage(QWizardPage):
         """
         try:
             subprocess.check_output(
-                ["java", "-jar", resource_path("module/testphylonet.jar"),
+                ["java", "-jar", resource_path("testphylonet.jar"),
                  filePath, "checkParams"], stderr=subprocess.STDOUT)
         except subprocess.CalledProcessError as e:
             # If an error is encountered, delete the generated file and display the error to user.

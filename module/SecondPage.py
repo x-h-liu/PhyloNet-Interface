@@ -13,7 +13,8 @@ def resource_path(relative_path):
     Refer to the location of a file at run-time.
     This function is from
     https://www.reddit.com/r/learnpython/comments/4kjie3/how_to_include_gui_images_with_pyinstaller/
-    For more information, visit https://pythonhosted.org/PyInstaller/runtime-information.html#run-time-information
+    #run-time-information
+    For more information, visit https://pythonhosted.org/PyInstaller/runtime-information.html
     """
     if hasattr(sys, '_MEIPASS'):
         return os.path.join(sys._MEIPASS, relative_path)
@@ -30,8 +31,8 @@ class SecondPage(QWizardPage):
         """
         Initialize GUI.
         """
-       # wid = QWidget()
-       # self.setCentralWidget(wid)
+        # wid = QWidget()
+        # self.setCentralWidget(wid)
 
         # Menubar and action
         aboutAction = QAction('About', self)
@@ -44,7 +45,8 @@ class SecondPage(QWizardPage):
 
         # Queston label and two options
         questionLabel = QLabel()
-        questionLabel.setText("Do you want direct inference or two-step inference using gene tree estimates?")
+        questionLabel.setText(
+            "Do you want direct inference or two-step inference using gene tree estimates?")
         questionLabel.setWordWrap(True)
 
         questionFont = QFont()
@@ -99,7 +101,7 @@ class SecondPage(QWizardPage):
 
         self.menubar.setNativeMenuBar(False)
         self.setWindowTitle('PhyloNetNEXGenerator')
-        self.setWindowIcon(QIcon(resource_path("logo.png")))
+        self.setWindowIcon(QIcon(resource_path("logo.png"))) """
 
     def aboutMessage(self):
         msg = QMessageBox()

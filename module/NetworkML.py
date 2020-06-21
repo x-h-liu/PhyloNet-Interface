@@ -9,10 +9,12 @@ import subprocess
 import shutil
 
 from module import TaxamapDlg
+from functions import *
 
 inputFiles = []
 geneTreesNames = []
 taxamap = {}
+
 
 def resource_path(relative_path):
     """
@@ -24,6 +26,7 @@ def resource_path(relative_path):
     if hasattr(sys, '_MEIPASS'):
         return os.path.join(sys._MEIPASS, relative_path)
     return os.path.join(os.path.abspath("."), relative_path)
+
 
 class NetworkMLPage(QWizardPage):
     def __init__(self):
@@ -49,19 +52,8 @@ class NetworkMLPage(QWizardPage):
         aboutAction.triggered.connect(self.aboutMessage)
         aboutAction.setShortcut("Ctrl+A")
 
-        self.menubar = QMenuBar(self)
-        menuMenu = self.menubar.addMenu('Menu')
-        menuMenu.addAction(aboutAction)
-
         # Title (InferNetwork_ML)
-        titleLabel = QLabel()
-        titleLabel.setText("InferNetwork_ML")
-
-        titleFont = QFont()
-        titleFont.setPointSize(24)
-        titleFont.setFamily("Helvetica")
-        titleFont.setBold(True)
-        titleLabel.setFont(titleFont)
+        titleLabel = titleHeader("InferNetwork_ML")
 
         hyperlink = QLabel()
         hyperlink.setText('Details of this method can be found '
@@ -69,45 +61,41 @@ class NetworkMLPage(QWizardPage):
                           'here</a>.')
         hyperlink.linkActivated.connect(self.link)
 
-        # Separation lines
-        line1 = QFrame(self)
-        line1.setFrameShape(QFrame.HLine)
-        line1.setFrameShadow(QFrame.Sunken)
-
         # Two subtitles (mandatory and optional commands)
-        mandatoryLabel = QLabel()
-        mandatoryLabel.setText("Input Data")
-
-        subTitleFont = QFont()
-        subTitleFont.setPointSize(18)
-        subTitleFont.setFamily("Times New Roman")
-        subTitleFont.setBold(True)
-        mandatoryLabel.setFont(subTitleFont)
+        instructionInput = QLabel()
+        instructionInput.setObjectName("instructionInput")
+        instructionInput.setText(
+            "Input Data: Please upload gene tree files. One file per locus")
 
         # Mandatory parameter labels
-        geneTreeFileLbl = QLabel("Gene tree files:\n(one file per locus)")
-        geneTreeFileLbl.setToolTip("All trees in one file are considered to be from one locus.")
+        geneTreeFileLbl = QLabel()
+        geneTreeFileLbl.setToolTip(
+            "All trees in one file are considered to be from one locus.")
         self.nexus = QCheckBox(".nexus")
         self.nexus.setObjectName("nexus")
         self.newick = QCheckBox(".newick")
         self.newick.setObjectName("newick")
         self.nexus.stateChanged.connect(self.format)
-        self.newick.stateChanged.connect(self.format)  # Implement mutually exclusive check boxes
+        # Implement mutually exclusive check boxes
+        self.newick.stateChanged.connect(self.format)
         numReticulationsLbl = QLabel("Maximum number of reticulations to add:")
 
         # Mandatory parameter inputs
         self.geneTreesEditML = QTextEdit()
         self.geneTreesEditML.setFixedHeight(50)
         self.geneTreesEditML.setReadOnly(True)
-        self.registerField("geneTreesEditML*", self.geneTreesEditML, "plainText", self.geneTreesEditML.textChanged)
+        self.registerField("geneTreesEditML*", self.geneTreesEditML,
+                           "plainText", self.geneTreesEditML.textChanged)
 
         fileSelctionBtn = QToolButton()
         fileSelctionBtn.setText("Browse")
         fileSelctionBtn.clicked.connect(self.selectFile)
-        fileSelctionBtn.setToolTip("All trees in one file are considered to be from one locus.")
+        fileSelctionBtn.setToolTip(
+            "All trees in one file are considered to be from one locus.")
 
         self.numReticulationsEditML = QLineEdit()
-        self.registerField("numReticulationsEditML*", self.numReticulationsEditML)
+        self.registerField("numReticulationsEditML*",
+                           self.numReticulationsEditML)
 
         # Layouts
         # Layout of each parameter (label and input)
@@ -128,19 +116,22 @@ class NetworkMLPage(QWizardPage):
         topLevelLayout = QVBoxLayout()
         topLevelLayout.addWidget(titleLabel)
         topLevelLayout.addWidget(hyperlink)
-        topLevelLayout.addWidget(line1)
-        topLevelLayout.addWidget(mandatoryLabel)
+        topLevelLayout.addWidget(lineSeparator(self))
+        topLevelLayout.addWidget(instructionInput)
         topLevelLayout.addLayout(geneTreeFileLayout)
         topLevelLayout.addLayout(numReticulationsLayout)
 
         # Scroll bar
-        self.setLayout(topLevelLayout)
-      #  scroll.setWidget(wid)
-      #  scroll.setWidgetResizable(True)
-      #  scroll.setMinimumWidth(695)
-      #  scroll.setMinimumHeight(750)
+        # self.setLayout(topLevelLayout)
+        #scroll = QScrollArea()
+        # scroll.setWidget(topLevelLayout)
+        # topLevelLayout.addWidget(scroll)
+        #scrollContent = QWidget(scroll)
 
-        self.menubar.setNativeMenuBar(False)
+        # scroll.setWidgetResizable(True)
+        # scroll.setFixedHeight(695)
+        # scroll.setFixedWidth(750)
+
         self.setWindowTitle('PhyloNetNEXGenerator')
         self.setWindowIcon(QIcon(resource_path("logo.png")))
 
@@ -201,33 +192,39 @@ class NetworkMLPage(QWizardPage):
         Execute when file selection button is clicked.
         """
         if (not self.newick.isChecked()) and (not self.nexus.isChecked()):
-            QMessageBox.warning(self, "Warning", "Please select a file type.", QMessageBox.Ok)
+            QMessageBox.warning(
+                self, "Warning", "Please select a file type.", QMessageBox.Ok)
         else:
-            fname = QFileDialog.getOpenFileNames(self, 'Open file', '/', 'Nexus files (*.nexus *.nex);;Newick files (*.newick)')
+            fname = QFileDialog.getOpenFileNames(
+                self, 'Open file', '/', 'Nexus files (*.nexus *.nex);;Newick files (*.newick)')
             self.fileType = QLineEdit(fname[1])
             self.registerField("fileType", self.fileType)
             if fname:
                 extension = fname[1]
                 if self.nexus.isChecked():
                     if extension != 'Nexus files (*.nexus *.nex)':
-                        QMessageBox.warning(self, "Warning", "Please upload only .nexus files!", QMessageBox.Ok)
+                        QMessageBox.warning(
+                            self, "Warning", "Please upload only .nexus files!", QMessageBox.Ok)
                     else:
                         for onefname in fname[0]:
                             self.geneTreesEditML.append(onefname)
                             self.inputFiles.append(str(onefname))
                 else:
                     if extension != 'Newick files (*.newick)':
-                        QMessageBox.warning(self, "Warning", "Please upload only .newick files!", QMessageBox.Ok)
+                        QMessageBox.warning(
+                            self, "Warning", "Please upload only .newick files!", QMessageBox.Ok)
                     else:
                         for onefname in fname[0]:
                             self.geneTreesEditML.append(onefname)
                             self.inputFiles.append(str(onefname))
-       
+
+
 class NetworkMLPage2(QWizardPage):
     def initializePage(self):
         self.fileType = self.field("fileType")
         self.geneTreesEditML = self.field("geneTreesEditML")
         self.numReticulationsEditML = self.field("numReticulationsEditML")
+
     def __init__(self):
         super(NetworkMLPage2, self).__init__()
 
@@ -251,19 +248,8 @@ class NetworkMLPage2(QWizardPage):
         aboutAction.triggered.connect(self.aboutMessage)
         aboutAction.setShortcut("Ctrl+A")
 
-        self.menubar = QMenuBar(self)
-        menuMenu = self.menubar.addMenu('Menu')
-        menuMenu.addAction(aboutAction)
-
         # Title (InferNetwork_ML)
-        titleLabel = QLabel()
-        titleLabel.setText("InferNetwork_ML")
-
-        titleFont = QFont()
-        titleFont.setPointSize(24)
-        titleFont.setFamily("Helvetica")
-        titleFont.setBold(True)
-        titleLabel.setFont(titleFont)
+        titleLabel = titleHeader("InferNetwork_ML")
 
         hyperlink = QLabel()
         hyperlink.setText('Details of this method can be found '
@@ -271,42 +257,31 @@ class NetworkMLPage2(QWizardPage):
                           'here</a>.')
         hyperlink.linkActivated.connect(self.link)
 
-        # Separation lines
-        line1 = QFrame(self)
-        line1.setFrameShape(QFrame.HLine)
-        line1.setFrameShadow(QFrame.Sunken)
-
-        line2 = QFrame(self)
-        line2.setFrameShape(QFrame.HLine)
-        line2.setFrameShadow(QFrame.Sunken)
-
         # Two subtitles (mandatory and optional commands)
         optionalLabel = QLabel()
+        optionalLabel.setObjectName("instructionInput")
         optionalLabel.setText("Input Options")
-
-        subTitleFont = QFont()
-        subTitleFont.setPointSize(18)
-        subTitleFont.setFamily("Times New Roman")
-        subTitleFont.setBold(True)
-        optionalLabel.setFont(subTitleFont)
 
         # Optional parameter labels
         self.thresholdLbl = QCheckBox("Gene trees bootstrap threshold:", self)
         self.thresholdLbl.setObjectName("-b")
         self.thresholdLbl.stateChanged.connect(self.onChecked)
 
-        self.taxamapLbl = QCheckBox("Gene tree / species tree taxa association:", self)
+        self.taxamapLbl = QCheckBox(
+            "Gene tree / species tree taxa association:", self)
         self.taxamapLbl.setObjectName("-a")
         self.taxamapLbl.stateChanged.connect(self.onChecked)
 
-        self.branchlengthLbl = QCheckBox("Use the branch lengths of the gene trees for the inference.", self)
+        self.branchlengthLbl = QCheckBox(
+            "Use the branch lengths of the gene trees for the inference.", self)
         self.branchlengthLbl.stateChanged.connect(self.onChecked)
 
         self.sNetLbl = QCheckBox("The network to start search:", self)
         self.sNetLbl.setObjectName("-s")
         self.sNetLbl.stateChanged.connect(self.onChecked)
 
-        self.nNetRetLbl = QCheckBox("Number of optimal networks to return:", self)
+        self.nNetRetLbl = QCheckBox(
+            "Number of optimal networks to return:", self)
         self.nNetRetLbl.setObjectName("-n")
         self.nNetRetLbl.stateChanged.connect(self.onChecked)
 
@@ -314,7 +289,8 @@ class NetworkMLPage2(QWizardPage):
         self.hybridLbl.setObjectName("-h")
         self.hybridLbl.stateChanged.connect(self.onChecked)
 
-        self.wetOpLbl = QCheckBox("Weights of operations for network arrangement during the network search:", self)
+        self.wetOpLbl = QCheckBox(
+            "Weights of operations for network arrangement during the network search:", self)
         self.wetOpLbl.setObjectName("-w")
         self.wetOpLbl.stateChanged.connect(self.onChecked)
 
@@ -322,19 +298,23 @@ class NetworkMLPage2(QWizardPage):
         self.numRunLbl.setObjectName("-x")
         self.numRunLbl.stateChanged.connect(self.onChecked)
 
-        self.nNetExamLbl = QCheckBox("Maximum number of network topologies to examine:", self)
+        self.nNetExamLbl = QCheckBox(
+            "Maximum number of network topologies to examine:", self)
         self.nNetExamLbl.setObjectName("-m")
         self.nNetExamLbl.stateChanged.connect(self.onChecked)
 
-        self.maxDiaLbl = QCheckBox("Maximum diameter to make an arrangement during network search:", self)
+        self.maxDiaLbl = QCheckBox(
+            "Maximum diameter to make an arrangement during network search:", self)
         self.maxDiaLbl.setObjectName("-md")
         self.maxDiaLbl.stateChanged.connect(self.onChecked)
 
-        self.retDiaLbl = QCheckBox("Maximum diameter for a reticulation event:", self)
+        self.retDiaLbl = QCheckBox(
+            "Maximum diameter for a reticulation event:", self)
         self.retDiaLbl.setObjectName("-rd")
         self.retDiaLbl.stateChanged.connect(self.onChecked)
 
-        self.maxFLbl = QCheckBox("Maximum consecutive number of failures for hill climbing:", self)
+        self.maxFLbl = QCheckBox(
+            "Maximum consecutive number of failures for hill climbing:", self)
         self.maxFLbl.setObjectName("-f")
         self.maxFLbl.stateChanged.connect(self.onChecked)
 
@@ -344,11 +324,13 @@ class NetworkMLPage2(QWizardPage):
         self.poLabel = QCheckBox("Optimize branch lengths and inheritance probabilities for returned species networks "
                                  "after the search", self)
 
-        self.stopCriterionLbl = QCheckBox("The original stopping criterion of Brent's algorithm:", self)
+        self.stopCriterionLbl = QCheckBox(
+            "The original stopping criterion of Brent's algorithm:", self)
         self.stopCriterionLbl.setObjectName("-p")
         self.stopCriterionLbl.stateChanged.connect(self.onChecked)
 
-        self.maxRoundLbl = QCheckBox("Maximum number of rounds to optimize branch lengths for a network topology:", self)
+        self.maxRoundLbl = QCheckBox(
+            "Maximum number of rounds to optimize branch lengths for a network topology:", self)
         self.maxRoundLbl.setObjectName("-r")
         self.maxRoundLbl.stateChanged.connect(self.onChecked)
 
@@ -370,7 +352,8 @@ class NetworkMLPage2(QWizardPage):
         self.numProcLbl.setObjectName("-pl")
         self.numProcLbl.stateChanged.connect(self.onChecked)
 
-        self.diLbl = QCheckBox("Output Rich Newick string that can be read by Dendroscope.")
+        self.diLbl = QCheckBox(
+            "Output Rich Newick string that can be read by Dendroscope.")
         self.diLbl.stateChanged.connect(self.onChecked)
 
         # Optional parameter inputs
@@ -541,8 +524,6 @@ class NetworkMLPage2(QWizardPage):
         diLayout = QHBoxLayout()
         diLayout.addWidget(self.diLbl)
 
-
-
         btnLayout = QHBoxLayout()
         btnLayout.addStretch(1)
         btnLayout.addWidget(launchBtn)
@@ -551,7 +532,7 @@ class NetworkMLPage2(QWizardPage):
         topLevelLayout = QVBoxLayout()
         topLevelLayout.addWidget(titleLabel)
         topLevelLayout.addWidget(hyperlink)
-        topLevelLayout.addWidget(line1)
+        topLevelLayout.addWidget(lineSeparator(self))
         topLevelLayout.addWidget(optionalLabel)
         topLevelLayout.addLayout(thresholdLayout)
         topLevelLayout.addLayout(taxamapLayout)
@@ -575,7 +556,7 @@ class NetworkMLPage2(QWizardPage):
         topLevelLayout.addLayout(numProcLayout)
         topLevelLayout.addLayout(diLayout)
 
-        topLevelLayout.addWidget(line2)
+        topLevelLayout.addWidget(lineSeparator(self))
         topLevelLayout.addLayout(btnLayout)
 
         # Scroll bar
@@ -585,7 +566,6 @@ class NetworkMLPage2(QWizardPage):
       #  scroll.setMinimumWidth(695)
       #  scroll.setMinimumHeight(750)
 
-        self.menubar.setNativeMenuBar(False)
         self.setWindowTitle('PhyloNetNEXGenerator')
         self.setWindowIcon(QIcon(resource_path("logo.png")))
 
@@ -727,7 +707,7 @@ class NetworkMLPage2(QWizardPage):
         and update taxa map.
         """
 
-        #stop gap way to get inputFiles
+        # stop gap way to get inputFiles
         fileNames = self.geneTreesEditML.split('=')[0]
         inputFiles = fileNames.split('\n')
         self.inputFiles = inputFiles
@@ -766,12 +746,14 @@ class NetworkMLPage2(QWizardPage):
                         break
 
             # Execute TaxamapDlg
-            dialog = TaxamapDlg.TaxamapDlg(data.taxon_namespace, self.taxamap, self)
+            dialog = TaxamapDlg.TaxamapDlg(
+                data.taxon_namespace, self.taxamap, self)
             if dialog.exec_():
                 self.taxamap = dialog.getTaxamap()
 
         except emptyFileError:
-            QMessageBox.warning(self, "Warning", "Please select a file type and upload data!", QMessageBox.Ok)
+            QMessageBox.warning(
+                self, "Warning", "Please select a file type and upload data!", QMessageBox.Ok)
             return
         except Exception as e:
             QMessageBox.warning(self, "Warning", str(e), QMessageBox.Ok)
@@ -780,10 +762,11 @@ class NetworkMLPage2(QWizardPage):
     def generate(self):
         """
         Generate NEXUS file based on user input.
-        """ 
-        directory = QFileDialog.getSaveFileName(self, "Save File", "/", "Nexus Files (*.nexus)")
-  
-        #stop gap way to get inputFiles
+        """
+        directory = QFileDialog.getSaveFileName(
+            self, "Save File", "/", "Nexus Files (*.nexus)")
+
+        # stop gap way to get inputFiles
         fileNames = self.geneTreesEditML.split('=')[0]
         inputFiles = fileNames.split('\n')
         self.inputFiles = inputFiles
@@ -817,7 +800,8 @@ class NetworkMLPage2(QWizardPage):
                 fileName = os.path.splitext(os.path.basename(file))[0]
                 currentFile = dendropy.TreeList()
                 # read in gene trees
-                currentFile.read(path=file, schema=schema, preserve_underscores=True)
+                currentFile.read(path=file, schema=schema,
+                                 preserve_underscores=True)
                 if len(currentFile) > 1:
                     # If a file contains multiple trees, assume those trees come from one locus
                     self.multiTreesPerLocus = True
@@ -843,7 +827,8 @@ class NetworkMLPage2(QWizardPage):
 
             # Write out TREES block.
             path = str(directory[0])
-            data.write(path=path, schema="nexus", suppress_taxa_blocks=True, unquoted_underscores=True)
+            data.write(path=path, schema="nexus",
+                       suppress_taxa_blocks=True, unquoted_underscores=True)
 
             # Ready to write PHYLONET block.
             with open(path, "a") as outputFile:
@@ -903,7 +888,8 @@ class NetworkMLPage2(QWizardPage):
                         for firstSpecies in speciesToTaxonMap:
                             outputFile.write(firstSpecies)
                             outputFile.write(":")
-                            outputFile.write(speciesToTaxonMap[firstSpecies][0])
+                            outputFile.write(
+                                speciesToTaxonMap[firstSpecies][0])
                             for taxon in speciesToTaxonMap[firstSpecies][1:]:
                                 outputFile.write(",")
                                 outputFile.write(taxon)
@@ -1078,13 +1064,16 @@ class NetworkMLPage2(QWizardPage):
             self.validateFile(path)
 
         except emptyFileError:
-            QMessageBox.warning(self, "Warning", "Please select a file type and upload data!", QMessageBox.Ok)
+            QMessageBox.warning(
+                self, "Warning", "Please select a file type and upload data!", QMessageBox.Ok)
             return
         except emptyNumReticulationError:
-            QMessageBox.warning(self, "Warning", "Please enter the maximum number of reticulations.", QMessageBox.Ok)
+            QMessageBox.warning(
+                self, "Warning", "Please enter the maximum number of reticulations.", QMessageBox.Ok)
             return
         except emptyDesinationError:
-            QMessageBox.warning(self, "Warning", "Please specify destination for generated NEXUS file.", QMessageBox.Ok)
+            QMessageBox.warning(
+                self, "Warning", "Please specify destination for generated NEXUS file.", QMessageBox.Ok)
             return
         except Exception as e:
             self.geneTreeNames = []
@@ -1108,6 +1097,7 @@ class NetworkMLPage2(QWizardPage):
             # If an error is encountered, delete the generated file and display the error to user.
             os.remove(filePath)
             QMessageBox.warning(self, "Warning", e.output, QMessageBox.Ok)
+
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)

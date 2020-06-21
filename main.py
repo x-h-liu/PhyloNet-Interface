@@ -2,10 +2,15 @@ import os
 import sys
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
-from PyQt5 import QtCore
+from PyQt5 import QtWidgets, QtCore, QtLocation
+from PyQt5.QtGui import QIcon, QPixmap
 
 import module.launcher
 import PostProcessingModule.menu
+
+from styling import *
+from functions import *
+
 
 def resource_path(relative_path):
     """
@@ -18,20 +23,21 @@ def resource_path(relative_path):
         return os.path.join(sys._MEIPASS, relative_path)
     return os.path.join(os.path.abspath("."), relative_path)
 
+
 class Main(QDialog):
     def __init__(self):
         super(Main, self).__init__()
         SM = SubMain()
-        
+
         mainLayout = QVBoxLayout()
         mainLayout.addWidget(SM)
 
         self.setLayout(mainLayout)
 
+
 class SubMain(QMainWindow):
     def __init__(self):
         super(SubMain, self).__init__()
-
         self.initUI()
 
     def initUI(self):
@@ -41,58 +47,67 @@ class SubMain(QMainWindow):
         wid = QWidget()
         self.setCentralWidget(wid)
 
-        # Menubar and action
-        aboutAction = QAction('About', self)
-        aboutAction.triggered.connect(self.aboutMessage)
-        aboutAction.setShortcut("Ctrl+A")
-
-        menubar = self.menuBar()
-        menuMenu = menubar.addMenu('Menu')
-        menuMenu.addAction(aboutAction)
-
         # Buttons of two options
-        generateBtn = QPushButton("Generate input NEXUS file for PhyloNet", self)
-        postProcessBtn = QPushButton("Display results of PhyloNet commands", self)
-        generateBtn.setMinimumWidth(400)
+        generateBtn = QPushButton(
+            "Generate input NEXUS file for PhyloNet", self)
+        postProcessBtn = QPushButton(
+            "Display results of PhyloNet commands", self)
 
         generateBtn.clicked.connect(self.openModule)
         postProcessBtn.clicked.connect(self.openPostProcess)
 
         # Image and Title
-        pix = QPixmap(resource_path("logo.png"))
         image = QLabel(self)
+        pix = QPixmap(resource_path("PhyloNet-Interface/logo.png"))
         image.setPixmap(pix)
-        lbl = QLabel("PhyloNet")
+        self.resize(20, 10)
+        image.setObjectName("image")
 
-        titleFont = QFont()
-        titleFont.setPointSize(24)
-        titleFont.setBold(True)
-        lbl.setFont(titleFont)  # Font of the PhyloNet title.
+        phylonetLabel = QLabel("PhyloNet")
+        phylonetLabel.setObjectName("phylonetLabel")
 
         # Separation line
         line = QFrame(self)
         line.setFrameShape(QFrame.HLine)
         line.setFrameShadow(QFrame.Sunken)
+        line.setObjectName("line")
 
         # Layouts
         # Top level logo and title.
         top = QHBoxLayout()
         top.addStretch()
         top.addWidget(image)
-        top.addWidget(lbl)
+        top.addWidget(phylonetLabel)
         top.addStretch()
+
+        # Frame container for the top level layout
+        topFrame = QFrame()
+        topFrame.setObjectName("topFrame")
+        topFrame.setLayout(top)
+
+        # Middle level question
+        questionLabel = QLabel()
+        questionLabel.setObjectName("questionLabel")
+        questionLabel.setText(
+            "Welcome to PhyloNet. What would you like to do?")
+
+        # Bottom level options
+        hbox = QHBoxLayout()
+        hbox.addWidget(generateBtn)
+        hbox.addWidget(postProcessBtn)
 
         # Main vertical layout.
         vbox = QVBoxLayout()
-        vbox.addLayout(top)
+        vbox.addWidget(getInfoButton(self))
+        vbox.addWidget(topFrame)
         vbox.addWidget(line)
-        vbox.addWidget(generateBtn)
-        vbox.addWidget(postProcessBtn)
+        vbox.addWidget(questionLabel)
+        vbox.addLayout(hbox)
         wid.setLayout(vbox)
 
         vbox.setContentsMargins(50, 10, 50, 10)
 
-        menubar.setNativeMenuBar(False)
+        # menubar.setNativeMenuBar(False)
         self.setWindowTitle('PhyloNetCompanion')
         self.setWindowIcon(QIcon(resource_path("logo.png")))
 
@@ -112,25 +127,22 @@ class SubMain(QMainWindow):
                     "which is lead by Professor Luay Nakhleh (nakhleh@cs.rice.edu). "
                     "For more details related to this group please visit "
                     "http://bioinfo.cs.rice.edu.")
-        font = QFont()
-        font.setPointSize(13)
-        font.setFamily("Times New Roman")
-        font.setBold(False)
-
-        msg.setFont(font)
         msg.exec_()
 
     def openModule(self):
         self.nexGenerator = module.launcher.Launcher()
         self.nexGenerator.show()
+        self.close()
 
     def openPostProcess(self):
         self.outputSummarizer = PostProcessingModule.menu.MenuPage()
         self.outputSummarizer.show()
+        self.close()
 
 
 if __name__ == '__main__':
-    app = QApplication(sys.argv)
+    app = QtWidgets.QApplication(sys.argv)
+    app.setStyleSheet(style())
     ex = Main()
     ex.show()
     sys.exit(app.exec_())

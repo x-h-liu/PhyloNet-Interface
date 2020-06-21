@@ -13,6 +13,8 @@ from module import TaxamapDlg
 from module import diploidList
 from module import paramList
 
+from functions import *
+
 inputFiles = []
 taxa_names = set([])
 loci = {}
@@ -21,12 +23,35 @@ taxamap = {}
 sgtFiles = []
 ListOfDiploid = []
 GTR = {"A": "0.25", "C": "0.25", "G": "0.25", "T": "0.25", "AC": "1", "AG": "1", "AT": "1", "CG": "1",
-"CT": "1", "GT": "1"}
+       "CT": "1", "GT": "1"}
+
 
 def resource_path(relative_path):
     if hasattr(sys, '_MEIPASS'):
         return os.path.join(sys._MEIPASS, relative_path)
     return os.path.join(os.path.abspath("."), relative_path)
+
+# About info
+
+
+def aboutMessage(self):
+    msg = QMessageBox()
+    msg.setIcon(QMessageBox.Information)
+    msg.setText("Co-estimation of reticulate phylogenies (ILS & hybridization), gene trees, divergence times and "
+                "population sizes on sequences from multiple independent loci."
+                "\n\nFor species phylogeny or phylogenetic network, we infer network topology, divergence times in "
+                "units of expected number of mutations per site, population sizes in units of population mutation "
+                "rate per site, and inheritance probabilities."
+                "\n\nFor gene trees, we infer gene tree topology and coalescent times in units of expected number "
+                "of mutations per site.")
+    font = QFont()
+    font.setPointSize(13)
+    font.setFamily("Times New Roman")
+    font.setBold(False)
+
+    msg.setFont(font)
+    msg.exec_()
+
 
 class MCMCSEQPage1(QWizardPage):
 
@@ -35,9 +60,9 @@ class MCMCSEQPage1(QWizardPage):
 
         self.inputFiles = inputFiles
         self.loci = loci
-      
+
         self.initUI()
-     
+
     def initUI(self):
         """
         Initialize GUI.
@@ -47,82 +72,50 @@ class MCMCSEQPage1(QWizardPage):
       #  scroll = QScrollArea()
       #  self.setCentralWidget(scroll)
 
-        # Menubar and action
-        aboutAction = QAction('About', self)
-        aboutAction.triggered.connect(self.aboutMessage)
-        aboutAction.setShortcut("Ctrl+A")
-
-        self.menubar = QMenuBar(self)
-        menuMenu = self.menubar.addMenu('Menu')
-        menuMenu.addAction(aboutAction)
-
-        # Title (MCMC_SEQ)
-        titleLabel = QLabel()
-        titleLabel.setText("MCMC_SEQ")
-
-        titleFont = QFont()
-        titleFont.setPointSize(24)
-        titleFont.setFamily("Helvetica")
-        titleFont.setBold(True)
-        titleLabel.setFont(titleFont)
-
-        hyperlink = QLabel()
-        hyperlink.setText('Details of this method can be found '
-                          '<a href="https://wiki.rice.edu/confluence/display/PHYLONET/MCMC_SEQ">'
-                          'here</a>.')
-        hyperlink.linkActivated.connect(self.link)
-
-        # Separation lines
-        line1 = QFrame(self)
-        line1.setFrameShape(QFrame.HLine)
-        line1.setFrameShadow(QFrame.Sunken)
-
-        # Two subtitles (mandatory and optional commands)
-        mandatoryLabel = QLabel()
-        mandatoryLabel.setText("Input Data")
-
-        subTitleFont = QFont()
-        subTitleFont.setPointSize(18)
-        subTitleFont.setFamily("Times New Roman")
-        subTitleFont.setBold(True)
-        mandatoryLabel.setFont(subTitleFont)
-
         # Mandatory parameter labels
-        sequenceFileLbl = QLabel("Upload sequence files: \n   (one file per locus)")
-        sequenceFileLbl.setToolTip("Please put sequence alignments of different loci into separate files. \n"
-                                   "Each file is considered to contain sequence alignments from only one locus.")
-        
+        instructionInput = QLabel()
+        instructionInput.setText('Input data: Please upload sequence files. One file per locus. Details of this method can be found '
+                                 '<a href="https://wiki.rice.edu/confluence/display/PHYLONET/MCMC_SEQ">'
+                                 'here < /a > .')
+        instructionInput.linkActivated.connect(self.link)
+        instructionInput.setObjectName("instructionInput")
+        instructionInput.setToolTip("Please put sequence alignments of different loci into separate files. \n"
+                                    "Each file is considered to contain sequence alignments from only one locus.")
+
         # Mandatory parameter inputs
 
         self.sequenceFileEdit = QTextEdit()
-        self.sequenceFileEdit.setReadOnly(True)
+        self.sequenceFileEdit.setObjectName("sequenceFileEdit")
+        self.sequenceFileEdit.setReadOnly(False)
 
         fileSelctionBtn = QToolButton()
         fileSelctionBtn.setText("Browse")
+        fileSelctionBtn.setObjectName("fileSelctionBtn")
         fileSelctionBtn.clicked.connect(self.selectFile)
         fileSelctionBtn.setToolTip("Please put sequence alignments of different loci into separate files. \n"
                                    "Each file is considered to contain sequence alignments from only one locus.")
-        self.registerField("sequenceFileEdit*", self.sequenceFileEdit, "plainText", self.sequenceFileEdit.textChanged)
-      # UNCOMMENT THIS ^^ FOR DEBUGGING PURPOSES ONLY  
-        
+        self.registerField("sequenceFileEdit*", self.sequenceFileEdit,
+                           "plainText", self.sequenceFileEdit.textChanged)
+      # UNCOMMENT THIS ^^ FOR DEBUGGING PURPOSES ONLY
 
         # Layouts
         # Layout of each parameter (label and input)
         fileFormatLayout = QVBoxLayout()
-        fileFormatLayout.addWidget(sequenceFileLbl)
-        seqInputLayout = QHBoxLayout()
-        seqInputLayout.addWidget(self.sequenceFileEdit)
-        seqInputLayout.addWidget(fileSelctionBtn)
+        fileFormatLayout.addWidget(instructionInput)
+
+        # seqInputLayout = QHBoxLayout()
+        # seqInputLayout.addWidget(self.sequenceFileEdit)
+        # seqInputLayout.addWidget(fileSelctionBtn)
+
         seqFileLayout = QVBoxLayout()
         seqFileLayout.addLayout(fileFormatLayout)
-        seqFileLayout.addLayout(seqInputLayout)
+        seqFileLayout.addWidget(self.sequenceFileEdit)
+        seqFileLayout.addWidget(fileSelctionBtn)
 
         # Main layout
         topLevelLayout = QVBoxLayout()
-        topLevelLayout.addWidget(titleLabel)
-        topLevelLayout.addWidget(hyperlink)
-        topLevelLayout.addWidget(line1)
-        topLevelLayout.addWidget(mandatoryLabel)
+        topLevelLayout.addWidget(titleHeader("MCMC_SEQ"))
+        topLevelLayout.addWidget(lineSeparator(self))
         topLevelLayout.addLayout(seqFileLayout)
 
         # Scroll bar
@@ -132,28 +125,9 @@ class MCMCSEQPage1(QWizardPage):
       #  scroll.setMinimumWidth(695)
       #  scroll.setMinimumHeight(750)
 
-        self.menubar.setNativeMenuBar(False)
+        # self.menubar.setNativeMenuBar(False)
         self.setWindowTitle('PhyloNetNEXGenerator')
         self.setWindowIcon(QIcon(resource_path("logo.png")))
-
-        
-    def aboutMessage(self):
-        msg = QMessageBox()
-        msg.setIcon(QMessageBox.Information)
-        msg.setText("Co-estimation of reticulate phylogenies (ILS & hybridization), gene trees, divergence times and "
-                    "population sizes on sequences from multiple independent loci."
-                    "\n\nFor species phylogeny or phylogenetic network, we infer network topology, divergence times in "
-                    "units of expected number of mutations per site, population sizes in units of population mutation "
-                    "rate per site, and inheritance probabilities."
-                    "\n\nFor gene trees, we infer gene tree topology and coalescent times in units of expected number "
-                    "of mutations per site.")
-        font = QFont()
-        font.setPointSize(13)
-        font.setFamily("Times New Roman")
-        font.setBold(False)
-
-        msg.setFont(font)
-        msg.exec_()
 
     def link(self, linkStr):
         """
@@ -169,13 +143,14 @@ class MCMCSEQPage1(QWizardPage):
         Execute when file selection button is clicked.
         """
         try:
-            fname = QFileDialog.getOpenFileNames(self, 'Open file', '/', 'Nexus files (*.nexus *.nex);;Fasta files (*.fasta)')
-            
+            fname = QFileDialog.getOpenFileNames(
+                self, 'Open file', '/', 'Nexus files (*.nexus *.nex);;Fasta files (*.fasta)')
+
             if fname[1] == 'Nexus files (*.nexus *.nex)':
                 for onefname in fname[0]:
                     # Read in sequences from one file.
-                    dna = dendropy.DnaCharacterMatrix.get(path=str(onefname), schema="nexus"
-                                                              , preserve_underscores=True)
+                    dna = dendropy.DnaCharacterMatrix.get(
+                        path=str(onefname), schema="nexus", preserve_underscores=True)
                     # Get the length of sequences in this file, and accumulate lengths of sequences in
                     # all input files
                     self.nchar = 0
@@ -188,14 +163,16 @@ class MCMCSEQPage1(QWizardPage):
                     for taxon in dna:
                         self.taxa_names.add(taxon.label)
                     # Store data from this file in loci dictionary
-                    self.loci[os.path.splitext(os.path.basename(str(onefname)))[0]] = [seqLen, dna]
+                    self.loci[os.path.splitext(os.path.basename(str(onefname)))[0]] = [
+                        seqLen, dna]
 
                     self.sequenceFileEdit.append(onefname)
                     self.inputFiles.append(str(onefname))
             elif fname[1] == 'Fasta files (*.fasta)':
-                for onefname in fname[0]:        
+                for onefname in fname[0]:
                     # Read in sequences from one file.
-                    dna = dendropy.DnaCharacterMatrix.get(path=str(onefname), schema="fasta")
+                    dna = dendropy.DnaCharacterMatrix.get(
+                        path=str(onefname), schema="fasta")
                     # Get the length of sequences in this file, and accumulate lengths of sequences in
                     # all input files
                     for seq in dna.values():
@@ -206,7 +183,8 @@ class MCMCSEQPage1(QWizardPage):
                     for taxon in dna:
                         self.taxa_names.add(taxon.label)
                     # Store data from this file in loci dictionary
-                    self.loci[os.path.splitext(os.path.basename(str(onefname)))[0]] = [seqLen, dna]
+                    self.loci[os.path.splitext(os.path.basename(str(onefname)))[0]] = [
+                        seqLen, dna]
 
                     self.sequenceFileEdit.append(onefname)
                     self.inputFiles.append(str(onefname))
@@ -215,7 +193,6 @@ class MCMCSEQPage1(QWizardPage):
         except Exception as e:
             QMessageBox.warning(self, "Warning", str(e), QMessageBox.Ok)
             return
-
 
 
 class MCMCSEQPage2(QWizardPage):
@@ -243,49 +220,25 @@ class MCMCSEQPage2(QWizardPage):
       #  scroll = QScrollArea()
       #  self.setCentralWidget(scroll)
 
+        """
         # Menubar and action
         aboutAction = QAction('About', self)
         aboutAction.triggered.connect(self.aboutMessage)
         aboutAction.setShortcut("Ctrl+A")
 
+
         self.menubar = QMenuBar(self)
         menuMenu = self.menubar.addMenu('Menu')
         menuMenu.addAction(aboutAction)
-
-        # Title (MCMC_SEQ)
-        titleLabel = QLabel()
-        titleLabel.setText("MCMC_SEQ")
-
-        titleFont = QFont()
-        titleFont.setPointSize(24)
-        titleFont.setFamily("Helvetica")
-        titleFont.setBold(True)
-        titleLabel.setFont(titleFont)
-
-        hyperlink = QLabel()
-        hyperlink.setText('Details of this method can be found '
-                          '<a href="https://wiki.rice.edu/confluence/display/PHYLONET/MCMC_SEQ">'
-                          'here</a>.')
-        hyperlink.linkActivated.connect(self.link)
-
-        # Separation lines
-        line1 = QFrame(self)
-        line1.setFrameShape(QFrame.HLine)
-        line1.setFrameShadow(QFrame.Sunken)
-
-        line2 = QFrame(self)
-        line2.setFrameShape(QFrame.HLine)
-        line2.setFrameShadow(QFrame.Sunken)
+        """
 
         # Two subtitles (mandatory and optional commands)
-        optionalLabel = QLabel()
-        optionalLabel.setText("MCMC Settings")
-
-        subTitleFont = QFont()
-        subTitleFont.setPointSize(18)
-        subTitleFont.setFamily("Times New Roman")
-        subTitleFont.setBold(True)
-        optionalLabel.setFont(subTitleFont)
+        instructionMCMC = QLabel()
+        instructionMCMC.setObjectName("instructionMCMC")
+        instructionMCMC.setText('MCMC Settings and MC3 Settings: Details of this method can be found '
+                                '<a href="https://wiki.rice.edu/confluence/display/PHYLONET/MCMC_SEQ">'
+                                ' here</a>.')
+        instructionMCMC.linkActivated.connect(self.link)
 
         # Optional parameter labels
         self.chainLengthLbl = QCheckBox("The length of the MCMC chain:", self)
@@ -293,7 +246,8 @@ class MCMCSEQPage2(QWizardPage):
         self.chainLengthLbl.stateChanged.connect(self.onChecked)
         self.registerField("chainLengthLbl", self.chainLengthLbl)
 
-        self.burnInLengthLbl = QCheckBox("The number of iterations in burn-in period:", self)
+        self.burnInLengthLbl = QCheckBox(
+            "The number of iterations in burn-in period:", self)
         self.burnInLengthLbl.setObjectName("-bl")
         self.burnInLengthLbl.stateChanged.connect(self.onChecked)
         self.registerField("burnInLengthLbl", self.burnInLengthLbl)
@@ -308,17 +262,20 @@ class MCMCSEQPage2(QWizardPage):
         self.seedLbl.stateChanged.connect(self.onChecked)
         self.registerField("seedLbl", self.seedLbl)
 
-        self.numProcLbl = QCheckBox("Number of threads running in parallel:", self)
+        self.numProcLbl = QCheckBox(
+            "Number of threads running in parallel:", self)
         self.numProcLbl.setObjectName("-pl")
         self.numProcLbl.stateChanged.connect(self.onChecked)
         self.registerField("numProcLbl", self.numProcLbl)
 
-        self.outDirLbl = QCheckBox("The absolute path to store the output files:")
+        self.outDirLbl = QCheckBox(
+            "The absolute path to store the output files:")
         self.outDirLbl.setObjectName("-dir")
         self.outDirLbl.stateChanged.connect(self.onChecked)
         self.registerField("outDirLbl", self.outDirLbl)
 
-        self.tempListLbl = QCheckBox("The list of temperatures for the Metropolis-coupled MCMC chains:", self)
+        self.tempListLbl = QCheckBox(
+            "The list of temperatures for the Metropolis-coupled MCMC chains:", self)
         self.tempListLbl.setObjectName("-mc3")
         self.tempListLbl.stateChanged.connect(self.onChecked)
         self.registerField("tempListLbl", self.tempListLbl)
@@ -353,6 +310,7 @@ class MCMCSEQPage2(QWizardPage):
         self.outDirEdit.setPlaceholderText(os.path.expanduser("~"))
         self.outDirBtn = QToolButton()
         self.outDirBtn.setText("Browse")
+        self.outDirBtn.setObjectName("outDirBtn")
         self.outDirBtn.setDisabled(True)
         self.outDirBtn.clicked.connect(self.selectDest)
         self.registerField("outDirEdit", self.outDirEdit)
@@ -400,20 +358,26 @@ class MCMCSEQPage2(QWizardPage):
 
         # Main layout
         topLevelLayout = QVBoxLayout()
-        topLevelLayout.addWidget(titleLabel)
-        topLevelLayout.addWidget(hyperlink)
-        
-        topLevelLayout.addWidget(line1)
-        topLevelLayout.addWidget(optionalLabel)
-        topLevelLayout.addLayout(chainLengthLayout)
-        topLevelLayout.addLayout(burnInLengthLayout)
-        topLevelLayout.addLayout(sampleFrequencyLayout)
-        topLevelLayout.addLayout(seedLayout)
-        topLevelLayout.addLayout(numProcLayout)
-        topLevelLayout.addLayout(outDirLayout)
-        
-        topLevelLayout.addWidget(line2)
-        topLevelLayout.addLayout(tempListLayout)
+        topLevelLayout.addWidget(titleHeader("MCMC_SEQ"))
+
+        topLevelLayout.addWidget(lineSeparator(self))
+        topLevelLayout.addWidget(instructionMCMC)
+
+        optionLevelLayout = QVBoxLayout()
+        optionLevelLayout.addLayout(chainLengthLayout)
+        optionLevelLayout.addLayout(burnInLengthLayout)
+        optionLevelLayout.addLayout(sampleFrequencyLayout)
+        optionLevelLayout.addLayout(seedLayout)
+        optionLevelLayout.addLayout(numProcLayout)
+        optionLevelLayout.addLayout(outDirLayout)
+        optionLevelLayout.addLayout(tempListLayout)
+
+        """
+        optionFrame = QFrame()
+        optionFrame.setObjectName("optionFrame")
+        optionFrame.setLayout(optionLevelLayout)
+        """
+        topLevelLayout.addWidget(optionFrame(optionLevelLayout))
 
         # Scroll bar
         self.setLayout(topLevelLayout)
@@ -422,7 +386,7 @@ class MCMCSEQPage2(QWizardPage):
       #  scroll.setMinimumWidth(695)
       #  scroll.setMinimumHeight(750)
 
-        self.menubar.setNativeMenuBar(False)
+        # self.menubar.setNativeMenuBar(False)
         self.setWindowTitle('PhyloNetNEXGenerator')
         self.setWindowIcon(QIcon(resource_path("logo.png")))
 
@@ -434,24 +398,6 @@ class MCMCSEQPage2(QWizardPage):
         dir = str(QFileDialog.getExistingDirectory(self, "Select Directory"))
         if dir:
             self.outDirEdit.setText(dir)
-
-    def aboutMessage(self):
-        msg = QMessageBox()
-        msg.setIcon(QMessageBox.Information)
-        msg.setText("Co-estimation of reticulate phylogenies (ILS & hybridization), gene trees, divergence times and "
-                    "population sizes on sequences from multiple independent loci."
-                    "\n\nFor species phylogeny or phylogenetic network, we infer network topology, divergence times in "
-                    "units of expected number of mutations per site, population sizes in units of population mutation "
-                    "rate per site, and inheritance probabilities."
-                    "\n\nFor gene trees, we infer gene tree topology and coalescent times in units of expected number "
-                    "of mutations per site.")
-        font = QFont()
-        font.setPointSize(13)
-        font.setFamily("Times New Roman")
-        font.setBold(False)
-
-        msg.setFont(font)
-        msg.exec_()
 
     def onChecked(self):
         """
@@ -504,6 +450,7 @@ class MCMCSEQPage2(QWizardPage):
         """
         QDesktopServices.openUrl(QtCore.QUrl(linkStr))
 
+
 class MCMCSEQPage3(QWizardPage):
     def __init__(self):
         super(MCMCSEQPage3, self).__init__()
@@ -528,79 +475,59 @@ class MCMCSEQPage3(QWizardPage):
       #  scroll = QScrollArea()
       #  self.setCentralWidget(scroll)
 
+        """
         # Menubar and action
         aboutAction = QAction('About', self)
         aboutAction.triggered.connect(self.aboutMessage)
         aboutAction.setShortcut("Ctrl+A")
 
+
         self.menubar = QMenuBar(self)
         menuMenu = self.menubar.addMenu('Menu')
         menuMenu.addAction(aboutAction)
-
-        # Title (MCMC_SEQ)
-        titleLabel = QLabel()
-        titleLabel.setText("MCMC_SEQ")
-
-        titleFont = QFont()
-        titleFont.setPointSize(24)
-        titleFont.setFamily("Helvetica")
-        titleFont.setBold(True)
-        titleLabel.setFont(titleFont)
-
-        hyperlink = QLabel()
-        hyperlink.setText('Details of this method can be found '
-                          '<a href="https://wiki.rice.edu/confluence/display/PHYLONET/MCMC_SEQ">'
-                          'here</a>.')
-        hyperlink.linkActivated.connect(self.link)
-
-        # Separation lines
-        line1 = QFrame(self)
-        line1.setFrameShape(QFrame.HLine)
-        line1.setFrameShadow(QFrame.Sunken)
-
-        line2 = QFrame(self)
-        line2.setFrameShape(QFrame.HLine)
-        line2.setFrameShadow(QFrame.Sunken)
+        """
 
         # Two subtitles (mandatory and optional commands)
-        optionalLabel = QLabel()
-        optionalLabel.setText("Inference Settings")
-        optionalLabel2 = QLabel()
-        optionalLabel2.setText("Prior Settings")
-
-        subTitleFont = QFont()
-        subTitleFont.setPointSize(18)
-        subTitleFont.setFamily("Times New Roman")
-        subTitleFont.setBold(True)
-        optionalLabel.setFont(subTitleFont)
-        optionalLabel2.setFont(subTitleFont)
+        instructionInference = QLabel()
+        instructionInference.setObjectName("instructionInference")
+        instructionInference.setText("Inference Settings and Prior Settings")
+        instructionInference.setText('Inference Settings and Prior Settings: Details of this method can be found '
+                                     '<a href="https://wiki.rice.edu/confluence/display/PHYLONET/MCMC_SEQ">'
+                                     ' here</a>.')
+        instructionInference.linkActivated.connect(self.link)
 
         # Optional parameter labels
-        
-        self.maxRetLbl = QCheckBox("The maximum number of reticulation nodes in the sampled phylogenetic networks:", self)
+
+        self.maxRetLbl = QCheckBox(
+            "The maximum number of reticulation nodes in the sampled phylogenetic networks:", self)
         self.maxRetLbl.setObjectName("-mr")
         self.maxRetLbl.stateChanged.connect(self.onChecked)
         self.registerField("maxRetLbl", self.maxRetLbl)
 
-        self.taxamapLbl = QCheckBox("Gene tree / species tree taxa association:", self)
+        self.taxamapLbl = QCheckBox(
+            "Gene tree / species tree taxa association:", self)
         self.taxamapLbl.setObjectName("-tm")
         self.taxamapLbl.stateChanged.connect(self.onChecked)
         self.registerField("taxamapLbl", self.taxamapLbl)
 
-        self.popSizeLbl = QCheckBox("Fix the population sizes associated with all branches of the phylogenetic network " "to this given value:", self)
+        self.popSizeLbl = QCheckBox(
+            "Fix the population sizes associated with all branches of the phylogenetic network " "to this given value:", self)
         self.popSizeLbl.setObjectName("-fixps")
         self.popSizeLbl.stateChanged.connect(self.onChecked)
         self.registerField("popSizeLbl", self.popSizeLbl)
 
-        self.varypsLbl = QCheckBox("Vary the population sizes across all branches.", self)
+        self.varypsLbl = QCheckBox(
+            "Vary the population sizes across all branches.", self)
         self.registerField("varypsLbl", self.varypsLbl)
 
-        self.ppLbl = QCheckBox("The Poisson parameter in the prior on the number of reticulation nodes:", self)
+        self.ppLbl = QCheckBox(
+            "The Poisson parameter in the prior on the number of reticulation nodes:", self)
         self.ppLbl.setObjectName("-pp")
         self.ppLbl.stateChanged.connect(self.onChecked)
         self.registerField("ppLbl", self.ppLbl)
 
-        self.ddLbl = QCheckBox("Disable the prior on the diameters of hybridizations.", self)
+        self.ddLbl = QCheckBox(
+            "Disable the prior on the diameters of hybridizations.", self)
         self.registerField("ddLbl", self.ddLbl)
 
         self.eeLbl = QCheckBox("Enable the Exponential(10) prior on the divergence times of nodes in the phylogenetic "
@@ -614,6 +541,7 @@ class MCMCSEQPage3(QWizardPage):
         self.registerField("maxRetEdit", self.maxRetEdit)
 
         self.taxamapEdit = QPushButton("Set taxa map")
+        self.taxamapEdit.setObjectName("taxamapEdit")
         self.taxamapEdit.setDisabled(True)
         self.taxamapEdit.clicked.connect(self.getTaxamap)
         self.registerField("taxamapEdit", self.taxamapEdit)
@@ -621,7 +549,7 @@ class MCMCSEQPage3(QWizardPage):
         self.popSizeEdit = QLineEdit()
         self.popSizeEdit.setDisabled(True)
         self.registerField("popSizeEdit", self.popSizeEdit)
-       
+
         self.ppEdit = QLineEdit()
         self.ppEdit.setDisabled(True)
         self.ppEdit.setPlaceholderText("1.0")
@@ -656,25 +584,26 @@ class MCMCSEQPage3(QWizardPage):
         ddLayout.addWidget(self.ddLbl)
 
         eeLayout = QHBoxLayout()
-        eeLayout.addWidget(self.eeLbl) 
-        
+        eeLayout.addWidget(self.eeLbl)
+
         # Main layout
         topLevelLayout = QVBoxLayout()
-        topLevelLayout.addWidget(titleLabel)
-        topLevelLayout.addWidget(hyperlink)
+        topLevelLayout.addWidget(titleHeader("MCMC_SEQ"))
+        topLevelLayout.addWidget(lineSeparator(self))
+        topLevelLayout.addWidget(instructionInference)
 
-        topLevelLayout.addWidget(line1)
-        topLevelLayout.addWidget(optionalLabel)
-        topLevelLayout.addLayout(maxRetLayout)
-        topLevelLayout.addLayout(taxamapLayout)
-        topLevelLayout.addLayout(popSizeLayout)
-        topLevelLayout.addLayout(varypsLayout)
+        # Layout contains the Inference Setting and Prior Setting options
+        optionLevelALayout = QVBoxLayout()
+        optionLevelALayout.addLayout(maxRetLayout)
+        optionLevelALayout.addLayout(taxamapLayout)
+        optionLevelALayout.addLayout(popSizeLayout)
+        optionLevelALayout.addLayout(varypsLayout)
+        optionLevelALayout.addLayout(ppLayout)
+        optionLevelALayout.addLayout(ddLayout)
+        optionLevelALayout.addLayout(eeLayout)
 
-        topLevelLayout.addWidget(line2)
-        topLevelLayout.addWidget(optionalLabel2)
-        topLevelLayout.addLayout(ppLayout)
-        topLevelLayout.addLayout(ddLayout)
-        topLevelLayout.addLayout(eeLayout)
+        # Places setting options in a QFrame container
+        topLevelLayout.addWidget(optionFrame(optionLevelALayout))
 
         # Scroll bar
         self.setLayout(topLevelLayout)
@@ -683,7 +612,7 @@ class MCMCSEQPage3(QWizardPage):
       #  scroll.setMinimumWidth(695)
       #  scroll.setMinimumHeight(750)
 
-        self.menubar.setNativeMenuBar(False)
+        # self.menubar.setNativeMenuBar(False)
         self.setWindowTitle('PhyloNetNEXGenerator')
         self.setWindowIcon(QIcon(resource_path("logo.png")))
 
@@ -698,25 +627,6 @@ class MCMCSEQPage3(QWizardPage):
             else:
                 o[v] = [k]
         return o
-
-
-    def aboutMessage(self):
-        msg = QMessageBox()
-        msg.setIcon(QMessageBox.Information)
-        msg.setText("Co-estimation of reticulate phylogenies (ILS & hybridization), gene trees, divergence times and "
-                    "population sizes on sequences from multiple independent loci."
-                    "\n\nFor species phylogeny or phylogenetic network, we infer network topology, divergence times in "
-                    "units of expected number of mutations per site, population sizes in units of population mutation "
-                    "rate per site, and inheritance probabilities."
-                    "\n\nFor gene trees, we infer gene tree topology and coalescent times in units of expected number "
-                    "of mutations per site.")
-        font = QFont()
-        font.setPointSize(13)
-        font.setFamily("Times New Roman")
-        font.setBold(False)
-
-        msg.setFont(font)
-        msg.exec_()
 
     def onChecked(self):
         """
@@ -745,7 +655,6 @@ class MCMCSEQPage3(QWizardPage):
                 self.ppEdit.setDisabled(False)
         else:
             pass
-
 
     def link(self, linkStr):
         """
@@ -789,16 +698,18 @@ class MCMCSEQPage3(QWizardPage):
                 self.taxamap = dialog.getTaxamap()
 
         except emptyFileError:
-            QMessageBox.warning(self, "Warning", "Please select a file type and upload data!", QMessageBox.Ok)
+            QMessageBox.warning(
+                self, "Warning", "Please select a file type and upload data!", QMessageBox.Ok)
             return
+
 
 class MCMCSEQPage4(QWizardPage):
 
     def initializePage(self):
-        
+
         self.sequenceFileEdit = self.field("sequenceFileEdit")
-        self.chainLengthLbl = self.field("chainLengthLbl") 
-        self.chainLengthEdit = self.field("chainLengthEdit") 
+        self.chainLengthLbl = self.field("chainLengthLbl")
+        self.chainLengthEdit = self.field("chainLengthEdit")
         self.burnInLengthLbl = self.field("burnInLengthLbl")
         self.burnInLengthEdit = self.field("burnInLengthEdit")
         self.sampleFrequencyLbl = self.field("sampleFrequencyLbl")
@@ -844,64 +755,33 @@ class MCMCSEQPage4(QWizardPage):
       #  scroll = QScrollArea()
       #  self.setCentralWidget(scroll)
 
+        """
         # Menubar and action
         aboutAction = QAction('About', self)
         aboutAction.triggered.connect(self.aboutMessage)
         aboutAction.setShortcut("Ctrl+A")
 
+        
         self.menubar = QMenuBar(self)
         menuMenu = self.menubar.addMenu('Menu')
         menuMenu.addAction(aboutAction)
-
-        # Title (MCMC_SEQ)
-        titleLabel = QLabel()
-        titleLabel.setText("MCMC_SEQ")
-
-        titleFont = QFont()
-        titleFont.setPointSize(24)
-        titleFont.setFamily("Helvetica")
-        titleFont.setBold(True)
-        titleLabel.setFont(titleFont)
-
-        hyperlink = QLabel()
-        hyperlink.setText('Details of this method can be found '
-                          '<a href="https://wiki.rice.edu/confluence/display/PHYLONET/MCMC_SEQ">'
-                          'here</a>.')
-        hyperlink.linkActivated.connect(self.link)
-
-        # Separation lines
-        line1 = QFrame(self)
-        line1.setFrameShape(QFrame.HLine)
-        line1.setFrameShadow(QFrame.Sunken)
-
-        line2 = QFrame(self)
-        line2.setFrameShape(QFrame.HLine)
-        line2.setFrameShadow(QFrame.Sunken)
-
-        line3 = QFrame(self)
-        line3.setFrameShape(QFrame.HLine)
-        line3.setFrameShadow(QFrame.Sunken)
-
-        line4 = QFrame(self)
-        line4.setFrameShape(QFrame.HLine)
-        line4.setFrameShadow(QFrame.Sunken)
+        """
 
         # Two subtitles (mandatory and optional commands)
-        optionalLabel = QLabel()
-        optionalLabel.setText("Starting State Settings")
-
-        subTitleFont = QFont()
-        subTitleFont.setPointSize(18)
-        subTitleFont.setFamily("Times New Roman")
-        subTitleFont.setBold(True)
-        optionalLabel.setFont(subTitleFont)
-
+        instructionLabelStarting = QLabel()
+        instructionLabelStarting.setObjectName("instructionLabelStarting")
+        instructionLabelStarting.setText(
+            "Starting State Settings, Substitution Model, and Phasing")
+        instructionLabelStarting.setText('Starting State Settings, Substitution Model, and Phasings: Details of this method can be found '
+                                         '<a href="https://wiki.rice.edu/confluence/display/PHYLONET/MCMC_SEQ">'
+                                         ' here</a>.')
+        instructionLabelStarting.linkActivated.connect(self.link)
         # Optional parameter labels
 
         self.sgtFileLbl = QCheckBox("Starting gene trees for each locus:")
         self.sgtFileLbl.setObjectName("-sgt")
         self.sgtFileLbl.stateChanged.connect(self.onChecked)
-        self.registerField("sgtFileLbl",self.sgtFileLbl)
+        self.registerField("sgtFileLbl", self.sgtFileLbl)
 
         self.sNetLbl = QCheckBox("The starting network:")
         self.sNetLbl.setObjectName("-snet")
@@ -918,7 +798,8 @@ class MCMCSEQPage4(QWizardPage):
         self.preLbl.stateChanged.connect(self.onChecked)
         self.registerField("preLbl", self.preLbl)
 
-        self.gtrLbl = QCheckBox("Set GTR (general time-reversible) as the substitution model:")
+        self.gtrLbl = QCheckBox(
+            "Set GTR (general time-reversible) as the substitution model:")
         self.gtrLbl.setObjectName("-gtr")
         self.gtrLbl.stateChanged.connect(self.onChecked)
         self.registerField("gtrLbl", self.gtrLbl)
@@ -937,12 +818,14 @@ class MCMCSEQPage4(QWizardPage):
 
         self.sgtFileSelctionBtn = QToolButton()
         self.sgtFileSelctionBtn.setText("Browse")
+        self.sgtFileSelctionBtn.setObjectName("sgtFileSelctionBtn")
         self.sgtFileSelctionBtn.clicked.connect(self.selectSgtFile)
         self.sgtFileSelctionBtn.setDisabled(True)
         self.registerField("sgtFileSelctionBtn", self.sgtFileSelctionBtn)
 
         self.sNetEdit = QLineEdit()
         self.sNetEdit.setDisabled(True)
+        self.sNetEdit.setPlaceholderText("")
         self.registerField("sNetEdit", self.sNetEdit)
 
         self.sPopEdit = QLineEdit()
@@ -956,22 +839,24 @@ class MCMCSEQPage4(QWizardPage):
         self.registerField("preEdit", self.preEdit)
 
         self.gtrEdit = QPushButton("Set model")
+        self.gtrEdit.setObjectName("gtrEdit")
         self.gtrEdit.setDisabled(True)
         self.gtrEdit.clicked.connect(self.getGTR)
         self.registerField("gtrEdit", self.gtrEdit)
 
         self.diploidEdit = QPushButton("Set diploid species")
+        self.diploidEdit.setObjectName("diploidEdit")
         self.diploidEdit.setDisabled(True)
         self.diploidEdit.clicked.connect(self.getDiploid)
         self.registerField("diploidEdit", self.diploidEdit)
 
         # Launch button
         launchBtn = QPushButton("Generate", self)
+        launchBtn.setObjectName("launchBtn")
         launchBtn.clicked.connect(self.generate)
 
         # Layouts
         # Layout of each parameter (label and input)
-
 
         sgtFileFormatLayout = QVBoxLayout()
         sgtFileFormatLayout.addWidget(self.sgtFileLbl)
@@ -1009,28 +894,35 @@ class MCMCSEQPage4(QWizardPage):
         btnLayout = QHBoxLayout()
         btnLayout.addStretch(1)
         btnLayout.addWidget(launchBtn)
+        btnLayout.addStretch(1)
 
+        # Option layout
+        optionLevelCLayout = QVBoxLayout()
+        optionLevelCLayout.addLayout(sgtFileFormatLayout)
+        optionLevelCLayout.addLayout(sNetLayout)
+        optionLevelCLayout.addLayout(sPopLayout)
+        optionLevelCLayout.addLayout(preLayout)
+        optionLevelCLayout.addLayout(gtrLayout)
+        optionLevelCLayout.addLayout(diploidLayout)
         # Main layout
         topLevelLayout = QVBoxLayout()
-        topLevelLayout.addWidget(titleLabel)
-        topLevelLayout.addWidget(hyperlink)
-        
-        topLevelLayout.addWidget(line1)
-        topLevelLayout.addWidget(optionalLabel)
-        topLevelLayout.addLayout(sgtFileLayout)
-        topLevelLayout.addLayout(sNetLayout)
-        topLevelLayout.addLayout(sPopLayout)
-        topLevelLayout.addLayout(preLayout)
-        
-        topLevelLayout.addWidget(line2)
-        topLevelLayout.addLayout(gtrLayout)
+        topLevelLayout.addWidget(titleHeader("MCMC_SEQ"))
 
-        topLevelLayout.addWidget(line3)
-        topLevelLayout.addLayout(diploidLayout)
-
-        topLevelLayout.addWidget(line4)
+        topLevelLayout.addWidget(lineSeparator(self))
+        topLevelLayout.addWidget(instructionLabelStarting)
+        topLevelLayout.addWidget(optionFrame(optionLevelCLayout))
         topLevelLayout.addLayout(btnLayout)
 
+        """
+        topLevelLayout.addWidget(lineSeparator(self))
+        topLevelLayout.addWidget(optionFrame(gtrLayout))
+
+        topLevelLayout.addWidget(lineSeparator(self))
+        topLevelLayout.addWidget(optionFrame(diploidLayout))
+
+        topLevelLayout.addWidget(lineSeparator(self))
+        topLevelLayout.addWidget(optionFrame(btnLayout))
+        """
         # Scroll bar
         self.setLayout(topLevelLayout)
       #  scroll.setWidget(wid)
@@ -1038,11 +930,10 @@ class MCMCSEQPage4(QWizardPage):
       #  scroll.setMinimumWidth(695)
       #  scroll.setMinimumHeight(750)
 
-        self.menubar.setNativeMenuBar(False)
+        # setNativeMenuBar(False)
         self.setWindowTitle('PhyloNetNEXGenerator')
         self.setWindowIcon(QIcon(resource_path("logo.png")))
 
-    
     def __inverseMapping(self, map):
         """
         Convert a mapping from taxon to species to a mapping from species to a list of taxon.
@@ -1054,7 +945,7 @@ class MCMCSEQPage4(QWizardPage):
             else:
                 o[v] = [k]
         return o
-        
+
     def aboutMessage(self):
 
         msg = QMessageBox()
@@ -1151,9 +1042,8 @@ class MCMCSEQPage4(QWizardPage):
         are in the same order as loci).
         Execute when starting gene tree file selection button is clicked.
         """
-
-
-        fname = QFileDialog.getOpenFileName(self, 'Open file', '/', 'Nexus files (*.nexus *.nex);; Newick files (*.newick)')
+        fname = QFileDialog.getOpenFileName(
+            self, 'Open file', '/', 'Nexus files (*.nexus *.nex);; Newick files (*.newick)')
         if fname[1] == 'Nexus files (*.nexus *.nex)':
             # Store the file name in a global list.
             self.sgtFileEdit.insert(fname[0])
@@ -1200,15 +1090,17 @@ class MCMCSEQPage4(QWizardPage):
                 self.ListOfDiploid = dialog.getDiploidSpeciesList()
 
         except emptyFileError:
-            QMessageBox.warning(self, "Warning", "Please select a file type and upload data!", QMessageBox.Ok)
+            QMessageBox.warning(
+                self, "Warning", "Please select a file type and upload data!", QMessageBox.Ok)
             return
 
     def generate(self):
         """
         Generate NEXUS file based on user input.
         """
-        directory = QFileDialog.getSaveFileName(self, "Save File", "/", "Nexus Files (*.nexus)") 
-        
+        directory = QFileDialog.getSaveFileName(
+            self, "Save File", "/", "Nexus Files (*.nexus)")
+
         class emptyFileError(Exception):
             pass
 
@@ -1237,7 +1129,8 @@ class MCMCSEQPage4(QWizardPage):
                     fileName = os.path.splitext(os.path.basename(file))[0]
                     currentFile = dendropy.TreeList()
                     # read in gene trees
-                    currentFile.read(path=file, schema=schema, preserve_underscores=True)
+                    currentFile.read(path=file, schema=schema,
+                                     preserve_underscores=True)
                     if len(currentFile) == 0:
                         raise Exception("No tree data found in gene tree file")
                     counter = 0
@@ -1250,7 +1143,8 @@ class MCMCSEQPage4(QWizardPage):
 
                 # Write out TREES block.
                 path = str(directory[0])
-                data.write(path=path, schema="nexus", suppress_taxa_blocks=True, unquoted_underscores=True)
+                data.write(path=path, schema="nexus",
+                           suppress_taxa_blocks=True, unquoted_underscores=True)
             else:
                 # If not, just create a file to write.
                 path = str(directory[0])
@@ -1267,7 +1161,8 @@ class MCMCSEQPage4(QWizardPage):
                 outputFile.write(" nchar=")
                 outputFile.write(str(self.nchar))
                 outputFile.write(";\n")
-                outputFile.write('Format datatype=dna symbols="ACGTMRWSYK" missing=? gap=-;\n')
+                outputFile.write(
+                    'Format datatype=dna symbols="ACGTMRWSYK" missing=? gap=-;\n')
                 outputFile.write("Matrix\n")
 
                 # Write loci.
@@ -1347,7 +1242,6 @@ class MCMCSEQPage4(QWizardPage):
                     else:
                         outputFile.write(" -mr ")
                         outputFile.write(str(self.maxRetEdit))
-                        
 
                 if self.taxamapLbl == True:
                     if len(self.taxamap) == 0:
@@ -1360,7 +1254,8 @@ class MCMCSEQPage4(QWizardPage):
                         for firstSpecies in speciesToTaxonMap:
                             outputFile.write(firstSpecies)
                             outputFile.write(":")
-                            outputFile.write(speciesToTaxonMap[firstSpecies][0])
+                            outputFile.write(
+                                speciesToTaxonMap[firstSpecies][0])
                             for taxon in speciesToTaxonMap[firstSpecies][1:]:
                                 outputFile.write(",")
                                 outputFile.write(taxon)
@@ -1386,7 +1281,7 @@ class MCMCSEQPage4(QWizardPage):
                 if self.varypsLbl == True:
                     outputFile.write(" -varyps")
 
-                if self.ppLbl == True: 
+                if self.ppLbl == True:
                     if self.ppEdit == "":
                         pass
                     else:
@@ -1480,10 +1375,12 @@ class MCMCSEQPage4(QWizardPage):
             # Validate the generated file.
             self.validateFile(path)
         except emptyFileError:
-            QMessageBox.warning(self, "Warning", "Please select a file type and upload data!", QMessageBox.Ok)
+            QMessageBox.warning(
+                self, "Warning", "Please select a file type and upload data!", QMessageBox.Ok)
             return
         except emptyDesinationError:
-            QMessageBox.warning(self, "Warning", "Please specify destination for generated NEXUS file.", QMessageBox.Ok)
+            QMessageBox.warning(
+                self, "Warning", "Please specify destination for generated NEXUS file.", QMessageBox.Ok)
             return
         except Exception as e:
             # Clear all data when encounters an exception.
@@ -1508,13 +1405,16 @@ class MCMCSEQPage4(QWizardPage):
             subprocess.check_output(
                 ["java", "-jar", resource_path("module/testphylonet.jar"),
                  filePath, "checkParams"], stderr=subprocess.STDOUT)
+            # QMessageBox.warning(self, "Completed!", "Your file has successfully been", QMessageBox.Ok)
         except subprocess.CalledProcessError as e:
             # If an error is encountered, delete the generated file and display the error to user.
             os.remove(filePath)
             QMessageBox.warning(self, "Warning", e.output, QMessageBox.Ok)
 
+
 if __name__ == '__main__':
-    app = QApplication(sys.argv)
+    app = QtWidgets.QApplication(sys.argv)
+    app.setStyleSheet(style)
     ex = MCMCSEQPage1()
     ex.show()
     sys.exit(app.exec_())
