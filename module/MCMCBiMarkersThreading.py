@@ -34,10 +34,12 @@ class MCMCBiMarkersPage(QMainWindow):
         self.data = None
         self.taxaList = []
         self.taxamap = {}
-
-        self.progress = QProgressDialog("Generating NEXUS file...", "", 0, 0, self)
-        self.progress.setCancelButton(None)
-        self.progress.setWindowModality(QtCore.Qt.WindowModal)
+        #Unsure if needing to remove this, but this may be unnecessary
+        #self.progress = QProgressDialog("Generating NEXUS file...", "", 0, 0, self)
+        # Remove this later Jaime, this is for debugging
+        #cancel_button = QPushButton("Cancel")
+        #self.progress.setCancelButton(cancel_button)
+        #self.progress.setWindowModality(QtCore.Qt.WindowModal)
 
         self.initUI()
 

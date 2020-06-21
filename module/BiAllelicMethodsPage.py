@@ -142,14 +142,18 @@ class BiAllelicMethodsPage(QWizardPage):
             self.MLEBi = MLEBiMarkersThreading.MLEBiMarkersPage()
             self.MLEBi.show()
             self.close()
+            #return True
         elif str(self.methods.currentText()) == "MCMC_BiMarkers (Bayesian)":
             self.MCMCBi = MCMCBiMarkersThreading.MCMCBiMarkersPage()
             self.MCMCBi.show()
             self.close()
+            #return True
+        
+
 
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     ex = BiAllelicMethodsPage()
-    ex.show()
+    ex.show() 
     sys.exit(app.exec_())
