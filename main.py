@@ -132,12 +132,14 @@ class SubMain(QMainWindow):
     def openModule(self):
         self.nexGenerator = module.launcher.Launcher()
         self.nexGenerator.show()
-        self.close()
+        #Closes main window so its cleaner for user
+        self.window().setVisible(False)
 
     def openPostProcess(self):
         self.outputSummarizer = PostProcessingModule.menu.MenuPage()
         self.outputSummarizer.show()
-        self.close()
+        #same as above
+        self.window().setVisible(False)
 
 
 if __name__ == '__main__':
