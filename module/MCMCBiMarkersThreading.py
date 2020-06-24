@@ -34,12 +34,6 @@ class MCMCBiMarkersPage(QMainWindow):
         self.data = None
         self.taxaList = []
         self.taxamap = {}
-        #Unsure if needing to remove this, but this may be unnecessary
-        #self.progress = QProgressDialog("Generating NEXUS file...", "", 0, 0, self)
-        # Remove this later Jaime, this is for debugging
-        #cancel_button = QPushButton("Cancel")
-        #self.progress.setCancelButton(cancel_button)
-        #self.progress.setWindowModality(QtCore.Qt.WindowModal)
 
         self.initUI()
 
@@ -599,6 +593,8 @@ class MCMCBiMarkersPage(QMainWindow):
             fname = QFileDialog.getOpenFileName(self, 'Open file', '/')
             if fname:
                 extension = os.path.splitext(str(fname))[1]
+                print(fname)
+                print(extension)
                 if str(self.dataFormatEdit.currentText()) == ".nexus":
                     if extension != ".nexus" and extension != ".nex":
                         QMessageBox.warning(self, "Warning", "Please upload only .nexus files!", QMessageBox.Ok)
