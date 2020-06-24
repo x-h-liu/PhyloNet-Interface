@@ -168,23 +168,21 @@ class NetworkMLPage(QWizardPage):
         """
         if self.sender().objectName() == "nexus":
             if not self.nexus.isChecked():
-                pass
-            else:
-                self.newick.setChecked(False)
-                self.geneTreesEditML.clear()
+                self.geneTreesEdit.clear()
                 self.inputFiles = []
                 self.geneTreeNames = []
                 self.taxamap = {}
+            else:
+                self.newick.setChecked(False)
         elif self.sender().objectName() == "newick":
             if not self.newick.isChecked():
-                pass
+                self.geneTreesEdit.clear()
+                self.inputFiles = []
+                self.geneTreeNames = []
+                self.taxamap = {}
             else:
                 self.nexus.setChecked(False)
                 self.newick.setChecked(True)
-                self.geneTreesEditML.clear()
-                self.inputFiles = []
-                self.geneTreeNames = []
-                self.taxamap = {}
 
     def selectFile(self):
         """
@@ -192,32 +190,34 @@ class NetworkMLPage(QWizardPage):
         Execute when file selection button is clicked.
         """
         if (not self.newick.isChecked()) and (not self.nexus.isChecked()):
-            QMessageBox.warning(
-                self, "Warning", "Please select a file type.", QMessageBox.Ok)
+            QMessageBox.warning(self, "Warning", "Please select a file type.", QMessageBox.Ok)
         else:
-            fname = QFileDialog.getOpenFileNames(
-                self, 'Open file', '/', 'Nexus files (*.nexus *.nex);;Newick files (*.newick)')
+            if self.nexus.isChecked():
+                fname = QFileDialog.getOpenFileNames(self, 'Open file', '/', 'Nexus files (*.nexus *.nex);;Newick files (*.newick)')
+            elif self.newick.isChecked():
+                fname = QFileDialog.getOpenFileNames(self, 'Open file', '/', 'Newick files (*.newick);;Nexus files (*.nexus *.nex)')
+
             self.fileType = QLineEdit(fname[1])
-            self.registerField("fileType", self.fileType)
+            self.registerField("fileType", self.fileType) 
             if fname:
-                extension = fname[1]
+                fileType = fname[1]
                 if self.nexus.isChecked():
-                    if extension != 'Nexus files (*.nexus *.nex)':
-                        QMessageBox.warning(
-                            self, "Warning", "Please upload only .nexus files!", QMessageBox.Ok)
+                    if fileType != 'Nexus files (*.nexus *.nex)':
+                        QMessageBox.warning(self, "Warning", "Please upload only .nexus or .nex files", QMessageBox.Ok)
                     else:
                         for onefname in fname[0]:
-                            self.geneTreesEditML.append(onefname)
-                            self.inputFiles.append(str(onefname))
-                else:
-                    if extension != 'Newick files (*.newick)':
-                        QMessageBox.warning(
-                            self, "Warning", "Please upload only .newick files!", QMessageBox.Ok)
-                    else:
-                        for onefname in fname[0]:
-                            self.geneTreesEditML.append(onefname)
+                            self.geneTreesEdit.append(onefname)
                             self.inputFiles.append(str(onefname))
 
+                elif self.newick.isChecked():
+                    if fileType != 'Newick files (*.newick)':
+                        QMessageBox.warning(self, "Warning", "Please upload only .newick files", QMessageBox.Ok)
+                    else:
+                        for onefname in fname[0]:
+                            self.geneTreesEdit.append(onefname)
+                            self.inputFiles.append(str(onefname))
+                else:
+                    return
 
 class NetworkMLPage2(QWizardPage):
     def initializePage(self):
@@ -762,11 +762,10 @@ class NetworkMLPage2(QWizardPage):
     def generate(self):
         """
         Generate NEXUS file based on user input.
-        """
-        directory = QFileDialog.getSaveFileName(
-            self, "Save File", "/", "Nexus Files (*.nexus)")
-
-        # stop gap way to get inputFiles
+        """ 
+        directory = QFileDialog.getSaveFileName(self, "Save File", "/", "Nexus Files (*.nexus)")
+  
+        #stop gap way to get inputFiles
         fileNames = self.geneTreesEditML.split('=')[0]
         inputFiles = fileNames.split('\n')
         self.inputFiles = inputFiles
@@ -800,8 +799,7 @@ class NetworkMLPage2(QWizardPage):
                 fileName = os.path.splitext(os.path.basename(file))[0]
                 currentFile = dendropy.TreeList()
                 # read in gene trees
-                currentFile.read(path=file, schema=schema,
-                                 preserve_underscores=True)
+                currentFile.read(path=file, schema=schema, preserve_underscores=True)
                 if len(currentFile) > 1:
                     # If a file contains multiple trees, assume those trees come from one locus
                     self.multiTreesPerLocus = True
@@ -827,8 +825,7 @@ class NetworkMLPage2(QWizardPage):
 
             # Write out TREES block.
             path = str(directory[0])
-            data.write(path=path, schema="nexus",
-                       suppress_taxa_blocks=True, unquoted_underscores=True)
+            data.write(path=path, schema="nexus", suppress_taxa_blocks=True, unquoted_underscores=True)
 
             # Ready to write PHYLONET block.
             with open(path, "a") as outputFile:
@@ -888,8 +885,7 @@ class NetworkMLPage2(QWizardPage):
                         for firstSpecies in speciesToTaxonMap:
                             outputFile.write(firstSpecies)
                             outputFile.write(":")
-                            outputFile.write(
-                                speciesToTaxonMap[firstSpecies][0])
+                            outputFile.write(speciesToTaxonMap[firstSpecies][0])
                             for taxon in speciesToTaxonMap[firstSpecies][1:]:
                                 outputFile.write(",")
                                 outputFile.write(taxon)
@@ -1064,16 +1060,13 @@ class NetworkMLPage2(QWizardPage):
             self.validateFile(path)
 
         except emptyFileError:
-            QMessageBox.warning(
-                self, "Warning", "Please select a file type and upload data!", QMessageBox.Ok)
+            QMessageBox.warning(self, "Warning", "Please select a file type and upload data!", QMessageBox.Ok)
             return
         except emptyNumReticulationError:
-            QMessageBox.warning(
-                self, "Warning", "Please enter the maximum number of reticulations.", QMessageBox.Ok)
+            QMessageBox.warning(self, "Warning", "Please enter the maximum number of reticulations.", QMessageBox.Ok)
             return
         except emptyDesinationError:
-            QMessageBox.warning(
-                self, "Warning", "Please specify destination for generated NEXUS file.", QMessageBox.Ok)
+            QMessageBox.warning(self, "Warning", "Please specify destination for generated NEXUS file.", QMessageBox.Ok)
             return
         except Exception as e:
             self.geneTreeNames = []
@@ -1097,7 +1090,6 @@ class NetworkMLPage2(QWizardPage):
             # If an error is encountered, delete the generated file and display the error to user.
             os.remove(filePath)
             QMessageBox.warning(self, "Warning", e.output, QMessageBox.Ok)
-
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
