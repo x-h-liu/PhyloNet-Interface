@@ -172,6 +172,13 @@ class MCMCSEQPage1(QWizardPage):
         containing the length of sequences in each file and the dna character matrix.
         Execute when file selection button is clicked.
         """
+        global inputFiles
+        global loci
+        global nchar
+        inputFiles.clear()
+        loci.clear()
+        nchar = 0
+
         if (not self.fasta.isChecked()) and (not self.nexus.isChecked()):
             QMessageBox.warning(self, "Warning", "Please select a file type.", QMessageBox.Ok)
         else:
@@ -228,7 +235,9 @@ class MCMCSEQPage1(QWizardPage):
                             self.inputFiles.append(str(onefname))
                 else:
                     return
-
+                inputFiles = self.inputFiles
+                loci = self.loci
+                nchar = self.nchar
 
 class MCMCSEQPage2(QWizardPage):
 
@@ -1133,6 +1142,10 @@ class MCMCSEQPage4(QWizardPage):
         """
         Generate NEXUS file based on user input.
         """
+        self.inputFiles = inputFiles
+        self.loci = loci
+        self.nchar = nchar
+
         directory = QFileDialog.getSaveFileName(
             self, "Save File", "/", "Nexus Files (*.nexus)")
 
