@@ -28,6 +28,11 @@ class Main(QDialog):
     def __init__(self):
         super(Main, self).__init__()
         SM = SubMain()
+        self.setWindowTitle("Phylonet") 
+        self.setWindowIcon(QIcon("logo.png"))
+        flags = QtCore.Qt.WindowFlags(QtCore.Qt.CustomizeWindowHint | QtCore.Qt.WindowCloseButtonHint 
+                    | QtCore.Qt.WindowMaximizeButtonHint | QtCore.Qt.WindowMinimizeButtonHint)
+        self.setWindowFlags(flags)
 
         mainLayout = QVBoxLayout()
         mainLayout.addWidget(SM)
@@ -106,10 +111,6 @@ class SubMain(QMainWindow):
         wid.setLayout(vbox)
 
         vbox.setContentsMargins(50, 10, 50, 10)
-
-        # menubar.setNativeMenuBar(False)
-        self.setWindowTitle('PhyloNetCompanion')
-        self.setWindowIcon(QIcon(resource_path("logo.png")))
 
     def aboutMessage(self):
         msg = QMessageBox()

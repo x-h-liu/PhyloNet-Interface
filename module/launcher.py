@@ -101,6 +101,11 @@ class Launcher(QtWidgets.QWizard):
         """
        # wid = QtWidgets.QWidget()
        # self.setCentralWidget(wid)
+        self.setWindowTitle("Phylonet") 
+        self.setWindowIcon(QIcon("logo.png"))
+        flags = QtCore.Qt.WindowFlags(QtCore.Qt.CustomizeWindowHint | QtCore.Qt.WindowCloseButtonHint 
+                    | QtCore.Qt.WindowMaximizeButtonHint | QtCore.Qt.WindowMinimizeButtonHint)
+        self.setWindowFlags(flags)
         self.setModal(1)
 
     def nextId(self):

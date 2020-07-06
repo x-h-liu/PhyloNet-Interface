@@ -5,7 +5,7 @@ def style():
             background-color: #323642;
 
             min-width: 1300px;
-            min-height: 650px;
+            min-height: 800px;
         }
         QMainWindow{
             background-color: #323642;
