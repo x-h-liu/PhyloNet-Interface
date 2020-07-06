@@ -189,24 +189,26 @@ class NetworkMLPage(QWizardPage):
         Store all the user uploaded gene tree files.
         Execute when file selection button is clicked.
         """
+        #initialize global attribute
+        global inputFiles
+        inputFiles.clear()
         if (not self.newick.isChecked()) and (not self.nexus.isChecked()):
             QMessageBox.warning(self, "Warning", "Please select a file type.", QMessageBox.Ok)
         else:
             if self.nexus.isChecked():
                 fname = QFileDialog.getOpenFileNames(self, 'Open file', '/', 'Nexus files (*.nexus *.nex);;Newick files (*.newick)')
             elif self.newick.isChecked():
-                fname = QFileDialog.getOpenFileNames(self, 'Open file', '/', 'Newick files (*.newick);;Nexus files (*.nexus *.nex)')
-
-            self.fileType = QLineEdit(fname[1])
-            self.registerField("fileType", self.fileType) 
+                fname = QFileDialog.getOpenFileNames(self, 'Open file', '/', 'Newick files (*.newick);;Nexus files (*.nexus *.nex)') 
             if fname:
                 fileType = fname[1]
+                self.fileType = QLineEdit(fname[1])
+                self.registerField("fileType", self.fileType)
                 if self.nexus.isChecked():
                     if fileType != 'Nexus files (*.nexus *.nex)':
                         QMessageBox.warning(self, "Warning", "Please upload only .nexus or .nex files", QMessageBox.Ok)
                     else:
                         for onefname in fname[0]:
-                            self.geneTreesEdit.append(onefname)
+                            self.geneTreesEditML.append(onefname)
                             self.inputFiles.append(str(onefname))
 
                 elif self.newick.isChecked():
@@ -214,10 +216,12 @@ class NetworkMLPage(QWizardPage):
                         QMessageBox.warning(self, "Warning", "Please upload only .newick files", QMessageBox.Ok)
                     else:
                         for onefname in fname[0]:
-                            self.geneTreesEdit.append(onefname)
+                            self.geneTreesEditML.append(onefname)
                             self.inputFiles.append(str(onefname))
                 else:
                     return
+                #Update global attribute
+                inputFiles = self.inputFiles
 
 class NetworkMLPage2(QWizardPage):
     def initializePage(self):
@@ -706,19 +710,26 @@ class NetworkMLPage2(QWizardPage):
         When user clicks "Set taxa map", open up TaxamapDlg for user input
         and update taxa map.
         """
-
-        # stop gap way to get inputFiles
-        fileNames = self.geneTreesEditML.split('=')[0]
-        inputFiles = fileNames.split('\n')
+        #initialize global attribute
+        global taxamap
+        taxamap.clear()
+        #update shared attribute
         self.inputFiles = inputFiles
 
         class emptyFileError(Exception):
             pass
+
         try:
             if len(self.inputFiles) == 0:
                 raise emptyFileError
 
             # Read files
+            """
+            if self.nexus.isChecked():
+                schema = "nexus"
+            else:
+                schema = "newick"
+            """
             if self.fileType == 'Nexus files (*.nexus *.nex)':
                 schema = "nexus"
             else:
@@ -746,14 +757,13 @@ class NetworkMLPage2(QWizardPage):
                         break
 
             # Execute TaxamapDlg
-            dialog = TaxamapDlg.TaxamapDlg(
-                data.taxon_namespace, self.taxamap, self)
+            dialog = TaxamapDlg.TaxamapDlg(data.taxon_namespace, self.taxamap, self)
             if dialog.exec_():
                 self.taxamap = dialog.getTaxamap()
-
+            #Update global attribute
+            taxamap = self.taxamap
         except emptyFileError:
-            QMessageBox.warning(
-                self, "Warning", "Please select a file type and upload data!", QMessageBox.Ok)
+            QMessageBox.warning(self, "Warning", "Please select a file type and upload data!", QMessageBox.Ok)
             return
         except Exception as e:
             QMessageBox.warning(self, "Warning", str(e), QMessageBox.Ok)
