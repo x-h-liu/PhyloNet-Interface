@@ -1026,9 +1026,6 @@ class NetworkMPPage4(QWizardPage):
             path = str(directory[0])
             data.write(path=path, schema="nexus",
                        suppress_taxa_blocks=True, unquoted_underscores=True)
-            path = str(directory[0]) + ".nexus"
-            data.write(path=path, schema="nexus",
-                       suppress_taxa_blocks=True, unquoted_underscores=True)
 
             # Ready to write PHYLONET block.
             with open(path, "a") as outputFile:
