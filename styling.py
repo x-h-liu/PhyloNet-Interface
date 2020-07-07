@@ -10,6 +10,13 @@ def style():
         QMainWindow{
             background-color: #323642;
         }
+        QDialog#aboutMessage{
+            min-width: 500px;
+            min-height: 500px;
+            width: 100%;
+            height: 100%;
+            font-size: 12pt;
+        }
         QWizard{
             background-color: white;
         }

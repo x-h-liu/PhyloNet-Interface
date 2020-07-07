@@ -208,10 +208,22 @@ class IntroPage(QtWidgets.QWizardPage):
         """
         self.invisButton.setCheckState(True)
 
+    def link(self, linkStr):
+        """
+        Open the website of PhyloNet if user clicks on the hyperlink.
+        """
+        QDesktopServices.openUrl(QtCore.QUrl(linkStr))
+
     def aboutMessage(self):
-        msg = QMessageBox()
-        msg.setIcon(QMessageBox.Information)
-        msg.setText("PhyloNet is a tool designed mainly for analyzing, "
+        msg = QDialog()
+        msg.setWindowTitle("Phylonet") 
+        msg.setWindowIcon(QIcon("logo.png"))
+        flags = QtCore.Qt.WindowFlags(QtCore.Qt.CustomizeWindowHint | QtCore.Qt.WindowCloseButtonHint )
+        msg.setWindowFlags(flags)
+        msg.setObjectName("aboutMessage")
+
+        vbox = QVBoxLayout()
+        text = QLabel("PhyloNet is a tool designed mainly for analyzing, "
                     "reconstructing, and evaluating reticulate "
                     "(or non-treelike) evolutionary relationships, "
                     "generally known as phylogenetic networks. Various "
@@ -221,15 +233,24 @@ class IntroPage(QtWidgets.QWizardPage):
                     "phylogenetic tree analysis. PhyloNet is released under "
                     "the GNU General Public License. \n\nPhyloNet is designed, "
                     "implemented, and maintained by Rice's BioInformatics Group, "
-                    "which is lead by Professor Luay Nakhleh (nakhleh@cs.rice.edu). "
-                    "For more details related to this group please visit "
-                    "http://bioinfo.cs.rice.edu.")
-        font = QFont()
-        font.setPointSize(13)
-        font.setFamily("Times New Roman")
-        font.setBold(False)
+                    "which is lead by Professor Luay Nakhleh (nakhleh@cs.rice.edu). ")
 
-        msg.setFont(font)
+        text.setWordWrap(True)
+        text.setStyleSheet("padding: 60px 100px 10px 100px;")
+        
+        hyperlink = QLabel()
+        hyperlink.setText('For more details related to this group please visit '
+                          '<a href="http://bioinfo.cs.rice.edu" style="color: #55ddff;">'
+                          'http://bioinfo.cs.rice.edu</a>.')
+        hyperlink.linkActivated.connect(self.link)
+        hyperlink.setStyleSheet("padding: 10px 100px 80px 100px ;")
+
+        buttonBox = QDialogButtonBox(QDialogButtonBox.Ok)
+        buttonBox.clicked.connect(msg.accept)
+        vbox.addWidget(text)
+        vbox.addWidget(hyperlink)
+        vbox.addWidget(buttonBox)
+        msg.setLayout(vbox)
         msg.exec_()
 
 
