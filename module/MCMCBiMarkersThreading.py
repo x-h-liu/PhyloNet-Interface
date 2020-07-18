@@ -626,18 +626,19 @@ class MCMCBiMarkersPage(QMainWindow):
                 if fileType != 'Fasta files (*.fasta)':
                     QMessageBox.warning(self, "Warning", "Please upload only .fasta files", QMessageBox.Ok)
                 else:
-                    # Bi-allelic marker data should be read in as Standard Character Matrix
-                    if str(self.dataTypeEdit.currentText()) == "bi-allelic markers data":
-                        self.data = dendropy.StandardCharacterMatrix.get(path=str(fname[0]), schema="fasta")
-                        self.sequenceFileEdit.setText(fname[0])
-                        self.taxaList = []
-                        self.taxamap = {}
-                         # Other data are DNA Character Matrix
-                    else:
-                        self.data = dendropy.DnaCharacterMatrix.get(path=str(fname), schema="fasta")
-                        self.sequenceFileEdit.setText(fname[0])
-                        self.taxaList = []
-                        self.taxamap = {}
+                    for oneFile in fname[0]:
+                        # Bi-allelic marker data should be read in as Standard Character Matrix
+                        if str(self.dataTypeEdit.currentText()) == "bi-allelic markers data":
+                            self.data = dendropy.StandardCharacterMatrix.get(path=str(oneFile), schema="fasta")
+                            self.sequenceFileEdit.setText(oneFile)
+                            self.taxaList = []
+                            self.taxamap = {}
+                            # Other data are DNA Character Matrix
+                        else:
+                            self.data = dendropy.DnaCharacterMatrix.get(path=str(oneFile), schema="fasta")
+                            self.sequenceFileEdit.setText(oneFile)
+                            self.taxaList = []
+                            self.taxamap = {}
             else:
                 return
 
