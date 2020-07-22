@@ -2,15 +2,17 @@ import sys
 import os
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
-from PyQt5 import QtCore
+from PyQt5 import QtWidgets, QtCore, QtLocation
+from PyQt5.QtCore import Qt, pyqtSignal, pyqtSlot, QObject, QTimer, QThread
+from PyQt5.QtGui import QIcon, QPixmap
 import dendropy
 import datetime
 import subprocess
 import shutil
 
 from module import TaxamapDlg
-
 from functions import *
+
 
 inputFiles = []
 geneTreeNames = []
@@ -45,14 +47,6 @@ class NetworkMPPage(QWizardPage):
         """
         Initialize GUI.
         """
-      #  wid = QWidget()
-      #  scroll = QScrollArea()
-      #  self.setCentralWidget(scroll)
-
-        # Menubar and action
-        aboutAction = QAction('About', self)
-        aboutAction.triggered.connect(self.aboutMessage)
-        aboutAction.setShortcut("Ctrl+A")
 
         # Title (InferNetwork_MP)
         titleLabel = titleHeader("InferNetwork_MP")
@@ -62,13 +56,13 @@ class NetworkMPPage(QWizardPage):
                           '<a href="https://wiki.rice.edu/confluence/display/PHYLONET/InferNetwork_MP">'
                           'here</a>.')
         hyperlink.linkActivated.connect(self.link)
+        hyperlink.setObjectName("detailsLink")
 
-        # Two subtitles (mandatory and optional commands)
+        # Mandatory parameter labels
         instructionLabel = QLabel()
         instructionLabel.setText("Input data: Please Upload Gene tree files.")
         instructionLabel.setObjectName("instructionLabel")
 
-        # Mandatory parameter labels
         numReticulationsLbl = QLabel("Maximum number of reticulations to add:")
         self.nexus = QCheckBox(".nexus")
         self.nexus.setObjectName("nexus")
@@ -78,25 +72,26 @@ class NetworkMPPage(QWizardPage):
         self.newick.stateChanged.connect(self.format)  # Implement mutually exclusive check boxes
 
         # Mandatory parameter inputs
-        self.geneTreesEdit = QTextEdit()
-        self.geneTreesEdit.setReadOnly(True)
-        self.registerField("geneTreesEdit*", self.geneTreesEdit,
-                           "plainText", self.geneTreesEdit.textChanged)
+        self.geneTreesEditMP = QTextEdit()
+        self.geneTreesEditMP.setReadOnly(True)
+        self.registerField("geneTreesEditMP*", self.geneTreesEditMP,
+                           "plainText", self.geneTreesEditMP.textChanged)
 
         fileSelctionBtn = QToolButton()
         fileSelctionBtn.setText("Browse")
         fileSelctionBtn.clicked.connect(self.selectFile)
 
-        self.numReticulationsEdit = QLineEdit()
-        self.registerField("numReticulationsEdit*", self.numReticulationsEdit)
+        self.numReticulationsEditMP = QLineEdit()
+        self.registerField("numReticulationsEditMP*", self.numReticulationsEditMP)
 
         # Layouts
         # Layout of each parameter (label and input)
         fileFormatLayout = QVBoxLayout()
+        fileFormatLayout.addWidget(instructionLabel)
         fileFormatLayout.addWidget(self.nexus)
         fileFormatLayout.addWidget(self.newick)
         geneTreeDataLayout = QHBoxLayout()
-        geneTreeDataLayout.addWidget(instructionLabel)
+        geneTreeDataLayout.addWidget(self.geneTreesEditMP)
         geneTreeDataLayout.addWidget(fileSelctionBtn)
 
         geneTreeFileLayout = QVBoxLayout()
@@ -105,26 +100,16 @@ class NetworkMPPage(QWizardPage):
 
         numReticulationsLayout = QHBoxLayout()
         numReticulationsLayout.addWidget(numReticulationsLbl)
-        numReticulationsLayout.addWidget(self.numReticulationsEdit)
+        numReticulationsLayout.addWidget(self.numReticulationsEditMP)
 
         # Main layout
         topLevelLayout = QVBoxLayout()
         topLevelLayout.addWidget(titleLabel)
         topLevelLayout.addWidget(hyperlink)
-        topLevelLayout.addWidget(lineSeparator(self))
         topLevelLayout.addLayout(geneTreeFileLayout)
-        topLevelLayout.addWidget(self.geneTreesEdit)
         topLevelLayout.addLayout(numReticulationsLayout)
 
-        # Scroll bar
         self.setLayout(topLevelLayout)
-      #  scroll.setWidget(wid)
-      #  scroll.setWidgetResizable(True)
-      #  scroll.setMinimumWidth(695)
-      #  scroll.setMinimumHeight(750)
-
-        self.setWindowTitle('PhyloNetNEXGenerator')
-        self.setWindowIcon(QIcon(resource_path("logo.png")))
 
     def aboutMessage(self):
         msg = QMessageBox()
@@ -148,6 +133,36 @@ class NetworkMPPage(QWizardPage):
         """
         QDesktopServices.openUrl(QtCore.QUrl(linkStr))
 
+    def format(self):
+        """
+        Process checkbox's stateChanged signal to implement mutual exclusion.
+        """
+        if self.sender().objectName() == "nexus":
+            if not self.nexus.isChecked():
+                self.geneTreesEditMP.clear()
+                self.inputFiles = []
+                self.geneTreeNames = []
+                self.taxamap = {}
+            else:
+                self.newick.setChecked(False)
+                
+        elif self.sender().objectName() == "newick":
+            if not self.newick.isChecked():
+                self.geneTreesEditMP.clear()
+                self.inputFiles = []
+                self.geneTreeNames = []
+                self.taxamap = {}
+
+            else:
+                self.nexus.setChecked(False)
+                self.newick.setChecked(True)
+
+    def clear(self):
+        self.geneTreesEditMP.clear()
+        self.numReticulationsEditMP.clear()
+        self.nexus.setChecked(False)
+        self.newick.setChecked(False)
+
     def selectFile(self):
         """
         Store all the user uploaded gene tree files.
@@ -160,19 +175,22 @@ class NetworkMPPage(QWizardPage):
             QMessageBox.warning(self, "Warning", "Please select a file type.", QMessageBox.Ok)
         else:
             if self.nexus.isChecked():
-                fname = QFileDialog.getOpenFileNames(self, 'Open file', '/', 'Nexus files (*.nexus *.nex);;Newick files (*.newick)')
+                fname = QFileDialog.getOpenFileNames(self, 'Open file', '/', 'Nexus files (*.nexus *.nex)')
             elif self.newick.isChecked():
-                fname = QFileDialog.getOpenFileNames(self, 'Open file', '/', 'Newick files (*.newick);;Nexus files (*.nexus *.nex)') 
-            if fname:
+                fname = QFileDialog.getOpenFileNames(self, 'Open file', '/', 'Newick files (*.newick)') 
+            
+            #if a file has been inputted, proceed
+            if len(fname[0]) > 0:
                 fileType = fname[1]
                 self.fileType = QLineEdit(fname[1])
-                self.registerField("fileType", self.fileType)
+                self.registerField("fileTypeMP", self.fileType)
+
                 if self.nexus.isChecked():
                     if fileType != 'Nexus files (*.nexus *.nex)':
                         QMessageBox.warning(self, "Warning", "Please upload only .nexus or .nex files", QMessageBox.Ok)
                     else:
                         for onefname in fname[0]:
-                            self.geneTreesEdit.append(onefname)
+                            self.geneTreesEditMP.append(onefname)
                             self.inputFiles.append(str(onefname))
 
                 elif self.newick.isChecked():
@@ -180,41 +198,16 @@ class NetworkMPPage(QWizardPage):
                         QMessageBox.warning(self, "Warning", "Please upload only .newick files", QMessageBox.Ok)
                     else:
                         for onefname in fname[0]:
-                            self.geneTreesEdit.append(onefname)
+                            self.geneTreesEditMP.append(onefname)
                             self.inputFiles.append(str(onefname))
                 else:
                     return
                 #Update global attribute
                 inputFiles = self.inputFiles
 
-    def format(self):
-        """
-        Process checkbox's stateChanged signal to implement mutual exclusion.
-        """
-        if self.sender().objectName() == "nexus":
-            if not self.nexus.isChecked():
-                self.geneTreesEdit.clear()
-                self.inputFiles = []
-                self.geneTreeNames = []
-                self.taxamap = {}
-            else:
-                self.newick.setChecked(False)
-                
-        elif self.sender().objectName() == "newick":
-            if not self.newick.isChecked():
-                self.geneTreesEdit.clear()
-                self.inputFiles = []
-                self.geneTreeNames = []
-                self.taxamap = {}
-
-            else:
-                self.nexus.setChecked(False)
-                self.newick.setChecked(True)
-        
-
 class NetworkMPPage2(QWizardPage):
     def initializePage(self):
-        self.fileType = self.field("fileType")
+        self.fileType = self.field("fileTypeMP")
 
     def __init__(self):
 
@@ -230,14 +223,6 @@ class NetworkMPPage2(QWizardPage):
         """
         Initialize GUI.
         """
-      #  wid = QWidget()
-      #  scroll = QScrollArea()
-      #  self.setCentralWidget(scroll)
-
-        # Menubar and action
-        aboutAction = QAction('About', self)
-        aboutAction.triggered.connect(self.aboutMessage)
-        aboutAction.setShortcut("Ctrl+A")
 
         # Title (InferNetwork_MP)
         titleLabel = titleHeader("InferNetwork_MP")
@@ -247,10 +232,10 @@ class NetworkMPPage2(QWizardPage):
                           '<a href="https://wiki.rice.edu/confluence/display/PHYLONET/InferNetwork_MP">'
                           'here</a>.')
         hyperlink.linkActivated.connect(self.link)
+        hyperlink.setObjectName("detailsLink")
 
-        # Two subtitles (mandatory and optional commands)
         optionalLabel = QLabel()
-        optionalLabel.setObjectName("instructionInput")
+        optionalLabel.setObjectName("instructionLabel")
         optionalLabel.setText("Input Options")
 
         # Optional parameter labels
@@ -285,7 +270,7 @@ class NetworkMPPage2(QWizardPage):
         # Optional parameter inputs
         self.thresholdEdit = QLineEdit()
         self.thresholdEdit.setDisabled(True)
-        self.registerField("thresholdEdit", self.thresholdEdit)
+        self.registerField("thresholdEditMP", self.thresholdEdit)
 
         self.taxamapEdit = QPushButton("Set taxa map")
         self.taxamapEdit.setObjectName("taxamapEdit")
@@ -294,22 +279,22 @@ class NetworkMPPage2(QWizardPage):
 
         self.sNetEdit = QLineEdit()
         self.sNetEdit.setDisabled(True)
-        self.registerField("sNetEdit", self.sNetEdit)
+        self.registerField("sNetEditMP", self.sNetEdit)
 
         self.nNetRetEdit = QLineEdit()
         self.nNetRetEdit.setDisabled(True)
         self.nNetRetEdit.setPlaceholderText("1")
-        self.registerField("nNetRetEdit", self.nNetRetEdit)
+        self.registerField("nNetRetEditMP", self.nNetRetEdit)
 
         self.nNetExamEdit = QLineEdit()
         self.nNetExamEdit.setDisabled(True)
         self.nNetExamEdit.setPlaceholderText("infinity")
-        self.registerField("nNetExamEdit", self.nNetExamEdit)
+        self.registerField("nNetExamEditMP", self.nNetExamEdit)
 
         self.maxDiaEdit = QLineEdit()
         self.maxDiaEdit.setDisabled(True)
         self.maxDiaEdit.setPlaceholderText("infinity")
-        self.registerField("maxDiaEdit", self.maxDiaEdit)
+        self.registerField("maxDiaEditMP", self.maxDiaEdit)
 
         # Layouts
         # Layout of each parameter (label and input)
@@ -346,8 +331,6 @@ class NetworkMPPage2(QWizardPage):
         topLevelLayout = QVBoxLayout()
         topLevelLayout.addWidget(titleLabel)
         topLevelLayout.addWidget(hyperlink)
-        topLevelLayout.addWidget(lineSeparator(self))
-
         topLevelLayout.addWidget(optionalLabel)
         topLevelLayout.addLayout(thresholdLayout)
         topLevelLayout.addLayout(taxamapLayout)
@@ -356,16 +339,8 @@ class NetworkMPPage2(QWizardPage):
         topLevelLayout.addLayout(nNetExamLayout)
         topLevelLayout.addLayout(maxDiaLayout)
 
-        # Scroll bar
         self.setLayout(topLevelLayout)
-      #  scroll.setWidget(wid)
-      #  scroll.setWidgetResizable(True)
-      #  scroll.setMinimumWidth(695)
-      #  scroll.setMinimumHeight(750)
-
-        self.setWindowTitle('PhyloNetNEXGenerator')
-        self.setWindowIcon(QIcon(resource_path("logo.png")))
-
+ 
     def __inverseMapping(self, map):
         """
         Convert a mapping from taxon to species to a mapping from species to a list of taxon.
@@ -393,7 +368,6 @@ class NetworkMPPage2(QWizardPage):
 
         msg.setFont(font)
         msg.exec_()
-        topLevelLayout.addLayout(hybridLayout)
 
     def onChecked(self):
         """
@@ -463,6 +437,19 @@ class NetworkMPPage2(QWizardPage):
         Open the website of PhyloNet if user clicks on the hyperlink.
         """
         QDesktopServices.openUrl(QtCore.QUrl(linkStr))
+
+    def clear(self):
+        self.thresholdLbl.setChecked(False)
+        self.thresholdEdit.clear()
+        self.taxamapLbl.setChecked(False)
+        self.sNetLbl.setChecked(False)
+        self.sNetEdit.clear()
+        self.nNetRetLbl.setChecked(False)
+        self.nNetRetEdit.clear()
+        self.nNetExamLbl.setChecked(False)
+        self.nNetExamEdit.clear()
+        self.maxDiaLbl.setChecked(False)
+        self.maxDiaEdit.clear()
 
     def getTaxamap(self):
         """
@@ -507,6 +494,7 @@ class NetworkMPPage2(QWizardPage):
                         for taxon in data.taxon_namespace:
                             self.taxamap[taxon.label] = taxon.label
                         break
+
             # Execute TaxamapDlg
             dialog = TaxamapDlg.TaxamapDlg(data.taxon_namespace, self.taxamap, self)
             if dialog.exec_():
@@ -522,8 +510,18 @@ class NetworkMPPage2(QWizardPage):
             return
 
 
-
 class NetworkMPPage3(QWizardPage):
+
+    def initializePage(self):
+        self.geneTreesEditMP = self.field("geneTreesEditMP")
+        self.numReticulationsEditMP = self.field("numReticulationsEditMP")
+        self.thresholdEdit = self.field("thresholdEditMP")
+        self.sNetEdit = self.field("sNetEditMP")
+        self.nNetRetEdit = self.field("nNetRetEditMP")
+        self.nNetExamEdit = self.field("nNetExamEditMP")
+        self.maxDiaEdit = self.field("maxDiaEditMP")
+        self.fileType = self.field("fileTypeMP")
+
     def __init__(self):
 
         super(NetworkMPPage3, self).__init__()
@@ -531,6 +529,7 @@ class NetworkMPPage3(QWizardPage):
         self.inputFiles = inputFiles
         self.geneTreeNames = geneTreeNames
         self.taxamap = taxamap
+        #self.isComplete = False
 
         self.initUI()
 
@@ -538,44 +537,20 @@ class NetworkMPPage3(QWizardPage):
         """
         Initialize GUI.
         """
-      #  wid = QWidget()
-      #  scroll = QScrollArea()
-      #  self.setCentralWidget(scroll)
-
-        # Menubar and action
-        aboutAction = QAction('About', self)
-        aboutAction.triggered.connect(self.aboutMessage)
-        aboutAction.setShortcut("Ctrl+A")
-
-        self.menubar = QMenuBar(self)
-        menuMenu = self.menubar.addMenu('Menu')
-        menuMenu.addAction(aboutAction)
-
+        #isComplete = QtCore.pyqtSignal(bool)
         # Title (InferNetwork_MP)
-        titleLabel = QLabel()
-        titleLabel.setText("InferNetwork_MP")
-
-        titleFont = QFont()
-        titleFont.setPointSize(24)
-        titleFont.setFamily("Helvetica")
-        titleFont.setBold(True)
-        titleLabel.setFont(titleFont)
+        titleLabel = titleHeader("InferNetwork_MP")
 
         hyperlink = QLabel()
         hyperlink.setText('Details of this method can be found '
                           '<a href="https://wiki.rice.edu/confluence/display/PHYLONET/InferNetwork_MP">'
                           'here</a>.')
         hyperlink.linkActivated.connect(self.link)
+        hyperlink.setObjectName("detailsLink")
 
-        # Two subtitles (mandatory and optional commands)
         optionalLabel = QLabel()
+        optionalLabel.setObjectName("instructionLabel")
         optionalLabel.setText("Input Options")
-
-        subTitleFont = QFont()
-        subTitleFont.setPointSize(18)
-        subTitleFont.setFamily("Times New Roman")
-        subTitleFont.setBold(True)
-        optionalLabel.setFont(subTitleFont)
 
         self.hybridLbl = QCheckBox("A set of specified hybrid species:", self)
         self.hybridLbl.setObjectName("-h")
@@ -599,35 +574,38 @@ class NetworkMPPage3(QWizardPage):
         self.numProcLbl.setObjectName("-pl")
         self.numProcLbl.stateChanged.connect(self.onChecked)
 
-        # Inputs
+                
+        self.diLbl = QCheckBox(
+            "Output Rich Newick string that can be read by Dendroscope.")
+        self.diLbl.stateChanged.connect(self.onChecked)
 
+        # Inputs
         self.hybridEdit = QLineEdit()
         self.hybridEdit.setDisabled(True)
-        self.registerField("hybridEdit", self.hybridEdit)
+        self.registerField("hybridEditMP", self.hybridEdit)
 
         self.wetOpEdit = QLineEdit()
         self.wetOpEdit.setDisabled(True)
         self.wetOpEdit.setPlaceholderText("(0.1,0.1,0.15,0.55,0.15,0.15)")
         self.wetOpEdit.setMinimumWidth(200)
-        self.registerField("wetOpEdit", self.wetOpEdit)
+        self.registerField("wetOpEditMP", self.wetOpEdit)
 
         self.maxFEdit = QLineEdit()
         self.maxFEdit.setDisabled(True)
         self.maxFEdit.setPlaceholderText("100")
-        self.registerField("maxFEdit", self.maxFEdit)
+        self.registerField("maxFEditMP", self.maxFEdit)
 
         self.numRunEdit = QLineEdit()
         self.numRunEdit.setDisabled(True)
         self.numRunEdit.setPlaceholderText("5")
-        self.registerField("numRunEdit", self.numRunEdit)
+        self.registerField("numRunEditMP", self.numRunEdit)
 
         self.numProcEdit = QLineEdit()
         self.numProcEdit.setDisabled(True)
         self.numProcEdit.setPlaceholderText("1")
-        self.registerField("numProcEdit", self.numProcEdit)
+        self.registerField("numProcEditMP", self.numProcEdit)
 
-        #
-
+        #Layouts
         hybridLayout = QHBoxLayout()
         hybridLayout.addWidget(self.hybridLbl)
         hybridLayout.addWidget(self.hybridEdit)
@@ -652,16 +630,29 @@ class NetworkMPPage3(QWizardPage):
         numProcLayout.addStretch(1)
         numProcLayout.addWidget(self.numProcEdit)
 
-        #
+        # Launch button
+        launchBtn = QPushButton("Generate", self)
+        launchBtn.clicked.connect(self.generate)
+
+        diLayout = QHBoxLayout()
+        diLayout.addWidget(self.diLbl)
+
+        btnLayout = QHBoxLayout()
+        btnLayout.addStretch(1)
+        btnLayout.addWidget(launchBtn)
+
+
+        #main level layout
         topLevelLayout = QVBoxLayout()
         topLevelLayout.addWidget(titleLabel)
         topLevelLayout.addWidget(hyperlink)
-        topLevelLayout.addWidget(lineSeparator(self))
         topLevelLayout.addLayout(hybridLayout)
         topLevelLayout.addLayout(wetOpLayout)
         topLevelLayout.addLayout(maxFLayout)
         topLevelLayout.addLayout(numRunLayout)
         topLevelLayout.addLayout(numProcLayout)
+        topLevelLayout.addLayout(diLayout)
+        topLevelLayout.addLayout(btnLayout)
         self.setLayout(topLevelLayout)
 
     def aboutMessage(self):
@@ -767,7 +758,7 @@ class NetworkMPPage3(QWizardPage):
         """
         if self.sender().objectName() == "nexus":
             if not self.nexus.isChecked():
-                self.geneTreesEdit.clear()
+                self.geneTreesEditMP.clear()
                 self.inputFiles = []
                 self.geneTreeNames = []
                 self.taxamap = {}
@@ -775,7 +766,7 @@ class NetworkMPPage3(QWizardPage):
                 self.newick.setChecked(False)
         elif self.sender().objectName() == "newick":
             if not self.newick.isChecked():
-                self.geneTreesEdit.clear()
+                self.geneTreesEditMP.clear()
                 self.inputFiles = []
                 self.geneTreeNames = []
                 self.taxamap = {}
@@ -783,198 +774,13 @@ class NetworkMPPage3(QWizardPage):
                 self.nexus.setChecked(False)
                 self.newick.setChecked(True)
 
-class NetworkMPPage4(QWizardPage):
-
-    def initializePage(self):
-        self.geneTreesEdit = self.field("geneTreesEdit")
-        self.numReticulationsEdit = self.field("numReticulationsEdit")
-        self.thresholdEdit = self.field("thresholdEdit")
-        self.sNetEdit = self.field("sNetEdit")
-        self.nNetRetEdit = self.field("nNetRetEdit")
-        self.nNetExamEdit = self.field("nNetExamEdit")
-        self.maxDiaEdit = self.field("maxDiaEdit")
-        self.hybridEdit = self.field("hybridEdit")
-        self.wetOpEdit = self.field("wetOpEdit")
-        self.maxFEdit = self.field("maxFEdit")
-        self.numRunEdit = self.field("numRunEdit")
-        self.numProcEdit = self.field("numProcEdit")
-        self.fileType = self.field("fileType")
-
-    def __init__(self):
-
-        super(NetworkMPPage4, self).__init__()
-
-        self.inputFiles = inputFiles
-        self.geneTreeNames = geneTreeNames
-        self.taxamap = taxamap
-
-        self.initUI()
-
-    def initUI(self):
-        """
-        Initialize GUI.
-        """
-      #  wid = QWidget()
-      #  scroll = QScrollArea()
-      #  self.setCentralWidget(scroll)
-
-        # Menubar and action
-        aboutAction = QAction('About', self)
-        aboutAction.triggered.connect(self.aboutMessage)
-        aboutAction.setShortcut("Ctrl+A")
-
-        self.menubar = QMenuBar(self)
-        menuMenu = self.menubar.addMenu('Menu')
-        menuMenu.addAction(aboutAction)
-
-        # Title (InferNetwork_MP)
-        titleLabel = titleHeader("InferNetwork_MP")
-
-        hyperlink = QLabel()
-        hyperlink.setText('Details of this method can be found '
-                          '<a href="https://wiki.rice.edu/confluence/display/PHYLONET/InferNetwork_MP">'
-                          'here</a>.')
-        hyperlink.linkActivated.connect(self.link)
-
-        # Two subtitles (mandatory and optional commands)
-        optionalLabel = QLabel()
-        optionalLabel.setText("Input Options")
-
-        subTitleFont = QFont()
-        subTitleFont.setPointSize(18)
-        subTitleFont.setFamily("Times New Roman")
-        subTitleFont.setBold(True)
-        optionalLabel.setFont(subTitleFont)
-
-        # Labels
-        self.diLbl = QCheckBox(
-            "Output Rich Newick string that can be read by Dendroscope.")
-        self.diLbl.stateChanged.connect(self.onChecked)
-
-        # Launch button
-        launchBtn = QPushButton("Generate", self)
-        launchBtn.clicked.connect(self.generate)
-
-        diLayout = QHBoxLayout()
-        diLayout.addWidget(self.diLbl)
-
-        btnLayout = QHBoxLayout()
-        btnLayout.addStretch(1)
-        btnLayout.addWidget(launchBtn)
-
-        topLevelLayout = QVBoxLayout()
-        topLevelLayout.addWidget(titleLabel)
-        topLevelLayout.addWidget(hyperlink)
-        topLevelLayout.addWidget(lineSeparator(self))
-        topLevelLayout.addLayout(diLayout)
-
-        topLevelLayout.addWidget(lineSeparator(self))
-        topLevelLayout.addLayout(btnLayout)
-
-        self.setLayout(topLevelLayout)
-
-    def aboutMessage(self):
-        msg = QMessageBox()
-        msg.setIcon(QMessageBox.Information)
-        msg.setText("Infers a species network(s) with a specified number of reticulation nodes under MDC criterion "
-                    "using parsimony-based method. The reticulation nodes in the inferred network will have inferred "
-                    "inheritance probabilities associated with them. To find the optimal network, steepest descent is "
-                    "used. The species network and gene trees must be specified in the Rich Newick Format. However, "
-                    "only topologies of them are used in the method.")
-        font = QFont()
-        font.setPointSize(13)
-        font.setFamily("Times New Roman")
-        font.setBold(False)
-
-        msg.setFont(font)
-        msg.exec_()
-
-    def link(self, linkStr):
-        """
-        Open the website of PhyloNet if user clicks on the hyperlink.
-        """
-        QDesktopServices.openUrl(QtCore.QUrl(linkStr))
-
-    def __inverseMapping(self, map):
-        """
-        Convert a mapping from taxon to species to a mapping from species to a list of taxon.
-        """
-        o = {}
-        for k, v in map.items():
-            if v in o:
-                o[v].append(k)
-            else:
-                o[v] = [k]
-        return o
-
-    def onChecked(self):
-        """
-        When user clicks the checkbox for an optional command,
-        enable or disable the corresponding text edit.
-        """
-        if self.sender().objectName() == "-b":
-            if self.thresholdEdit.isEnabled():
-                self.thresholdEdit.setDisabled(True)
-            else:
-                self.thresholdEdit.setDisabled(False)
-        elif self.sender().objectName() == "-a":
-            if self.taxamapEdit.isEnabled():
-                self.taxamapEdit.setDisabled(True)
-            else:
-                self.taxamapEdit.setDisabled(False)
-        elif self.sender().objectName() == "-s":
-            if self.sNetEdit.isEnabled():
-                self.sNetEdit.setDisabled(True)
-            else:
-                self.sNetEdit.setDisabled(False)
-        elif self.sender().objectName() == "-n":
-            if self.nNetRetEdit.isEnabled():
-                self.nNetRetEdit.setDisabled(True)
-            else:
-                self.nNetRetEdit.setDisabled(False)
-        elif self.sender().objectName() == "-m":
-            if self.nNetExamEdit.isEnabled():
-                self.nNetExamEdit.setDisabled(True)
-            else:
-                self.nNetExamEdit.setDisabled(False)
-        elif self.sender().objectName() == "-d":
-            if self.maxDiaEdit.isEnabled():
-                self.maxDiaEdit.setDisabled(True)
-            else:
-                self.maxDiaEdit.setDisabled(False)
-        elif self.sender().objectName() == "-h":
-            if self.hybridEdit.isEnabled():
-                self.hybridEdit.setDisabled(True)
-            else:
-                self.hybridEdit.setDisabled(False)
-        elif self.sender().objectName() == "-w":
-            if self.wetOpEdit.isEnabled():
-                self.wetOpEdit.setDisabled(True)
-            else:
-                self.wetOpEdit.setDisabled(False)
-        elif self.sender().objectName() == "-f":
-            if self.maxFEdit.isEnabled():
-                self.maxFEdit.setDisabled(True)
-            else:
-                self.maxFEdit.setDisabled(False)
-        elif self.sender().objectName() == "-x":
-            if self.numRunEdit.isEnabled():
-                self.numRunEdit.setDisabled(True)
-            else:
-                self.numRunEdit.setDisabled(False)
-        elif self.sender().objectName() == "-pl":
-            if self.numProcEdit.isEnabled():
-                self.numProcEdit.setDisabled(True)
-            else:
-                self.numProcEdit.setDisabled(False)
-        else:
-            pass
-
-
     def generate(self):
         """
         Generate NEXUS file based on user input.
         """
+        #update shared attributes
+        self.inputFiles = inputFiles
+        self.taxamap = taxamap
 
         directory = QFileDialog.getSaveFileName(
             self, "Save File", "/", "Nexus Files (*.nexus)")
@@ -991,7 +797,7 @@ class NetworkMPPage4(QWizardPage):
         try:
             if len(self.inputFiles) == 0:
                 raise emptyFileError
-            if self.numReticulationsEdit == "":
+            if self.numReticulationsEditMP == "":
                 raise emptyNumReticulationError
             if directory[0] == "":
                 raise emptyDesinationError
@@ -1039,7 +845,7 @@ class NetworkMPPage4(QWizardPage):
                 outputFile.write(") ")
 
                 # Write out maximum number of reticulation to add.
-                outputFile.write(self.numReticulationsEdit)
+                outputFile.write(self.numReticulationsEditMP)
 
                 # -a taxa map command
                 if len(self.taxamap) == 0:
@@ -1075,6 +881,8 @@ class NetworkMPPage4(QWizardPage):
                 else:
                     outputFile.write(" -b ")
                     outputFile.write(self.thresholdEdit)
+                    #clear field
+                    self.thresholdEdit = ""
 
                 # -s startingNetwork command
                 if self.sNetEdit == "":
@@ -1082,6 +890,8 @@ class NetworkMPPage4(QWizardPage):
                 else:
                     outputFile.write(" -s ")
                     outputFile.write(self.sNetEdit)
+                    #clear field
+                    self.sNetEdit = ""
 
                 # -n numNetReturned command
                 if self.nNetRetEdit == "":
@@ -1089,13 +899,17 @@ class NetworkMPPage4(QWizardPage):
                 else:
                     outputFile.write(" -n ")
                     outputFile.write(self.nNetRetEdit)
+                    #clear field
+                    self.nNetRetEdit = ""
 
-                # -m maxNetExamined command
+                # -m maxNetExamined command              
                 if self.nNetExamEdit == "":
                     pass
                 else:
                     outputFile.write(" -m ")
                     outputFile.write(self.nNetExamEdit)
+                    #clear field
+                    self.nNetExamEdit = ""
 
                 # -d maxDiameter command
                 if self.maxDiaEdit == "":
@@ -1103,45 +917,74 @@ class NetworkMPPage4(QWizardPage):
                 else:
                     outputFile.write(" -rd ")
                     outputFile.write(self.maxDiaEdit)
+                    #clear field
+                    self.maxDiaEdit = ""
 
                 # -h {s1 [, s2...]} command
-                if self.hybridEdit == "":
-                    pass
-                else:
-                    outputFile.write(" -h ")
-                    outputFile.write(self.hybridEdit)
+                if self.hybridLbl.isChecked():
+                    if self.hybridLbl.text() == "":
+                        pass
+                    else:
+                        outputFile.write(" -h ")
+                        outputFile.write(str(self.hybridEdit.text()))
+                        #clear text
+                        self.hybridEdit.clear()
+                    #clear checkbox
+                    self.hybridLbl.setChecked(False)
 
                 # -w (w1, ..., w6) command
-                if self.wetOpEdit == "":
-                    pass
-                else:
-                    outputFile.write(" -w ")
-                    outputFile.write(self.wetOpEdit)
-
+                if self.wetOpLbl.isChecked():
+                    if self.wetOpEdit.text() == "":
+                        pass
+                    else:
+                        outputFile.write(" -w ")
+                        outputFile.write(str(self.wetOpEdit.text()))
+                        #clear text
+                        self.wetOpEdit.clear()
+                    #clear checkbox
+                    self.wetOpLbl.setChecked(False)
+                    
                 # -f maxFailure command
-                if self.maxFEdit == "":
-                    pass
-                else:
-                    outputFile.write(" -f ")
-                    outputFile.write(self.maxFEdit)
+                if self.maxFLbl.isChecked():
+                    if self.maxFEdit.text() == "":
+                        pass
+                    else:
+                        outputFile.write(" -f ")
+                        outputFile.write(str(self.maxFEdit.text()))
+                        #clear text
+                        self.maxFEdit.clear()
+                    #clear checkbox
+                    self.maxFLbl.setChecked(False)
 
                 # -x numRuns command
-                if self.numRunEdit == "":
-                    pass
-                else:
-                    outputFile.write(" -x ")
-                    outputFile.write(self.numRunEdit)
+                if self.numRunLbl.isChecked():
+                    if self.numRunEdit.text() == "":
+                        pass
+                    else:
+                        outputFile.write(" -x ")
+                        outputFile.write(str(self.numRunEdit.text()))
+                        #clear text
+                        self.numRunEdit.clear()
+                    #clear checkbox
+                    self.numRunLbl.setChecked(False)
 
                 # -pl numProcessors command
-                if self.numProcEdit == "":
-                    pass
-                else:
-                    outputFile.write(" -pl ")
-                    outputFile.write(self.numProcEdit)
+                if self.numProcLbl.isChecked():
+                    if self.numProcEdit.text() == "":
+                        pass
+                    else:
+                        outputFile.write(" -pl ")
+                        outputFile.write(str(self.numProcEdit.text()))
+                        #clear text
+                        self.numProcEdit.clear()
+                    #clear checkbox
+                    self.numProcLbl.setChecked(False)
 
                 # -di command
                 if self.diLbl.isChecked():
                     outputFile.write(" -di")
+                    #clear field
+                    self.diLbl.setChecked(False)
 
                 # End of NEXUS
                 outputFile.write(";\n\n")
@@ -1150,8 +993,11 @@ class NetworkMPPage4(QWizardPage):
             self.geneTreeNames = []
             self.inputFiles = []
             self.taxamap = {}
-            self.geneTreesEdit = ""
+            self.geneTreesEditMP = ""
+            #self.isComplete = True
+            #self.isComplete.emit(True)
 
+            self.successMessage()
             # Validate the generated file.
             self.validateFile(path)
 
@@ -1171,15 +1017,40 @@ class NetworkMPPage4(QWizardPage):
             self.geneTreeNames = []
             self.inputFiles = []
             self.taxamap = {}
-            self.geneTreesEdit = ""
+            self.geneTreesEditMP = ""
             QMessageBox.warning(self, "Warning", str(e), QMessageBox.Ok)
             return
+
+    def successMessage(self):
+        msg = QDialog()
+        msg.setStyleSheet("QDialog{min-width: 500px; min-height: 500px;}")
+        msg.setWindowTitle("Phylonet") 
+        msg.setWindowIcon(QIcon("logo.png"))
+        flags = QtCore.Qt.WindowFlags(QtCore.Qt.CustomizeWindowHint | QtCore.Qt.WindowCloseButtonHint )
+        msg.setWindowFlags(flags)
+        msg.setObjectName("successMessage")
+
+        vbox = QVBoxLayout()
+
+        ico = QLabel()
+        complete = QPixmap("module/complete.svg")
+        ico.setPixmap(complete)
+        buttonBox = QDialogButtonBox(QDialogButtonBox.Ok)
+        buttonBox.clicked.connect(msg.accept)
+
+        vbox.addWidget(ico, alignment=QtCore.Qt.AlignCenter)
+        vbox.addWidget(buttonBox)
+        vbox.setSpacing(0)
+ 
+        msg.setLayout(vbox)
+        msg.setModal(1)
+        msg.exec_()
 
     def validateFile(self, filePath):
         """
         After the .nexus file is generated, validate the file by feeding it to PhyloNet.
         Specify -checkParams on command line to make sure PhyloNet checks input without executing the command.
-        """
+        """             
         try:
             subprocess.check_output(
                 ["java", "-jar", resource_path("module/testphylonet.jar"),

@@ -17,6 +17,10 @@ def style():
             height: 100%;
             font-size: 12pt;
         }
+        QDialog#successMessage{
+            min-height: 500px;
+            min-width: 500px;
+        }
         QWizard{
             background-color: white;
         }
@@ -82,6 +86,9 @@ def style():
             width: 100%;
             border: 20px;
             padding: 20px;
+        }
+        QLabel#detailsLink{
+            border-bottom: 2px solid #ccc;
         }
         QPushButton#gtrEdit, QPushButton#diploidEdit, QPushButton#taxamapEdit{
             background-color: white;

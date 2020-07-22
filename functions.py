@@ -40,3 +40,4 @@ def getInfoButton(self):
     infoButton.clicked.connect(self.aboutMessage)
 
     return infoButton
+

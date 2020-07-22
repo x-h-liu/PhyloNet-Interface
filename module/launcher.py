@@ -33,6 +33,7 @@ def resource_path(relative_path):
 
 class Launcher(QtWidgets.QWizard):
 
+
     Page_Intro = 1
     Page_BiAllelic = 2
     Page_DirectInf = 3
@@ -43,11 +44,17 @@ class Launcher(QtWidgets.QWizard):
     Page_NetworkMP = 8
     Page_NetworkMP2 = 9
     Page_NetworkMP3 = 10
-    Page_NetworkMP4 = 11
-    Page_NetworkML = 12
-    Page_NetworkML2 = 13
-    Page_NetworkMPL = 14
-    Page_MCMCGT = 15
+    Page_NetworkML = 11
+    Page_NetworkML2 = 12
+    Page_NetworkML3 = 13
+    Page_NetworkML4 = 14
+    Page_NetworkMPL = 15
+    Page_NetworkMPL2 = 16
+    Page_NetworkMPL3 = 17
+    Page_NetworkMPL4 = 18
+    Page_MCMCGT = 19
+    Page_MCMCGT2 = 20
+    Page_MCMCGT3 = 21
 
     def __init__(self):
         super(Launcher, self).__init__()
@@ -64,11 +71,17 @@ class Launcher(QtWidgets.QWizard):
         self.NetworkMP = NetworkMP.NetworkMPPage()
         self.NetworkMP2 = NetworkMP.NetworkMPPage2()
         self.NetworkMP3 = NetworkMP.NetworkMPPage3()
-        self.NetworkMP4 = NetworkMP.NetworkMPPage4()
         self.NetworkML = NetworkML.NetworkMLPage()
         self.NetworkML2 = NetworkML.NetworkMLPage2()
+        self.NetworkML3 = NetworkML.NetworkMLPage3()
+        self.NetworkML4 = NetworkML.NetworkMLPage4()
         self.NetworkMPL = NetworkMPL.NetworkMPLPage()
+        self.NetworkMPL2 = NetworkMPL.NetworkMPLPage2()
+        self.NetworkMPL3 = NetworkMPL.NetworkMPLPage3()
+        self.NetworkMPL4 = NetworkMPL.NetworkMPLPage4()
         self.MCMCGT = MCMCGT.MCMCGTPage()
+        self.MCMCGT2 = MCMCGT.MCMCGTPage2()
+        self.MCMCGT3 = MCMCGT.MCMCGTPage3()
 
         self.setPage(self.Page_Intro, self.Intro)
         self.setPage(self.Page_DirectInf, self.DirectInf)
@@ -83,30 +96,29 @@ class Launcher(QtWidgets.QWizard):
         self.setPage(self.Page_MCMCGT, self.MCMCGT)
         self.setPage(self.Page_NetworkMP2, self.NetworkMP2)
         self.setPage(self.Page_NetworkML2, self.NetworkML2)
+        self.setPage(self.Page_NetworkMPL2, self.NetworkMPL2)
+        self.setPage(self.Page_NetworkML3, self.NetworkML3)
+        self.setPage(self.Page_NetworkML4, self.NetworkML4)
         self.setPage(self.Page_NetworkMP3, self.NetworkMP3)
-        self.setPage(self.Page_NetworkMP4, self.NetworkMP4)
-
+        self.setPage(self.Page_NetworkMPL3, self.NetworkMPL3)
+        self.setPage(self.Page_NetworkMPL4, self.NetworkMPL4)
+        self.setPage(self.Page_MCMCGT2, self.MCMCGT2)
+        self.setPage(self.Page_MCMCGT3, self.MCMCGT3)
         self.initUI()
-
-       # scrollArea = QtWidgets.QScrollArea()
-       # scrollArea.setWidget(self.DirectInf)
-       # scrollArea.setWidgetResizable(True)
-       # scrollArea.setMinimumWidth(695)
-       # scrollArea.setMinimumHeight(750)
 
     def initUI(self):
         """
-
          GUI.
         """
-       # wid = QtWidgets.QWidget()
-       # self.setCentralWidget(wid)
+        #set window title and label
         self.setWindowTitle("Phylonet") 
-        self.setWindowIcon(QIcon("logo.png"))
+        self.setWindowIcon(QIcon("module/logo.png"))
+        #set maximize and minimize options
         flags = QtCore.Qt.WindowFlags(QtCore.Qt.CustomizeWindowHint | QtCore.Qt.WindowCloseButtonHint 
-                    | QtCore.Qt.WindowMaximizeButtonHint | QtCore.Qt.WindowMinimizeButtonHint)
+                    | QtCore.Qt.WindowMinimizeButtonHint)
         self.setWindowFlags(flags)
         self.setModal(1)
+
 
     def nextId(self):
         id = self.currentId()
@@ -141,13 +153,24 @@ class Launcher(QtWidgets.QWizard):
             return self.Page_NetworkMP2
         elif id == Launcher.Page_NetworkML:
             return self.Page_NetworkML2
+        elif id == Launcher.Page_NetworkML2:
+            return self.Page_NetworkML3
+        elif id == Launcher.Page_NetworkML3:
+            return self.Page_NetworkML4
         elif id == Launcher.Page_NetworkMP2:
             return self.Page_NetworkMP3
-        elif id == Launcher.Page_NetworkMP3:
-            return self.Page_NetworkMP4
+        elif id == Launcher.Page_NetworkMPL:
+            return self.Page_NetworkMPL2
+        elif id == Launcher.Page_NetworkMPL2:
+            return self.Page_NetworkMPL3
+        elif id == Launcher.Page_NetworkMPL3:
+            return self.Page_NetworkMPL4
+        elif id == Launcher.Page_MCMCGT:
+            return self.Page_MCMCGT2
+        elif id == Launcher.Page_MCMCGT2:
+            return self.Page_MCMCGT3
         else:
             return -1
-
 
 class IntroPage(QtWidgets.QWizardPage):
     def __init__(self, parent=Launcher):
@@ -178,13 +201,6 @@ class IntroPage(QtWidgets.QWizardPage):
 
       #  self.alignBox.setFont(checkBoxFont)
       #  self.biAllelicBox.setFont(checkBoxFont)  # Font of two checkboxes.
-
-        # OK and Cancel buttons
-      #  buttonBox = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel)
-      #  buttonBox.button(QtWidgets.QDialogButtonBox.Ok).setDefault(True)
-
-      #  buttonBox.button(QtWidgets.QDialogButtonBox.Cancel).clicked.connect(self.close)
-      #  buttonBox.button(QtWidgets.QDialogButtonBox.Ok).clicked.connect(self.okClicked)
 
         # Layouts
         # Main vertical layout.

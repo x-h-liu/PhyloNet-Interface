@@ -33,7 +33,6 @@ def resource_path(relative_path):
 
 # About info
 
-
 def aboutMessage(self):
     msg = QMessageBox()
     msg.setIcon(QMessageBox.Information)
@@ -68,19 +67,22 @@ class MCMCSEQPage1(QWizardPage):
         Initialize GUI.
         """
 
-      #  wid = QWidget()
-      #  scroll = QScrollArea()
-      #  self.setCentralWidget(scroll)
+        # Title (InferNetwork_MP)
+        titleLabel = titleHeader("MCMC_SEQ")
+
+        hyperlink = QLabel()
+        hyperlink.setText('Details of this method can be found '
+                          '<a href="https://wiki.rice.edu/confluence/display/PHYLONET/MCMC_SEQ">'
+                          'here</a>.')
+        hyperlink.linkActivated.connect(self.link)
+        hyperlink.setObjectName("detailsLink")
+
+        
+        instructionLabel = QLabel()
+        instructionLabel.setText("Input data: Please upload sequence files:\n(One file per locus)")
+        instructionLabel.setObjectName("instructionLabel")
 
         # Mandatory parameter labels
-        instructionInput = QLabel()
-        instructionInput.setText('Input data: Please upload sequence files. One file per locus. Details of this method can be found '
-                                 '<a href="https://wiki.rice.edu/confluence/display/PHYLONET/MCMC_SEQ">'
-                                 'here < /a > .')
-        instructionInput.linkActivated.connect(self.link)
-        instructionInput.setObjectName("instructionInput")
-        instructionInput.setToolTip("Please put sequence alignments of different loci into separate files. \n"
-                                    "Each file is considered to contain sequence alignments from only one locus.")
         self.nexus = QCheckBox(".nexus")
         self.nexus.setObjectName("nexus")
         self.fasta = QCheckBox(".fasta")
@@ -96,7 +98,6 @@ class MCMCSEQPage1(QWizardPage):
 
         fileSelctionBtn = QToolButton()
         fileSelctionBtn.setText("Browse")
-        fileSelctionBtn.setObjectName("fileSelctionBtn")
         fileSelctionBtn.clicked.connect(self.selectFile)
         fileSelctionBtn.setToolTip("Please put sequence alignments of different loci into separate files. \n"
                                    "Each file is considered to contain sequence alignments from only one locus.")
@@ -107,33 +108,25 @@ class MCMCSEQPage1(QWizardPage):
         # Layouts
         # Layout of each parameter (label and input)
         fileFormatLayout = QVBoxLayout()
-        fileFormatLayout.addWidget(instructionInput)
+        fileFormatLayout.addWidget(instructionLabel)
         fileFormatLayout.addWidget(self.nexus)
         fileFormatLayout.addWidget(self.fasta)
 
-        # seqInputLayout = QHBoxLayout()
-        # seqInputLayout.addWidget(self.sequenceFileEdit)
-        # seqInputLayout.addWidget(fileSelctionBtn)
+        seqInputLayout = QHBoxLayout()
+        seqInputLayout.addWidget(self.sequenceFileEdit)
+        seqInputLayout.addWidget(fileSelctionBtn)
 
         seqFileLayout = QVBoxLayout()
         seqFileLayout.addLayout(fileFormatLayout)
-        seqFileLayout.addWidget(self.sequenceFileEdit)
-        seqFileLayout.addWidget(fileSelctionBtn)
+        seqFileLayout.addLayout(seqInputLayout)
 
         # Main layout
         topLevelLayout = QVBoxLayout()
-        topLevelLayout.addWidget(titleHeader("MCMC_SEQ"))
-        topLevelLayout.addWidget(lineSeparator(self))
+        topLevelLayout.addWidget(titleLabel)
+        topLevelLayout.addWidget(hyperlink)
         topLevelLayout.addLayout(seqFileLayout)
-
-        # Scroll bar
         self.setLayout(topLevelLayout)
-      #  scroll.setWidget(wid)
-      #  scroll.setWidgetResizable(True)
-      #  scroll.setMinimumWidth(695)
-      #  scroll.setMinimumHeight(750)
 
-        # self.menubar.setNativeMenuBar(False)
         self.setWindowTitle('PhyloNetNEXGenerator')
         self.setWindowIcon(QIcon(resource_path("logo.png")))
 
@@ -183,10 +176,11 @@ class MCMCSEQPage1(QWizardPage):
             QMessageBox.warning(self, "Warning", "Please select a file type.", QMessageBox.Ok)
         else:
             if self.nexus.isChecked():
-                fname = QFileDialog.getOpenFileNames(self, 'Open file', '/', 'Nexus files (*.nexus *.nex);;Fasta files (*.fasta)')
+                fname = QFileDialog.getOpenFileNames(self, 'Open file', '/', 'Nexus files (*.nexus *.nex)')
             elif self.fasta.isChecked():
-                fname = QFileDialog.getOpenFileNames(self, 'Open file', '/', 'Fasta files (*.fasta);;Nexus files (*.nexus *.nex)')
-            if fname:
+                fname = QFileDialog.getOpenFileNames(self, 'Open file', '/', 'Fasta files (*.fasta)')
+            #if a file has been inputted, proceed
+            if len(fname[0]) > 0:
                 fileType = fname[1]
                 if self.nexus.isChecked():
                     if fileType != 'Nexus files (*.nexus *.nex)':
@@ -239,6 +233,7 @@ class MCMCSEQPage1(QWizardPage):
                 loci = self.loci
                 nchar = self.nchar
 
+
 class MCMCSEQPage2(QWizardPage):
 
     def __init__(self):
@@ -260,29 +255,20 @@ class MCMCSEQPage2(QWizardPage):
         """
         Initialize GUI.
         """
-      #  wid = QWidget()
-      #  scroll = QScrollArea()
-      #  self.setCentralWidget(scroll)
 
-        """
-        # Menubar and action
-        aboutAction = QAction('About', self)
-        aboutAction.triggered.connect(self.aboutMessage)
-        aboutAction.setShortcut("Ctrl+A")
+        # Title (MCMC_SEQ)
+        titleLabel = titleHeader("MCMC_SEQ")
 
+        hyperlink = QLabel()
+        hyperlink.setText('Details of this method can be found '
+                          '<a href="https://wiki.rice.edu/confluence/display/PHYLONET/MCMC_SEQ">'
+                          'here</a>.')
+        hyperlink.linkActivated.connect(self.link)
+        hyperlink.setObjectName("detailsLink")
 
-        self.menubar = QMenuBar(self)
-        menuMenu = self.menubar.addMenu('Menu')
-        menuMenu.addAction(aboutAction)
-        """
-
-        # Two subtitles (mandatory and optional commands)
-        instructionMCMC = QLabel()
-        instructionMCMC.setObjectName("instructionMCMC")
-        instructionMCMC.setText('MCMC Settings and MC3 Settings: Details of this method can be found '
-                                '<a href="https://wiki.rice.edu/confluence/display/PHYLONET/MCMC_SEQ">'
-                                ' here</a>.')
-        instructionMCMC.linkActivated.connect(self.link)
+        optionalLabel = QLabel()
+        optionalLabel.setObjectName("instructionLabel")
+        optionalLabel.setText("Input Options")
 
         # Optional parameter labels
         self.chainLengthLbl = QCheckBox("The length of the MCMC chain:", self)
@@ -402,35 +388,20 @@ class MCMCSEQPage2(QWizardPage):
 
         # Main layout
         topLevelLayout = QVBoxLayout()
-        topLevelLayout.addWidget(titleHeader("MCMC_SEQ"))
+        topLevelLayout.addWidget(titleLabel)
+        topLevelLayout.addWidget(hyperlink)
+        topLevelLayout.addWidget(optionalLabel)
 
-        topLevelLayout.addWidget(lineSeparator(self))
-        topLevelLayout.addWidget(instructionMCMC)
-
-        optionLevelLayout = QVBoxLayout()
-        optionLevelLayout.addLayout(chainLengthLayout)
-        optionLevelLayout.addLayout(burnInLengthLayout)
-        optionLevelLayout.addLayout(sampleFrequencyLayout)
-        optionLevelLayout.addLayout(seedLayout)
-        optionLevelLayout.addLayout(numProcLayout)
-        optionLevelLayout.addLayout(outDirLayout)
-        optionLevelLayout.addLayout(tempListLayout)
-
-        """
-        optionFrame = QFrame()
-        optionFrame.setObjectName("optionFrame")
-        optionFrame.setLayout(optionLevelLayout)
-        """
-        topLevelLayout.addWidget(optionFrame(optionLevelLayout))
-
-        # Scroll bar
+        topLevelLayout.addLayout(chainLengthLayout)
+        topLevelLayout.addLayout(burnInLengthLayout)
+        topLevelLayout.addLayout(sampleFrequencyLayout)
+        topLevelLayout.addLayout(seedLayout)
+        topLevelLayout.addLayout(numProcLayout)
+        topLevelLayout.addLayout(outDirLayout)
+        topLevelLayout.addLayout(tempListLayout)
+        
         self.setLayout(topLevelLayout)
-      #  scroll.setWidget(wid)
-      #  scroll.setWidgetResizable(True)
-      #  scroll.setMinimumWidth(695)
-      #  scroll.setMinimumHeight(750)
 
-        # self.menubar.setNativeMenuBar(False)
         self.setWindowTitle('PhyloNetNEXGenerator')
         self.setWindowIcon(QIcon(resource_path("logo.png")))
 
@@ -515,33 +486,22 @@ class MCMCSEQPage3(QWizardPage):
         """
         Initialize GUI.
         """
-      #  wid = QWidget()
-      #  scroll = QScrollArea()
-      #  self.setCentralWidget(scroll)
 
-        """
-        # Menubar and action
-        aboutAction = QAction('About', self)
-        aboutAction.triggered.connect(self.aboutMessage)
-        aboutAction.setShortcut("Ctrl+A")
+        # Title (MCMC_SEQ)
+        titleLabel = titleHeader("MCMC_SEQ")
 
+        hyperlink = QLabel()
+        hyperlink.setText('Details of this method can be found '
+                          '<a href="https://wiki.rice.edu/confluence/display/PHYLONET/MCMC_SEQ">'
+                          'here</a>.')
+        hyperlink.linkActivated.connect(self.link)
+        hyperlink.setObjectName("detailsLink")
 
-        self.menubar = QMenuBar(self)
-        menuMenu = self.menubar.addMenu('Menu')
-        menuMenu.addAction(aboutAction)
-        """
-
-        # Two subtitles (mandatory and optional commands)
-        instructionInference = QLabel()
-        instructionInference.setObjectName("instructionInference")
-        instructionInference.setText("Inference Settings and Prior Settings")
-        instructionInference.setText('Inference Settings and Prior Settings: Details of this method can be found '
-                                     '<a href="https://wiki.rice.edu/confluence/display/PHYLONET/MCMC_SEQ">'
-                                     ' here</a>.')
-        instructionInference.linkActivated.connect(self.link)
+        optionalLabel = QLabel()
+        optionalLabel.setObjectName("instructionLabel")
+        optionalLabel.setText("Inference Settings and Prior Settings")
 
         # Optional parameter labels
-
         self.maxRetLbl = QCheckBox(
             "The maximum number of reticulation nodes in the sampled phylogenetic networks:", self)
         self.maxRetLbl.setObjectName("-mr")
@@ -632,31 +592,21 @@ class MCMCSEQPage3(QWizardPage):
 
         # Main layout
         topLevelLayout = QVBoxLayout()
-        topLevelLayout.addWidget(titleHeader("MCMC_SEQ"))
-        topLevelLayout.addWidget(lineSeparator(self))
-        topLevelLayout.addWidget(instructionInference)
+        topLevelLayout.addWidget(titleLabel)
+        topLevelLayout.addWidget(hyperlink)
+        topLevelLayout.addWidget(optionalLabel)
 
         # Layout contains the Inference Setting and Prior Setting options
-        optionLevelALayout = QVBoxLayout()
-        optionLevelALayout.addLayout(maxRetLayout)
-        optionLevelALayout.addLayout(taxamapLayout)
-        optionLevelALayout.addLayout(popSizeLayout)
-        optionLevelALayout.addLayout(varypsLayout)
-        optionLevelALayout.addLayout(ppLayout)
-        optionLevelALayout.addLayout(ddLayout)
-        optionLevelALayout.addLayout(eeLayout)
+        topLevelLayout.addLayout(maxRetLayout)
+        topLevelLayout.addLayout(taxamapLayout)
+        topLevelLayout.addLayout(popSizeLayout)
+        topLevelLayout.addLayout(varypsLayout)
+        topLevelLayout.addLayout(ppLayout)
+        topLevelLayout.addLayout(ddLayout)
+        topLevelLayout.addLayout(eeLayout)
 
-        # Places setting options in a QFrame container
-        topLevelLayout.addWidget(optionFrame(optionLevelALayout))
-
-        # Scroll bar
         self.setLayout(topLevelLayout)
-      #  scroll.setWidget(wid)
-      #  scroll.setWidgetResizable(True)
-      #  scroll.setMinimumWidth(695)
-      #  scroll.setMinimumHeight(750)
 
-        # self.menubar.setNativeMenuBar(False)
         self.setWindowTitle('PhyloNetNEXGenerator')
         self.setWindowIcon(QIcon(resource_path("logo.png")))
 
@@ -795,31 +745,20 @@ class MCMCSEQPage4(QWizardPage):
         """
         Initialize GUI.
         """
-      #  wid = QWidget()
-      #  scroll = QScrollArea()
-      #  self.setCentralWidget(scroll)
+        # Title (MCMC_SEQ)
+        titleLabel = titleHeader("MCMC_SEQ")
 
-        """
-        # Menubar and action
-        aboutAction = QAction('About', self)
-        aboutAction.triggered.connect(self.aboutMessage)
-        aboutAction.setShortcut("Ctrl+A")
+        hyperlink = QLabel()
+        hyperlink.setText('Details of this method can be found '
+                          '<a href="https://wiki.rice.edu/confluence/display/PHYLONET/MCMC_SEQ">'
+                          'here</a>.')
+        hyperlink.linkActivated.connect(self.link)
+        hyperlink.setObjectName("detailsLink")
 
-        
-        self.menubar = QMenuBar(self)
-        menuMenu = self.menubar.addMenu('Menu')
-        menuMenu.addAction(aboutAction)
-        """
+        optionalLabel = QLabel()
+        optionalLabel.setObjectName("instructionLabel")
+        optionalLabel.setText("Starting State Settings, Substitution Model, and Phasing")
 
-        # Two subtitles (mandatory and optional commands)
-        instructionLabelStarting = QLabel()
-        instructionLabelStarting.setObjectName("instructionLabelStarting")
-        instructionLabelStarting.setText(
-            "Starting State Settings, Substitution Model, and Phasing")
-        instructionLabelStarting.setText('Starting State Settings, Substitution Model, and Phasings: Details of this method can be found '
-                                         '<a href="https://wiki.rice.edu/confluence/display/PHYLONET/MCMC_SEQ">'
-                                         ' here</a>.')
-        instructionLabelStarting.linkActivated.connect(self.link)
         # Optional parameter labels
 
         self.sgtFileLbl = QCheckBox("Starting gene trees for each locus:")
@@ -896,7 +835,6 @@ class MCMCSEQPage4(QWizardPage):
 
         # Launch button
         launchBtn = QPushButton("Generate", self)
-        launchBtn.setObjectName("launchBtn")
         launchBtn.clicked.connect(self.generate)
 
         # Layouts
@@ -938,43 +876,25 @@ class MCMCSEQPage4(QWizardPage):
         btnLayout = QHBoxLayout()
         btnLayout.addStretch(1)
         btnLayout.addWidget(launchBtn)
-        btnLayout.addStretch(1)
 
-        # Option layout
-        optionLevelCLayout = QVBoxLayout()
-        optionLevelCLayout.addLayout(sgtFileFormatLayout)
-        optionLevelCLayout.addLayout(sNetLayout)
-        optionLevelCLayout.addLayout(sPopLayout)
-        optionLevelCLayout.addLayout(preLayout)
-        optionLevelCLayout.addLayout(gtrLayout)
-        optionLevelCLayout.addLayout(diploidLayout)
+
         # Main layout
         topLevelLayout = QVBoxLayout()
-        topLevelLayout.addWidget(titleHeader("MCMC_SEQ"))
+        topLevelLayout.addWidget(titleLabel)
+        topLevelLayout.addWidget(hyperlink)
+        topLevelLayout.addWidget(optionalLabel)
 
-        topLevelLayout.addWidget(lineSeparator(self))
-        topLevelLayout.addWidget(instructionLabelStarting)
-        topLevelLayout.addWidget(optionFrame(optionLevelCLayout))
+        # Option layout
+        topLevelLayout.addLayout(sgtFileFormatLayout)
+        topLevelLayout.addLayout(sNetLayout)
+        topLevelLayout.addLayout(sPopLayout)
+        topLevelLayout.addLayout(preLayout)
+        topLevelLayout.addLayout(gtrLayout)
+        topLevelLayout.addLayout(diploidLayout)
         topLevelLayout.addLayout(btnLayout)
 
-        """
-        topLevelLayout.addWidget(lineSeparator(self))
-        topLevelLayout.addWidget(optionFrame(gtrLayout))
-
-        topLevelLayout.addWidget(lineSeparator(self))
-        topLevelLayout.addWidget(optionFrame(diploidLayout))
-
-        topLevelLayout.addWidget(lineSeparator(self))
-        topLevelLayout.addWidget(optionFrame(btnLayout))
-        """
-        # Scroll bar
         self.setLayout(topLevelLayout)
-      #  scroll.setWidget(wid)
-      #  scroll.setWidgetResizable(True)
-      #  scroll.setMinimumWidth(695)
-      #  scroll.setMinimumHeight(750)
 
-        # setNativeMenuBar(False)
         self.setWindowTitle('PhyloNetNEXGenerator')
         self.setWindowIcon(QIcon(resource_path("logo.png")))
 
@@ -1419,6 +1339,7 @@ class MCMCSEQPage4(QWizardPage):
             self.ListOfDiploid = []
             self.sgtFiles = []
             self.sgtFileEdit.clear()
+            self.successMessage()
 
             # Validate the generated file.
             self.validateFile(path)
@@ -1443,6 +1364,31 @@ class MCMCSEQPage4(QWizardPage):
             self.sgtFileEdit.clear()
             QMessageBox.warning(self, "Warning", str(e), QMessageBox.Ok)
             return
+
+    def successMessage(self):
+        msg = QDialog()
+        msg.setStyleSheet("QDialog{min-width: 500px; min-height: 500px;}")
+        msg.setWindowTitle("Phylonet") 
+        msg.setWindowIcon(QIcon("logo.png"))
+        flags = QtCore.Qt.WindowFlags(QtCore.Qt.CustomizeWindowHint | QtCore.Qt.WindowCloseButtonHint )
+        msg.setWindowFlags(flags)
+        msg.setObjectName("successMessage")
+
+        vbox = QVBoxLayout()
+
+        ico = QLabel()
+        complete = QPixmap("module/complete.svg")
+        ico.setPixmap(complete)
+        buttonBox = QDialogButtonBox(QDialogButtonBox.Ok)
+        buttonBox.clicked.connect(msg.accept)
+
+        vbox.addWidget(ico, alignment=QtCore.Qt.AlignCenter)
+        vbox.addWidget(buttonBox)
+        vbox.setSpacing(0)
+ 
+        msg.setLayout(vbox)
+        msg.setModal(1)
+        msg.exec_()
 
     def validateFile(self, filePath):
         """

@@ -9,7 +9,12 @@ import subprocess
 import shutil
 
 from module import TaxamapDlg
+from functions import *
 
+
+inputFiles = []
+geneTreeNames = []
+taxamap = {}
 
 def resource_path(relative_path):
     """
@@ -38,61 +43,22 @@ class MCMCGTPage(QWizardPage):
         """
         Initialize GUI.
         """
-       # wid = QWidget()
-       # scroll = QScrollArea()
-       # self.setCentralWidget(scroll)
-
-        # Menubar and action
-        aboutAction = QAction('About', self)
-        aboutAction.triggered.connect(self.aboutMessage)
-        aboutAction.setShortcut("Ctrl+A")
 
         # Title (MCMC_GT)
-        titleLabel = QLabel()
-        titleLabel.setText("MCMC_GT")
-
-        titleFont = QFont()
-        titleFont.setPointSize(24)
-        titleFont.setFamily("Helvetica")
-        titleFont.setBold(True)
-        titleLabel.setFont(titleFont)
+        titleLabel = titleHeader("MCMC_GT")
 
         hyperlink = QLabel()
         hyperlink.setText('Details of this method can be found '
                           '<a href="https://wiki.rice.edu/confluence/display/PHYLONET/MCMC_GT">'
                           'here</a>.')
         hyperlink.linkActivated.connect(self.link)
+        hyperlink.setObjectName("detailsLink")
 
-        # Separation lines
-        line1 = QFrame(self)
-        line1.setFrameShape(QFrame.HLine)
-        line1.setFrameShadow(QFrame.Sunken)
-
-        line2 = QFrame(self)
-        line2.setFrameShape(QFrame.HLine)
-        line2.setFrameShadow(QFrame.Sunken)
-
-        line3 = QFrame(self)
-        line3.setFrameShape(QFrame.HLine)
-        line3.setFrameShadow(QFrame.Sunken)
-
-        # Two subtitles (mandatory and optional commands)
-        mandatoryLabel = QLabel()
-        mandatoryLabel.setText("Mandatory commands")
-        optionalLabel = QLabel()
-        optionalLabel.setText("Optional commands")
-
-        subTitleFont = QFont()
-        subTitleFont.setPointSize(18)
-        subTitleFont.setFamily("Times New Roman")
-        subTitleFont.setBold(True)
-        mandatoryLabel.setFont(subTitleFont)
-        optionalLabel.setFont(subTitleFont)
+        instructionLabel = QLabel()
+        instructionLabel.setText("Input data: Please Upload Gene tree files:\n(one file per locus)")
+        instructionLabel.setObjectName("instructionLabel")  
 
         # Mandatory parameter labels
-        geneTreeFileLbl = QLabel("Gene tree files:\n(one file per locus)")
-        geneTreeFileLbl.setToolTip(
-            "All trees in one file are considered to be from one locus.")
         self.nexus = QCheckBox(".nexus")
         self.nexus.setObjectName("nexus")
         self.newick = QCheckBox(".newick")
@@ -102,15 +68,157 @@ class MCMCGTPage(QWizardPage):
         self.newick.stateChanged.connect(self.format)
 
         # Mandatory parameter inputs
-        self.geneTreesEdit = QTextEdit()
-        self.geneTreesEdit.setFixedHeight(50)
-        self.geneTreesEdit.setReadOnly(True)
+        self.geneTreesEditMCGT = QTextEdit()
+        self.geneTreesEditMCGT.setReadOnly(True)
+        self.registerField("geneTreesEditMCGT*", self.geneTreesEditMCGT, "plainText", self.geneTreesEditMCGT.textChanged)
 
         fileSelctionBtn = QToolButton()
-        fileSelctionBtn.setText("...")
+        fileSelctionBtn.setText("Browse")
         fileSelctionBtn.clicked.connect(self.selectFile)
         fileSelctionBtn.setToolTip(
             "All trees in one file are considered to be from one locus.")
+
+        # Layouts
+        # Layout of each parameter (label and input)
+        fileFormatLayout = QVBoxLayout()
+        fileFormatLayout.addWidget(instructionLabel)
+        fileFormatLayout.addWidget(self.nexus)
+        fileFormatLayout.addWidget(self.newick)
+        geneTreeDataLayout = QHBoxLayout()
+        geneTreeDataLayout.addWidget(self.geneTreesEditMCGT)
+        geneTreeDataLayout.addWidget(fileSelctionBtn)
+
+        geneTreeFileLayout = QVBoxLayout()
+        geneTreeFileLayout.addLayout(fileFormatLayout)
+        geneTreeFileLayout.addLayout(geneTreeDataLayout)
+
+
+        # Main layout
+        topLevelLayout = QVBoxLayout()
+        topLevelLayout.addWidget(titleLabel)
+        topLevelLayout.addWidget(hyperlink)
+        topLevelLayout.addLayout(geneTreeFileLayout)
+
+        # Scroll bar
+        self.setLayout(topLevelLayout)
+
+        self.setWindowTitle('PhyloNetNEXGenerator')
+        self.setWindowIcon(QIcon(resource_path("logo.png")))
+
+    def aboutMessage(self):
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Information)
+        msg.setText("Bayesian estimation of the posterior distribution of phylogenetic networks given a list of "
+                    "gene tree topologies.")
+        font = QFont()
+        font.setPointSize(13)
+        font.setFamily("Times New Roman")
+        font.setBold(False)
+
+        msg.setFont(font)
+        msg.exec_()
+
+    def link(self, linkStr):
+        """
+        Open the website of PhyloNet if user clicks on the hyperlink.
+        """
+        QDesktopServices.openUrl(QtCore.QUrl(linkStr))
+
+    def format(self):
+        """
+        Process checkbox's stateChanged signal to implement mutual exclusion.
+        """
+        if self.sender().objectName() == "nexus":
+            if not self.nexus.isChecked():
+                self.geneTreesEditMCGT = ""
+                self.inputFiles = []
+                self.geneTreeNames = []
+                self.taxamap = {}
+            else:
+                self.newick.setChecked(False)
+        elif self.sender().objectName() == "newick":
+            if not self.newick.isChecked():
+                self.geneTreesEditMCGT = ""
+                self.inputFiles = []
+                self.geneTreeNames = []
+                self.taxamap = {}
+            else:
+                self.nexus.setChecked(False)
+                self.newick.setChecked(True)
+
+    def selectFile(self):
+        """
+        Store all the user uploaded gene tree files.
+        Execute when file selection button is clicked.
+        """
+        #initialize global attribute
+        global inputFiles
+        inputFiles.clear()
+        if (not self.newick.isChecked()) and (not self.nexus.isChecked()):
+            QMessageBox.warning(self, "Warning", "Please select a file type.", QMessageBox.Ok)
+        else:
+            if self.nexus.isChecked():
+                fname = QFileDialog.getOpenFileNames(self, 'Open file', '/', 'Nexus files (*.nexus *.nex)')
+            elif self.newick.isChecked():
+                fname = QFileDialog.getOpenFileNames(self, 'Open file', '/', 'Newick files (*.newick)') 
+            #if a file has been inputted, proceed
+            if len(fname[0]) > 0:
+                fileType = fname[1]
+                self.fileType = QLineEdit(fname[1])
+                self.registerField("fileTypeMCGT", self.fileType)
+                if self.nexus.isChecked():
+                    if fileType != 'Nexus files (*.nexus *.nex)':
+                        QMessageBox.warning(self, "Warning", "Please upload only .nexus or .nex files", QMessageBox.Ok)
+                    else:
+                        for onefname in fname[0]:
+                            self.geneTreesEditMCGT.append(onefname)
+                            self.inputFiles.append(str(onefname))
+
+                elif self.newick.isChecked():
+                    if fileType != 'Newick files (*.newick)':
+                        QMessageBox.warning(self, "Warning", "Please upload only .newick files", QMessageBox.Ok)
+                    else:
+                        for onefname in fname[0]:
+                            self.geneTreesEditMCGT.append(onefname)
+                            self.inputFiles.append(str(onefname))
+                else:
+                    return
+                #Update global attribute
+                inputFiles = self.inputFiles
+
+class MCMCGTPage2(QWizardPage):
+    def initializePage(self):
+        self.fileType = self.field("fileTypeMCGT")
+        self.geneTreesEditMCGT = self.field("geneTreesEditMCGT")
+
+    def __init__(self):
+        super(MCMCGTPage2, self).__init__()
+
+        self.inputFiles = []
+        self.geneTreeNames = []
+        self.taxamap = {}
+        self.multiTreesPerLocus = False
+
+        self.initUI()
+
+    def initUI(self):
+        """
+        Initialize GUI.
+        """
+
+        # Title (MCMC_GT)
+        titleLabel = titleHeader("MCMC_GT")
+
+        hyperlink = QLabel()
+        hyperlink.setText('Details of this method can be found '
+                          '<a href="https://wiki.rice.edu/confluence/display/PHYLONET/MCMC_GT">'
+                          'here</a>.')
+        hyperlink.linkActivated.connect(self.link)
+        hyperlink.setObjectName("detailsLink")
+
+        optionalLabel = QLabel()
+        optionalLabel.setObjectName("instructionLabel")
+        optionalLabel.setText("Input Options")
 
         # Optional parameter labels
         self.chainLengthLbl = QCheckBox("The length of the MCMC chain:", self)
@@ -140,83 +248,39 @@ class MCMCGTPage(QWizardPage):
         self.maxRetLbl.setObjectName("-mr")
         self.maxRetLbl.stateChanged.connect(self.onChecked)
 
-        self.numProcLbl = QCheckBox(
-            "Number of threads running in parallel:", self)
-        self.numProcLbl.setObjectName("-pl")
-        self.numProcLbl.stateChanged.connect(self.onChecked)
-
-        self.tempListLbl = QCheckBox(
-            "The list of temperatures for the Metropolis-coupled MCMC chains:", self)
-        self.tempListLbl.setObjectName("-tp")
-        self.tempListLbl.stateChanged.connect(self.onChecked)
-
-        self.sNetListLbl = QCheckBox(
-            "Comma delimited list of network identifiers:", self)
-        self.sNetListLbl.setObjectName("-sn")
-        self.sNetListLbl.stateChanged.connect(self.onChecked)
-
-        self.taxamapLbl = QCheckBox(
-            "Gene tree / species tree taxa association:", self)
-        self.taxamapLbl.setObjectName("-tm")
-        self.taxamapLbl.stateChanged.connect(self.onChecked)
-
-        self.pseudoLbl = QCheckBox(
-            "Use pseudo likelihood instead of full likelihood to reduce runtime", self)
-
         # Optional parameter inputs
         self.chainLengthEdit = QLineEdit()
         self.chainLengthEdit.setDisabled(True)
         self.chainLengthEdit.setPlaceholderText("1100000")
+        self.registerField("chainLengthEditMCGT", self.chainLengthEdit)
 
         self.burnInLengthEdit = QLineEdit()
         self.burnInLengthEdit.setDisabled(True)
         self.burnInLengthEdit.setPlaceholderText("100000")
+        self.registerField("burnInLengthEditMCGT", self.burnInLengthEdit)
 
         self.sampleFrequencyEdit = QLineEdit()
         self.sampleFrequencyEdit.setDisabled(True)
         self.sampleFrequencyEdit.setPlaceholderText("1000")
+        self.registerField("sampleFrequencyEditMCGT", self.sampleFrequencyEdit)
 
         self.seedEdit = QLineEdit()
         self.seedEdit.setDisabled(True)
         self.seedEdit.setPlaceholderText("12345678")
+        self.registerField("seedEditMCGT", self.seedEdit)
 
         self.ppEdit = QLineEdit()
         self.ppEdit.setDisabled(True)
         self.ppEdit.setPlaceholderText("1.0")
+        self.registerField("ppEditMCGT", self.ppEdit)
 
         self.maxRetEdit = QLineEdit()
         self.maxRetEdit.setDisabled(True)
         self.maxRetEdit.setPlaceholderText("infinity")
-
-        self.numProcEdit = QLineEdit()
-        self.numProcEdit.setDisabled(True)
-        self.numProcEdit.setPlaceholderText("1")
-
-        self.tempListEdit = QLineEdit()
-        self.tempListEdit.setDisabled(True)
-        self.tempListEdit.setPlaceholderText("(1.0)")
-
-        self.sNetListEdit = QLineEdit()
-        self.sNetListEdit.setDisabled(True)
-
-        self.taxamapEdit = QPushButton("Set taxa map")
-        self.taxamapEdit.setDisabled(True)
-        self.taxamapEdit.clicked.connect(self.getTaxamap)
-
-        # Launch button
-        launchBtn = QPushButton("Generate", self)
-        launchBtn.clicked.connect(self.generate)
+        self.registerField("maxRetEditMCGT", self.maxRetEdit)
 
         # Layouts
-        # Layout of each parameter (label and input)
-        fileFormatLayout = QVBoxLayout()
-        fileFormatLayout.addWidget(geneTreeFileLbl)
-        fileFormatLayout.addWidget(self.nexus)
-        fileFormatLayout.addWidget(self.newick)
-        geneTreeFileLayout = QHBoxLayout()
-        geneTreeFileLayout.addLayout(fileFormatLayout)
-        geneTreeFileLayout.addWidget(self.geneTreesEdit)
-        geneTreeFileLayout.addWidget(fileSelctionBtn)
+        # Layouts of each parameter and inputs
 
         chainLengthLayout = QHBoxLayout()
         chainLengthLayout.addWidget(self.chainLengthLbl)
@@ -248,90 +312,26 @@ class MCMCGTPage(QWizardPage):
         maxRetLayout.addStretch(1)
         maxRetLayout.addWidget(self.maxRetEdit)
 
-        numProcLayout = QHBoxLayout()
-        numProcLayout.addWidget(self.numProcLbl)
-        numProcLayout.addStretch(1)
-        numProcLayout.addWidget(self.numProcEdit)
+        # Main Layouts
 
-        tempListLayout = QHBoxLayout()
-        tempListLayout.addWidget(self.tempListLbl)
-        tempListLayout.addWidget(self.tempListEdit)
-
-        sNetListLayout = QHBoxLayout()
-        sNetListLayout.addWidget(self.sNetListLbl)
-        sNetListLayout.addWidget(self.sNetListEdit)
-
-        taxamapLayout = QHBoxLayout()
-        taxamapLayout.addWidget(self.taxamapLbl)
-        taxamapLayout.addStretch(1)
-        taxamapLayout.addWidget(self.taxamapEdit)
-
-        pseudoLayout = QHBoxLayout()
-        pseudoLayout.addWidget(self.pseudoLbl)
-
-        btnLayout = QHBoxLayout()
-        btnLayout.addStretch(1)
-        btnLayout.addWidget(launchBtn)
-
-        # Main layout
         topLevelLayout = QVBoxLayout()
         topLevelLayout.addWidget(titleLabel)
         topLevelLayout.addWidget(hyperlink)
-        topLevelLayout.addWidget(line1)
-        topLevelLayout.addWidget(mandatoryLabel)
-        topLevelLayout.addLayout(geneTreeFileLayout)
-
-        topLevelLayout.addWidget(line2)
         topLevelLayout.addWidget(optionalLabel)
+
         topLevelLayout.addLayout(chainLengthLayout)
         topLevelLayout.addLayout(burnInLengthLayout)
         topLevelLayout.addLayout(sampleFrequencyLayout)
         topLevelLayout.addLayout(seedLayout)
         topLevelLayout.addLayout(ppLayout)
         topLevelLayout.addLayout(maxRetLayout)
-        topLevelLayout.addLayout(numProcLayout)
-        topLevelLayout.addLayout(tempListLayout)
-        topLevelLayout.addLayout(sNetListLayout)
-        topLevelLayout.addLayout(taxamapLayout)
-        topLevelLayout.addLayout(pseudoLayout)
+        self.setLayout(topLevelLayout)   
 
-        topLevelLayout.addWidget(line3)
-        topLevelLayout.addLayout(btnLayout)
-
-        # Scroll bar
-        self.setLayout(topLevelLayout)
-       # scroll.setWidget(wid)
-       # scroll.setWidgetResizable(True)
-       # scroll.setMinimumWidth(695)
-       # scroll.setMinimumHeight(690)
-
-        self.setWindowTitle('PhyloNetNEXGenerator')
-        self.setWindowIcon(QIcon(resource_path("logo.png")))
-
-    def __inverseMapping(self, map):
+    def link(self, linkStr):
         """
-        Convert a mapping from taxon to species to a mapping from species to a list of taxon.
+        Open the website of PhyloNet if user clicks on the hyperlink.
         """
-        o = {}
-        for k, v in map.items():
-            if v in o:
-                o[v].append(k)
-            else:
-                o[v] = [k]
-        return o
-
-    def aboutMessage(self):
-        msg = QMessageBox()
-        msg.setIcon(QMessageBox.Information)
-        msg.setText("Bayesian estimation of the posterior distribution of phylogenetic networks given a list of "
-                    "gene tree topologies.")
-        font = QFont()
-        font.setPointSize(13)
-        font.setFamily("Times New Roman")
-        font.setBold(False)
-
-        msg.setFont(font)
-        msg.exec_()
+        QDesktopServices.openUrl(QtCore.QUrl(linkStr))
 
     def onChecked(self):
         """
@@ -391,73 +391,222 @@ class MCMCGTPage(QWizardPage):
         else:
             pass
 
+
+class MCMCGTPage3(QWizardPage):
+    def initializePage(self):
+        self.fileType = self.field("fileTypeMCGT")
+        self.geneTreesEditMCGT = self.field("geneTreesEditMCGT")
+        self.chainLengthEdit = self.field("chainLengthEditMCGT")
+        self.burnInLengthEdit = self.field("burnInLengthEditMCGT")
+        self.sampleFrequencyEdit = self.field("sampleFrequencyEditMCGT")
+        self.seedEdit = self.field("seedEditMCGT")
+        self.ppEdit = self.field("ppEditMCGT")
+        self.maxRetEdit = self.field("maxRetEditMCGT")
+
+    def __init__(self):
+        super(MCMCGTPage3, self).__init__()
+
+        self.inputFiles = []
+        self.geneTreeNames = []
+        self.taxamap = {}
+        self.multiTreesPerLocus = False
+
+        self.initUI()
+
+    def initUI(self):
+        """
+        Initialize GUI.
+        """
+
+        # Title (MCMC_GT)
+        titleLabel = titleHeader("MCMC_GT")
+
+        hyperlink = QLabel()
+        hyperlink.setText('Details of this method can be found '
+                          '<a href="https://wiki.rice.edu/confluence/display/PHYLONET/MCMC_GT">'
+                          'here</a>.')
+        hyperlink.linkActivated.connect(self.link)
+        hyperlink.setObjectName("detailsLink")
+
+        optionalLabel = QLabel()
+        optionalLabel.setObjectName("instructionLabel")
+        optionalLabel.setText("Input Options")
+
+        # Optional parameter labels
+        self.numProcLbl = QCheckBox(
+            "Number of threads running in parallel:", self)
+        self.numProcLbl.setObjectName("-pl")
+        self.numProcLbl.stateChanged.connect(self.onChecked)
+
+        self.tempListLbl = QCheckBox(
+            "The list of temperatures for the Metropolis-coupled MCMC chains:", self)
+        self.tempListLbl.setObjectName("-tp")
+        self.tempListLbl.stateChanged.connect(self.onChecked)
+
+        self.sNetListLbl = QCheckBox(
+            "Comma delimited list of network identifiers:", self)
+        self.sNetListLbl.setObjectName("-sn")
+        self.sNetListLbl.stateChanged.connect(self.onChecked)
+
+        self.taxamapLbl = QCheckBox(
+            "Gene tree / species tree taxa association:", self)
+        self.taxamapLbl.setObjectName("-tm")
+        self.taxamapLbl.stateChanged.connect(self.onChecked)
+
+        self.pseudoLbl = QCheckBox(
+            "Use pseudo likelihood instead of full likelihood to reduce runtime", self)
+
+        # Optional parameter inputs
+        self.numProcEdit = QLineEdit()
+        self.numProcEdit.setDisabled(True)
+        self.numProcEdit.setPlaceholderText("1")
+
+        self.tempListEdit = QLineEdit()
+        self.tempListEdit.setDisabled(True)
+        self.tempListEdit.setPlaceholderText("(1.0)")
+
+        self.sNetListEdit = QLineEdit()
+        self.sNetListEdit.setDisabled(True)
+
+        self.taxamapEdit = QPushButton("Set taxa map")
+        self.taxamapEdit.setDisabled(True)
+        self.taxamapEdit.clicked.connect(self.getTaxamap)
+
+        # Launch button
+        launchBtn = QPushButton("Generate", self)
+        launchBtn.clicked.connect(self.generate)     
+
+        # Layouts
+        # Layouts of each parameter and inputs
+
+        numProcLayout = QHBoxLayout()
+        numProcLayout.addWidget(self.numProcLbl)
+        numProcLayout.addStretch(1)
+        numProcLayout.addWidget(self.numProcEdit)
+
+        tempListLayout = QHBoxLayout()
+        tempListLayout.addWidget(self.tempListLbl)
+        tempListLayout.addWidget(self.tempListEdit)
+
+        sNetListLayout = QHBoxLayout()
+        sNetListLayout.addWidget(self.sNetListLbl)
+        sNetListLayout.addWidget(self.sNetListEdit)
+
+        taxamapLayout = QHBoxLayout()
+        taxamapLayout.addWidget(self.taxamapLbl)
+        taxamapLayout.addStretch(1)
+        taxamapLayout.addWidget(self.taxamapEdit)
+
+        pseudoLayout = QHBoxLayout()
+        pseudoLayout.addWidget(self.pseudoLbl)
+
+        btnLayout = QHBoxLayout()
+        btnLayout.addStretch(1)
+        btnLayout.addWidget(launchBtn)    
+
+        # Main Layouts
+
+        topLevelLayout = QVBoxLayout()
+        topLevelLayout.addWidget(titleLabel)
+        topLevelLayout.addWidget(hyperlink)
+        #topLevelLayout.addWidget(optionalLabel)
+
+        topLevelLayout.addLayout(numProcLayout)
+        topLevelLayout.addLayout(tempListLayout)
+        topLevelLayout.addLayout(sNetListLayout)
+        topLevelLayout.addLayout(taxamapLayout)
+        topLevelLayout.addLayout(pseudoLayout)
+
+        topLevelLayout.addLayout(btnLayout)
+        self.setLayout(topLevelLayout)  
+
+    def __inverseMapping(self, map):
+        """
+        Convert a mapping from taxon to species to a mapping from species to a list of taxon.
+        """
+        o = {}
+        for k, v in map.items():
+            if v in o:
+                o[v].append(k)
+            else:
+                o[v] = [k]
+        return o
+
     def link(self, linkStr):
         """
         Open the website of PhyloNet if user clicks on the hyperlink.
         """
         QDesktopServices.openUrl(QtCore.QUrl(linkStr))
 
-    def format(self):
+    def onChecked(self):
         """
-        Process checkbox's stateChanged signal to implement mutual exclusion.
+        When user clicks the checkbox for an optional command,
+        enable or disable the corresponding text edit.
         """
-        if self.sender().objectName() == "nexus":
-            if not self.nexus.isChecked():
-                self.geneTreesEdit.clear()
-                self.inputFiles = []
-                self.geneTreeNames = []
-                self.taxamap = {}
+        if self.sender().objectName() == "-cl":
+            if self.chainLengthEdit.isEnabled():
+                self.chainLengthEdit.setDisabled(True)
             else:
-                self.newick.setChecked(False)
-        elif self.sender().objectName() == "newick":
-            if not self.newick.isChecked():
-                self.geneTreesEdit.clear()
-                self.inputFiles = []
-                self.geneTreeNames = []
-                self.taxamap = {}
+                self.chainLengthEdit.setDisabled(False)
+        elif self.sender().objectName() == "-bl":
+            if self.burnInLengthEdit.isEnabled():
+                self.burnInLengthEdit.setDisabled(True)
             else:
-                self.nexus.setChecked(False)
-                self.newick.setChecked(True)
-
-    def selectFile(self):
-        """
-        Store all the user uploaded gene tree files.
-        Execute when file selection button is clicked.
-        """
-        if (not self.newick.isChecked()) and (not self.nexus.isChecked()):
-            QMessageBox.warning(self, "Warning", "Please select a file type.", QMessageBox.Ok)
+                self.burnInLengthEdit.setDisabled(False)
+        elif self.sender().objectName() == "-sf":
+            if self.sampleFrequencyEdit.isEnabled():
+                self.sampleFrequencyEdit.setDisabled(True)
+            else:
+                self.sampleFrequencyEdit.setDisabled(False)
+        elif self.sender().objectName() == "-sd":
+            if self.seedEdit.isEnabled():
+                self.seedEdit.setDisabled(True)
+            else:
+                self.seedEdit.setDisabled(False)
+        elif self.sender().objectName() == "-pp":
+            if self.ppEdit.isEnabled():
+                self.ppEdit.setDisabled(True)
+            else:
+                self.ppEdit.setDisabled(False)
+        elif self.sender().objectName() == "-mr":
+            if self.maxRetEdit.isEnabled():
+                self.maxRetEdit.setDisabled(True)
+            else:
+                self.maxRetEdit.setDisabled(False)
+        elif self.sender().objectName() == "-pl":
+            if self.numProcEdit.isEnabled():
+                self.numProcEdit.setDisabled(True)
+            else:
+                self.numProcEdit.setDisabled(False)
+        elif self.sender().objectName() == "-tp":
+            if self.tempListEdit.isEnabled():
+                self.tempListEdit.setDisabled(True)
+            else:
+                self.tempListEdit.setDisabled(False)
+        elif self.sender().objectName() == "-sn":
+            if self.sNetListEdit.isEnabled():
+                self.sNetListEdit.setDisabled(True)
+            else:
+                self.sNetListEdit.setDisabled(False)
+        elif self.sender().objectName() == "-tm":
+            if self.taxamapEdit.isEnabled():
+                self.taxamapEdit.setDisabled(True)
+            else:
+                self.taxamapEdit.setDisabled(False)
         else:
-            if self.nexus.isChecked():
-                fname = QFileDialog.getOpenFileNames(self, 'Open file', '/', 'Nexus files (*.nexus *.nex);;Newick files (*.newick)')
-            elif self.newick.isChecked():
-                fname = QFileDialog.getOpenFileNames(self, 'Open file', '/', 'Newick files (*.newick);;Nexus files (*.nexus *.nex)') 
-
-            if fname:
-                fileType = fname[1]
-                if self.nexus.isChecked():
-                    if fileType != 'Nexus files (*.nexus *.nex)':
-                        QMessageBox.warning(self, "Warning", "Please upload only .nexus or .nex files", QMessageBox.Ok)
-                    else:
-                        for onefname in fname[0]:
-                            self.geneTreesEdit.append(onefname)
-                            self.inputFiles.append(str(onefname))
-
-                elif self.newick.isChecked():
-                    if fileType != 'Newick files (*.newick)':
-                        QMessageBox.warning(self, "Warning", "Please upload only .newick files", QMessageBox.Ok)
-                    else:
-                        for onefname in fname[0]:
-                            self.geneTreesEdit.append(onefname)
-                            self.inputFiles.append(str(onefname))
-                else:
-                    return
-
+            pass
 
     def getTaxamap(self):
         """
         When user clicks "Set taxa map", open up TaxamapDlg for user input
         and update taxa map.
         """
+        #initialize global attribute
+        global taxamap
+        taxamap.clear()
+        #update shared attribute
+        self.inputFiles = inputFiles
+
         class emptyFileError(Exception):
             pass
 
@@ -466,10 +615,11 @@ class MCMCGTPage(QWizardPage):
                 raise emptyFileError
 
             # Read files
-            if self.nexus.isChecked():
+            if self.fileType == 'Nexus files (*.nexus *.nex)':
                 schema = "nexus"
             else:
                 schema = "newick"
+
 
             data = dendropy.TreeList()
             for file in self.inputFiles:
@@ -497,7 +647,8 @@ class MCMCGTPage(QWizardPage):
                 data.taxon_namespace, self.taxamap, self)
             if dialog.exec_():
                 self.taxamap = dialog.getTaxamap()
-
+            #Update global attribute
+            taxamap = self.taxamap
         except emptyFileError:
             QMessageBox.warning(
                 self, "Warning", "Please select a file type and upload data!", QMessageBox.Ok)
@@ -510,6 +661,10 @@ class MCMCGTPage(QWizardPage):
         """
         Generate NEXUS file based on user input.
         """
+        #update shared attributes
+        self.inputFiles = inputFiles
+        self.taxamap = taxamap
+
         directory = QFileDialog.getSaveFileName(self, "Save File", "/", "Nexus Files (*.nexus)")
         
         class emptyFileError(Exception):
@@ -519,16 +674,17 @@ class MCMCGTPage(QWizardPage):
             pass
 
         try:
-            if (not self.nexus.isChecked()) and (not self.newick.isChecked()):
-                raise emptyFileError
             if len(self.inputFiles) == 0:
                 raise emptyFileError
+            if directory[0] == "":
+                raise emptyDesinationError
 
             # the file format to read
-            if self.nexus.isChecked():
+            if self.fileType == 'Nexus files (*.nexus *.nex)':
                 schema = "nexus"
             else:
                 schema = "newick"
+
             # a TreeList that stores all the uploaded gene trees
             data = dendropy.TreeList()
             # read each uploaded file
@@ -607,52 +763,58 @@ class MCMCGTPage(QWizardPage):
                     outputFile.write(")")
 
                 # -cl chainLength command
-                if self.chainLengthLbl.isChecked():
-                    if self.chainLengthEdit.text() == "":
-                        pass
-                    else:
-                        outputFile.write(" -cl ")
-                        outputFile.write(str(self.chainLengthEdit.text()))
+                if self.chainLengthEdit == "":
+                    pass
+                else:
+                    outputFile.write(" -cl ")
+                    outputFile.write(self.chainLengthEdit)
+                    #clear field
+                    self.chainLengthEdit = ""
 
                 # -bl chainLength command
-                if self.burnInLengthLbl.isChecked():
-                    if self.burnInLengthEdit.text() == "":
-                        pass
-                    else:
-                        outputFile.write(" -bl ")
-                        outputFile.write(str(self.burnInLengthEdit.text()))
+                if self.burnInLengthEdit == "":
+                    pass
+                else:
+                    outputFile.write(" -bl ")
+                    outputFile.write(self.burnInLengthEdit)
+                    #clear field
+                    self.burnInLengthEdit = ""
 
                 # -sf sampleFrequency command
-                if self.sampleFrequencyLbl.isChecked():
-                    if self.sampleFrequencyEdit.text() == "":
-                        pass
-                    else:
-                        outputFile.write(" -sf ")
-                        outputFile.write(str(self.sampleFrequencyEdit.text()))
+                if self.sampleFrequencyEdit == "":
+                    pass
+                else:
+                    outputFile.write(" -sf ")
+                    outputFile.write(self.sampleFrequencyEdit)
+                    #clear field
+                    self.sampleFrequency = ""
 
                 # -sd seed command
-                if self.seedLbl.isChecked():
-                    if self.seedEdit.text() == "":
-                        pass
-                    else:
-                        outputFile.write(" -sd ")
-                        outputFile.write(str(self.seedEdit.text()))
+                if self.seedEdit == "":
+                    pass
+                else:
+                    outputFile.write(" -sd ")
+                    outputFile.write(self.seedEdit)
+                    #clear field
+                    self.seedEdit = ""
 
                 # -pp poissonParameter command
-                if self.ppLbl.isChecked():
-                    if self.ppEdit.text() == "":
-                        pass
-                    else:
-                        outputFile.write(" -pp ")
-                        outputFile.write(str(self.ppEdit.text()))
+                if self.ppEdit == "":
+                    pass
+                else:
+                    outputFile.write(" -pp ")
+                    outputFile.write(self.ppEdit)
+                    #clear field
+                    self.ppEdit = ""
 
                 # -mr maximumReticulation command
-                if self.maxRetLbl.isChecked():
-                    if self.maxRetEdit.text() == "":
-                        pass
-                    else:
-                        outputFile.write(" -mr ")
-                        outputFile.write(str(self.maxRetEdit.text()))
+                if self.maxRetEdit == "":
+                    pass
+                else:
+                    outputFile.write(" -mr ")
+                    outputFile.write(self.maxRetEdit)
+                    #clear field
+                    self.maxRetEdit = ""
 
                 # -pl parallelThreads command
                 if self.numProcLbl.isChecked():
@@ -661,6 +823,10 @@ class MCMCGTPage(QWizardPage):
                     else:
                         outputFile.write(" -pl ")
                         outputFile.write(str(self.numProcEdit.text()))
+                        #clear text
+                        self.numProcEdit.clear()
+                    #clear checkbox
+                    self.numProcLbl.setChecked(False)
 
                 # -tp temperatureList command
                 if self.tempListLbl.isChecked():
@@ -669,6 +835,10 @@ class MCMCGTPage(QWizardPage):
                     else:
                         outputFile.write(" -tp ")
                         outputFile.write(str(self.tempListEdit.text()))
+                        #clear text
+                        self.tempListEdit.clear()
+                    #clear checkbox
+                    self.tempListLbl.setChecked(False)
 
                 # -sn startingNetworkList command
                 if self.sNetListLbl.isChecked():
@@ -677,6 +847,10 @@ class MCMCGTPage(QWizardPage):
                     else:
                         outputFile.write(" -sn ")
                         outputFile.write(str(self.sNetListEdit.text()))
+                        #clear text
+                        self.sNetListEdit.clear()
+                    #clear checkbox
+                    self.sNetListLbl.setChecked(False)
 
                 # -tm taxa map command
                 if self.taxamapLbl.isChecked():
@@ -706,10 +880,14 @@ class MCMCGTPage(QWizardPage):
                                 outputFile.write(taxon)
 
                         outputFile.write(">")
+                    #clear checkbox
+                    self.taxamapLbl.setChecked(False)
 
                 # -pseudo command
                 if self.pseudoLbl.isChecked():
                     outputFile.write(" -pseudo")
+                    #clear checkbox
+                    self.pseudoLbl.setChecked(False)
 
                 # End of NEXUS
                 outputFile.write(";\n\n")
@@ -718,8 +896,9 @@ class MCMCGTPage(QWizardPage):
             self.geneTreeNames = []
             self.inputFiles = []
             self.taxamap = {}
-            self.geneTreesEdit.clear()
+            self.geneTreesEditMCGT = ""
             self.multiTreesPerLocus = False
+            self.successMessage()
 
             # Validate the generated file.
             self.validateFile(path)
@@ -734,11 +913,34 @@ class MCMCGTPage(QWizardPage):
             self.geneTreeNames = []
             self.inputFiles = []
             self.taxamap = {}
-            self.geneTreesEdit.clear()
+            self.geneTreesEditMCGT = ""
             self.multiTreesPerLocus = False
             QMessageBox.warning(self, "Warning", str(e), QMessageBox.Ok)
             return
+    def successMessage(self):
+        msg = QDialog()
+        msg.setStyleSheet("QDialog{min-width: 500px; min-height: 500px;}")
+        msg.setWindowTitle("Phylonet") 
+        msg.setWindowIcon(QIcon("logo.png"))
+        flags = QtCore.Qt.WindowFlags(QtCore.Qt.CustomizeWindowHint | QtCore.Qt.WindowCloseButtonHint )
+        msg.setWindowFlags(flags)
+        msg.setObjectName("successMessage")
 
+        vbox = QVBoxLayout()
+
+        ico = QLabel()
+        complete = QPixmap("module/complete.svg")
+        ico.setPixmap(complete)
+        buttonBox = QDialogButtonBox(QDialogButtonBox.Ok)
+        buttonBox.clicked.connect(msg.accept)
+
+        vbox.addWidget(ico, alignment=QtCore.Qt.AlignCenter)
+        vbox.addWidget(buttonBox)
+        vbox.setSpacing(0)
+ 
+        msg.setLayout(vbox)
+        msg.setModal(1)
+        msg.exec_()
     def validateFile(self, filePath):
         """
         After the .nexus file is generated, validate the file by feeding it to PhyloNet.
@@ -752,8 +954,6 @@ class MCMCGTPage(QWizardPage):
             # If an error is encountered, delete the generated file and display the error to user.
             os.remove(filePath)
             QMessageBox.warning(self, "Warning", e.output, QMessageBox.Ok)
-
-
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     ex = MCMCGTPage()
