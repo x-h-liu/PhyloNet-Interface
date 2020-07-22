@@ -43,10 +43,13 @@ class BiAllelicMethodsPage(QWizardPage):
         questionLabel.setObjectName("questionLabel")
         questionLabel.setText("Please select a method:")
 
-        # Drop-down menu of commands
-        self.methods = QComboBox(self)
-        self.methods.addItem("MCMC_BiMarkers (Bayesian)")
-        self.methods.addItem("MLE_BiMarkers (Pseudo likelihood)")
+        # Menu of commands
+        self.btn1 = QRadioButton("MCMC_BiMarkers (Bayesian)")
+        self.btn2 = QRadioButton("MLE_BiMarkers (Pseudo likelihood)")
+        self.methodgroup = QCheckBox("")
+        self.registerField("methodgroup*", self.methodgroup)
+        #self.btn1.toggled.connect(self.btnState)
+        #self.btn2.toggled.connect(self.btnState)
 
         # Launch button
         launchBtn = QPushButton("Launch", self)
@@ -64,7 +67,8 @@ class BiAllelicMethodsPage(QWizardPage):
         # Main vertical layout.
         vbox = QVBoxLayout()
         vbox.addWidget(questionLabel)
-        vbox.addWidget(self.methods)
+        vbox.addWidget(self.btn1)
+        vbox.addWidget(self.btn2)
         vbox.addWidget(hyperlink)
         vbox.addWidget(launchBtn)
         self.setLayout(vbox)
@@ -73,11 +77,35 @@ class BiAllelicMethodsPage(QWizardPage):
 
         self.setWindowTitle('PhyloNetNEXGenerator')
         self.setWindowIcon(QIcon(resource_path("logo.png")))
+    
+    def onChecked(self):
+        """
+        Process checkbox's stateChanged signal to implement mutual exclusion.
+        """
+        self.methodgroup.setCheckState(True)
+    
+
+    def btnState(self):
+        """
+        Originally created this method for the use of toggle.connect,
+        yet it is no longer needed. I kept this method in case someone may
+        want to use toggle.connect in the future
+        """
+        rbtn = self.sender()
+        btn = str(rbtn.text())
+        if rbtn.isChecked() == True:
+            return btn
 
     def aboutMessage(self):
-        msg = QMessageBox()
-        msg.setIcon(QMessageBox.Information)
-        msg.setText("PhyloNet is a tool designed mainly for analyzing, "
+        msg = QDialog()
+        msg.setWindowTitle("Phylonet") 
+        msg.setWindowIcon(QIcon("logo.png"))
+        flags = QtCore.Qt.WindowFlags(QtCore.Qt.CustomizeWindowHint | QtCore.Qt.WindowCloseButtonHint )
+        msg.setWindowFlags(flags)
+        msg.setObjectName("aboutMessage")
+
+        vbox = QVBoxLayout()
+        text = QLabel("PhyloNet is a tool designed mainly for analyzing, "
                     "reconstructing, and evaluating reticulate "
                     "(or non-treelike) evolutionary relationships, "
                     "generally known as phylogenetic networks. Various "
@@ -87,15 +115,24 @@ class BiAllelicMethodsPage(QWizardPage):
                     "phylogenetic tree analysis. PhyloNet is released under "
                     "the GNU General Public License. \n\nPhyloNet is designed, "
                     "implemented, and maintained by Rice's BioInformatics Group, "
-                    "which is lead by Professor Luay Nakhleh (nakhleh@cs.rice.edu). "
-                    "For more details related to this group please visit "
-                    "http://bioinfo.cs.rice.edu.")
-        font = QFont()
-        font.setPointSize(13)
-        font.setFamily("Times New Roman")
-        font.setBold(False)
+                    "which is lead by Professor Luay Nakhleh (nakhleh@cs.rice.edu). ")
 
-        msg.setFont(font)
+        text.setWordWrap(True)
+        text.setStyleSheet("padding: 60px 100px 10px 100px;")
+        
+        hyperlink = QLabel()
+        hyperlink.setText('For more details related to this group please visit '
+                          '<a href="http://bioinfo.cs.rice.edu" style="color: #55ddff;">'
+                          'http://bioinfo.cs.rice.edu</a>.')
+        hyperlink.linkActivated.connect(self.link)
+        hyperlink.setStyleSheet("padding: 10px 100px 80px 100px ;")
+
+        buttonBox = QDialogButtonBox(QDialogButtonBox.Ok)
+        buttonBox.clicked.connect(msg.accept)
+        vbox.addWidget(text)
+        vbox.addWidget(hyperlink)
+        vbox.addWidget(buttonBox)
+        msg.setLayout(vbox)
         msg.exec_()
 
     def link(self, linkStr):
@@ -105,23 +142,20 @@ class BiAllelicMethodsPage(QWizardPage):
         QDesktopServices.openUrl(QtCore.QUrl(linkStr))
 
     def launch(self):
-        if str(self.methods.currentText()) == "MLE_BiMarkers (Pseudo likelihood)":
+        if self.btn1.isChecked() == True:
+            self.MCMCBi = MCMCBiMarkersThreading.MCMCBiMarkersPage()
+            self.MCMCBi.show()
+            #Closes the window so its cleaner
+            self.wizard().close()
+        
+        elif self.btn2.isChecked() == True:
             self.MLEBi = MLEBiMarkersThreading.MLEBiMarkersPage()
             self.MLEBi.show()
             #Closes the window so its cleaner
-            self.wizard().close()   
-        elif str(self.methods.currentText()) == "MCMC_BiMarkers (Bayesian)":
-            self.MCMCBi = MCMCBiMarkersThreading.MCMCBiMarkersPage()
-            self.MCMCBi.show()
-            #^^
             self.wizard().close()
-        
-
-
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     ex = BiAllelicMethodsPage()
     ex.show() 
     sys.exit(app.exec_())
-    
