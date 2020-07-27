@@ -207,7 +207,6 @@ class IntroPage(QtWidgets.QWizardPage):
         vbox = QtWidgets.QVBoxLayout()
         vbox.setObjectName("vbox")
 
-        vbox.addWidget(getInfoButton(self))
         vbox.addWidget(questionLabel)
         vbox.addWidget(self.inputOption1)
         vbox.addWidget(self.inputOption2)
