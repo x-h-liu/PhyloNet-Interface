@@ -33,6 +33,7 @@ def resource_path(relative_path):
 
 # About info
 
+
 def aboutMessage(self):
     msg = QMessageBox()
     msg.setIcon(QMessageBox.Information)
@@ -70,16 +71,24 @@ class MCMCSEQPage1(QWizardPage):
         # Title (InferNetwork_MP)
         titleLabel = titleHeader("MCMC_SEQ")
 
+        infoButton = QPushButton(self)
+        infoButton.clicked.connect(self.expandedInfoButton)
+        ico = QIcon("info.svg")
+        infoButton.setIcon(ico)
+        infoButton.setFixedSize(60, 60)
+        infoButton.setIconSize(infoButton.size())
+
+        """
         hyperlink = QLabel()
         hyperlink.setText('Details of this method can be found '
                           '<a href="https://wiki.rice.edu/confluence/display/PHYLONET/MCMC_SEQ">'
                           'here</a>.')
         hyperlink.linkActivated.connect(self.link)
         hyperlink.setObjectName("detailsLink")
-
-        
+"""
         instructionLabel = QLabel()
-        instructionLabel.setText("Input data: Please upload sequence files:\n(One file per locus)")
+        instructionLabel.setText(
+            "Input data: Please upload sequence files:\n(One file per locus)")
         instructionLabel.setObjectName("instructionLabel")
 
         # Mandatory parameter labels
@@ -88,7 +97,8 @@ class MCMCSEQPage1(QWizardPage):
         self.fasta = QCheckBox(".fasta")
         self.fasta.setObjectName("fasta")
         self.nexus.stateChanged.connect(self.format)
-        self.fasta.stateChanged.connect(self.format)  # Implement mutually exclusive check boxes
+        # Implement mutually exclusive check boxes
+        self.fasta.stateChanged.connect(self.format)
 
         # Mandatory parameter inputs
 
@@ -120,15 +130,44 @@ class MCMCSEQPage1(QWizardPage):
         seqFileLayout.addLayout(fileFormatLayout)
         seqFileLayout.addLayout(seqInputLayout)
 
+        # header layout
+        headerLayout = QHBoxLayout()
+        headerLayout.addWidget(infoButton)
+        headerLayout.addWidget(titleLabel)
+
         # Main layout
         topLevelLayout = QVBoxLayout()
-        topLevelLayout.addWidget(titleLabel)
-        topLevelLayout.addWidget(hyperlink)
+        topLevelLayout.addLayout(headerLayout)
         topLevelLayout.addLayout(seqFileLayout)
         self.setLayout(topLevelLayout)
 
         self.setWindowTitle('PhyloNetNEXGenerator')
         self.setWindowIcon(QIcon(resource_path("logo.png")))
+
+    def expandedInfoButton(self):
+        msg = QDialog()
+        msg.setWindowTitle("Phylonet")
+        msg.setWindowIcon(QIcon("logo.png"))
+        flags = QtCore.Qt.WindowFlags(
+            QtCore.Qt.CustomizeWindowHint | QtCore.Qt.WindowCloseButtonHint)
+        msg.setWindowFlags(flags)
+        msg.setObjectName("aboutMessage")
+
+        vbox = QVBoxLayout()
+        hyperlink = QLabel()
+        hyperlink.setText('Details of this method can be found '
+                          '<a href="https://wiki.rice.edu/confluence/display/PHYLONET/MCMC_SEQ">'
+                          'here</a>.')
+        hyperlink.linkActivated.connect(self.link)
+        hyperlink.setObjectName("detailsLink")
+        #hyperlink.setStyleSheet("padding: 10px 100px 80px 100px;")
+
+        buttonBox = QDialogButtonBox(QDialogButtonBox.Ok)
+        buttonBox.clicked.connect(msg.accept)
+        vbox.addWidget(hyperlink)
+        vbox.addWidget(buttonBox)
+        msg.setLayout(vbox)
+        msg.exec_()
 
     def link(self, linkStr):
         """
@@ -173,23 +212,27 @@ class MCMCSEQPage1(QWizardPage):
         nchar = 0
 
         if (not self.fasta.isChecked()) and (not self.nexus.isChecked()):
-            QMessageBox.warning(self, "Warning", "Please select a file type.", QMessageBox.Ok)
+            QMessageBox.warning(
+                self, "Warning", "Please select a file type.", QMessageBox.Ok)
         else:
             if self.nexus.isChecked():
-                fname = QFileDialog.getOpenFileNames(self, 'Open file', '/', 'Nexus files (*.nexus *.nex)')
+                fname = QFileDialog.getOpenFileNames(
+                    self, 'Open file', '/', 'Nexus files (*.nexus *.nex)')
             elif self.fasta.isChecked():
-                fname = QFileDialog.getOpenFileNames(self, 'Open file', '/', 'Fasta files (*.fasta)')
-            #if a file has been inputted, proceed
+                fname = QFileDialog.getOpenFileNames(
+                    self, 'Open file', '/', 'Fasta files (*.fasta)')
+            # if a file has been inputted, proceed
             if len(fname[0]) > 0:
                 fileType = fname[1]
                 if self.nexus.isChecked():
                     if fileType != 'Nexus files (*.nexus *.nex)':
-                        QMessageBox.warning(self, "Warning", "Please upload only .nexus or .nex files", QMessageBox.Ok)
+                        QMessageBox.warning(
+                            self, "Warning", "Please upload only .nexus or .nex files", QMessageBox.Ok)
                     else:
                         for onefname in fname[0]:
                             # Read in sequences from one file.
-                            dna = dendropy.DnaCharacterMatrix.get(path=str(onefname), schema="nexus"
-                                                                      , preserve_underscores=True)
+                            dna = dendropy.DnaCharacterMatrix.get(
+                                path=str(onefname), schema="nexus", preserve_underscores=True)
                             # Get the length of sequences in this file, and accumulate lengths of sequences in
                             # all input files
                             self.nchar = 0
@@ -202,17 +245,20 @@ class MCMCSEQPage1(QWizardPage):
                             for taxon in dna:
                                 self.taxa_names.add(taxon.label)
                             # Store data from this file in loci dictionary
-                            self.loci[os.path.splitext(os.path.basename(str(onefname)))[0]] = [seqLen, dna]
+                            self.loci[os.path.splitext(os.path.basename(str(onefname)))[0]] = [
+                                seqLen, dna]
                             self.sequenceFileEdit.append(onefname)
                             self.inputFiles.append(str(onefname))
 
                 elif self.fasta.isChecked():
                     if fileType != 'Fasta files (*.fasta)':
-                        QMessageBox.warning(self, "Warning", "Please upload only .fasta files", QMessageBox.Ok)
+                        QMessageBox.warning(
+                            self, "Warning", "Please upload only .fasta files", QMessageBox.Ok)
                     else:
                         for onefname in fname[0]:
                             # Read in sequences from one file.
-                            dna = dendropy.DnaCharacterMatrix.get(path=str(onefname), schema="fasta")
+                            dna = dendropy.DnaCharacterMatrix.get(
+                                path=str(onefname), schema="fasta")
                             # Get the length of sequences in this file, and accumulate lengths of sequences in
                             # all input files
                             self.nchar = 0
@@ -224,7 +270,8 @@ class MCMCSEQPage1(QWizardPage):
                             for taxon in dna:
                                 self.taxa_names.add(taxon.label)
                             # Store data from this file in loci dictionary
-                            self.loci[os.path.splitext(os.path.basename(str(onefname)))[0]] = [seqLen, dna]
+                            self.loci[os.path.splitext(os.path.basename(str(onefname)))[0]] = [
+                                seqLen, dna]
                             self.sequenceFileEdit.append(onefname)
                             self.inputFiles.append(str(onefname))
                 else:
@@ -259,13 +306,21 @@ class MCMCSEQPage2(QWizardPage):
         # Title (MCMC_SEQ)
         titleLabel = titleHeader("MCMC_SEQ")
 
+        infoButton = QPushButton(self)
+        infoButton.clicked.connect(self.expandedInfoButton)
+        ico = QIcon("info.svg")
+        infoButton.setIcon(ico)
+        infoButton.setFixedSize(60, 60)
+        infoButton.setIconSize(infoButton.size())
+
+        """
         hyperlink = QLabel()
         hyperlink.setText('Details of this method can be found '
                           '<a href="https://wiki.rice.edu/confluence/display/PHYLONET/MCMC_SEQ">'
                           'here</a>.')
         hyperlink.linkActivated.connect(self.link)
         hyperlink.setObjectName("detailsLink")
-
+        """
         optionalLabel = QLabel()
         optionalLabel.setObjectName("instructionLabel")
         optionalLabel.setText("Input Options")
@@ -386,10 +441,14 @@ class MCMCSEQPage2(QWizardPage):
         tempListLayout.addWidget(self.tempListLbl)
         tempListLayout.addWidget(self.tempListEdit)
 
+        # header layout
+        headerLayout = QHBoxLayout()
+        headerLayout.addWidget(infoButton)
+        headerLayout.addWidget(titleLabel)
+
         # Main layout
         topLevelLayout = QVBoxLayout()
-        topLevelLayout.addWidget(titleLabel)
-        topLevelLayout.addWidget(hyperlink)
+        topLevelLayout.addLayout(headerLayout)
         topLevelLayout.addWidget(optionalLabel)
 
         topLevelLayout.addLayout(chainLengthLayout)
@@ -399,12 +458,36 @@ class MCMCSEQPage2(QWizardPage):
         topLevelLayout.addLayout(numProcLayout)
         topLevelLayout.addLayout(outDirLayout)
         topLevelLayout.addLayout(tempListLayout)
-        
+
         self.setLayout(topLevelLayout)
 
         self.setWindowTitle('PhyloNetNEXGenerator')
         self.setWindowIcon(QIcon(resource_path("logo.png")))
 
+    def expandedInfoButton(self):
+        msg = QDialog()
+        msg.setWindowTitle("Phylonet")
+        msg.setWindowIcon(QIcon("logo.png"))
+        flags = QtCore.Qt.WindowFlags(
+            QtCore.Qt.CustomizeWindowHint | QtCore.Qt.WindowCloseButtonHint)
+        msg.setWindowFlags(flags)
+        msg.setObjectName("aboutMessage")
+
+        vbox = QVBoxLayout()
+        hyperlink = QLabel()
+        hyperlink.setText('Details of this method can be found '
+                          '<a href="https://wiki.rice.edu/confluence/display/PHYLONET/MCMC_SEQ">'
+                          'here</a>.')
+        hyperlink.linkActivated.connect(self.link)
+        hyperlink.setObjectName("detailsLink")
+        #hyperlink.setStyleSheet("padding: 10px 100px 80px 100px;")
+
+        buttonBox = QDialogButtonBox(QDialogButtonBox.Ok)
+        buttonBox.clicked.connect(msg.accept)
+        vbox.addWidget(hyperlink)
+        vbox.addWidget(buttonBox)
+        msg.setLayout(vbox)
+        msg.exec_()
     def selectDest(self):
         """
         Select and display the absolute path to store PhyloNet output files in QLineEdit.
@@ -759,7 +842,8 @@ class MCMCSEQPage4(QWizardPage):
 
         optionalLabel = QLabel()
         optionalLabel.setObjectName("instructionLabel")
-        optionalLabel.setText("Starting State Settings, Substitution Model, and Phasing")
+        optionalLabel.setText(
+            "Starting State Settings, Substitution Model, and Phasing")
 
         # Optional parameter labels
 
@@ -878,7 +962,6 @@ class MCMCSEQPage4(QWizardPage):
         btnLayout = QHBoxLayout()
         btnLayout.addStretch(1)
         btnLayout.addWidget(launchBtn)
-
 
         # Main layout
         topLevelLayout = QVBoxLayout()
@@ -1333,7 +1416,7 @@ class MCMCSEQPage4(QWizardPage):
 
             # Validate the generated file.
             self.validateFile(path)
-            #clears inputs if they are validated      
+            # clears inputs if they are validated
             if self.isValidated:
                 self.inputFiles = []
                 self.taxamap = {}
@@ -1361,9 +1444,10 @@ class MCMCSEQPage4(QWizardPage):
     def successMessage(self):
         msg = QDialog()
         msg.setStyleSheet("QDialog{min-width: 500px; min-height: 500px;}")
-        msg.setWindowTitle("Phylonet") 
+        msg.setWindowTitle("Phylonet")
         msg.setWindowIcon(QIcon("logo.png"))
-        flags = QtCore.Qt.WindowFlags(QtCore.Qt.CustomizeWindowHint | QtCore.Qt.WindowCloseButtonHint )
+        flags = QtCore.Qt.WindowFlags(
+            QtCore.Qt.CustomizeWindowHint | QtCore.Qt.WindowCloseButtonHint)
         msg.setWindowFlags(flags)
         msg.setObjectName("successMessage")
 
@@ -1378,7 +1462,7 @@ class MCMCSEQPage4(QWizardPage):
         vbox.addWidget(ico, alignment=QtCore.Qt.AlignCenter)
         vbox.addWidget(buttonBox)
         vbox.setSpacing(0)
- 
+
         msg.setLayout(vbox)
         msg.setModal(1)
         msg.exec_()
@@ -1388,7 +1472,7 @@ class MCMCSEQPage4(QWizardPage):
         After the .nexus file is generated, validate the file by feeding it to PhyloNet.
         Specify -checkParams on command line to make sure PhyloNet checks input without executing the command.
         """
-  
+
         try:
             subprocess.check_output(
                 ["java", "-jar", resource_path("module/testphylonet.jar"),
@@ -1401,6 +1485,7 @@ class MCMCSEQPage4(QWizardPage):
             msg = msg.replace("\n", "", 1)
             os.remove(filePath)
             QMessageBox.warning(self, "Warning", msg, QMessageBox.Ok)
+
 
 if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)
