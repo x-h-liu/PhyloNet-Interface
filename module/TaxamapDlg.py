@@ -45,11 +45,6 @@ class TaxamapDlg(QDialog):
             self.table.setItem(i, 0, QTableWidgetItem(self.namespace[i].label))
             self.table.setItem(i, 1, QTableWidgetItem(self.currentMap[self.namespace[i].label]))
 
-        #Enable maximize and minimize window
-        flags = QtCore.Qt.WindowFlags(QtCore.Qt.CustomizeWindowHint | QtCore.Qt.WindowCloseButtonHint 
-                    | QtCore.Qt.WindowMaximizeButtonHint | QtCore.Qt.WindowMinimizeButtonHint)
-        self.setWindowFlags(flags)
-
         # Main layout
         topLevelLayout = QVBoxLayout()
         topLevelLayout.addWidget(self.table)

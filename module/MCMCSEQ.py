@@ -2,72 +2,91 @@ import sys
 import os
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
-from PyQt5 import QtCore
-from PyQt5.QtCore import pyqtSlot
+from PyQt5 import QtWidgets, QtCore
+from PyQt5.QtCore import Qt, pyqtSignal, pyqtSlot
+from PyQt5.QtGui import QIcon, QPixmap
 import dendropy
 import datetime
 import subprocess
 import shutil
 
+from Validator import NumValidator
 from module import TaxamapDlg
 from module import diploidList
 from module import paramList
-
 from functions import *
-
-inputFiles = []
-taxa_names = set([])
-loci = {}
-nchar = 0
-taxamap = {}
-sgtFiles = []
-ListOfDiploid = []
-GTR = {"A": "0.25", "C": "0.25", "G": "0.25", "T": "0.25", "AC": "1", "AG": "1", "AT": "1", "CG": "1",
-       "CT": "1", "GT": "1"}
 
 
 def resource_path(relative_path):
+    """
+    Refer to the location of a file at run-time.
+    This function is from
+    https://www.reddit.com/r/learnpython/comments/4kjie3/how_to_include_gui_images_with_pyinstaller/
+    For more information, visit https://pythonhosted.org/PyInstaller/runtime-information.html#run-time-information
+    """
     if hasattr(sys, '_MEIPASS'):
         return os.path.join(sys._MEIPASS, relative_path)
     return os.path.join(os.path.abspath("."), relative_path)
 
-# About info
+class MCMCSEQPage(QWizardPage):
+    #set signals for page
+    restarted = QtCore.pyqtSignal(bool)
+    generated = QtCore.pyqtSignal(bool)
+    def initializePage(self):
+        #get the wizard buttons
+        again_button = self.wizard().button(QWizard.CustomButton1)
+        finish_button = self.wizard().button(QWizard.CustomButton2)
+        back_button = self.wizard().button(QWizard.BackButton)
+        
+        self.generated.connect(lambda : again_button.setVisible(True))
+        self.generated.connect(lambda : finish_button.setVisible(True))
+        self.generated.connect(lambda : self.wizard().button(QWizard.CancelButton).setVisible(False))
 
-def aboutMessage(self):
-    msg = QMessageBox()
-    msg.setIcon(QMessageBox.Information)
-    msg.setText("Co-estimation of reticulate phylogenies (ILS & hybridization), gene trees, divergence times and "
-                "population sizes on sequences from multiple independent loci."
-                "\n\nFor species phylogeny or phylogenetic network, we infer network topology, divergence times in "
-                "units of expected number of mutations per site, population sizes in units of population mutation "
-                "rate per site, and inheritance probabilities."
-                "\n\nFor gene trees, we infer gene tree topology and coalescent times in units of expected number "
-                "of mutations per site.")
-    font = QFont()
-    font.setPointSize(13)
-    font.setFamily("Times New Roman")
-    font.setBold(False)
+        #close if finish button is clicked
+        finish_button.clicked.connect(lambda : self.wizard().close())
 
-    msg.setFont(font)
-    msg.exec_()
+        #take the user back to first page if use again is clicked
+        #and hide the wizard button
+        again_button.clicked.connect(lambda : self.tabWidget.setCurrentIndex(0))
+        again_button.clicked.connect(lambda : self.restarted.emit(True))
 
+        # in case back button is clicked while custom buttons are available
+        #hide custom buttons
+        back_button.clicked.connect(lambda: again_button.setVisible(False))
+        back_button.clicked.connect(lambda: finish_button.setVisible(False))
 
-class MCMCSEQPage1(QWizardPage):
+        #if the user choosees to use again, hide custom buttons
+        #reintroduce cancel button
+        self.restarted.connect(lambda : again_button.setVisible(False))
+        self.restarted.connect(lambda: finish_button.setVisible(False))
+        self.restarted.connect(lambda : self.wizard().button(QWizard.CancelButton).setVisible(True))
+        self.restarted.connect(lambda : self.inspectInputs())
+        
+        #if you're on last page and the bar is disabled restore buttons 'em
+        #edge case
+        if self.tabWidget.currentIndex() == self.TABS - 1:
+            again_button.setVisible(True)
+            finish_button.setVisible(True)
 
-    def __init__(self, parent=None):
-        super(MCMCSEQPage1, self).__init__(parent)
+    def __init__(self):
+        super(MCMCSEQPage, self).__init__()
 
-        self.inputFiles = inputFiles
-        self.loci = loci
+        self.inputFiles = []
+        self.loci = {}
+        self.nchar = 0
+        self.taxa_names = set([])
 
+        self.taxamap = {}
+        self.sgtFiles = []
+        self.ListOfDiploid = []
+        self.GTR = {"A": "0.25", "C": "0.25", "G": "0.25", "T": "0.25", "AC": "1", "AG": "1", "AT": "1", "CG": "1",
+       "CT": "1", "GT": "1"}
+        self.TABS = 4
+
+        self.isValidated = False
         self.initUI()
 
     def initUI(self):
-        """
-        Initialize GUI.
-        """
-
-        # Title (InferNetwork_MP)
         titleLabel = titleHeader("MCMC_SEQ")
 
         hyperlink = QLabel()
@@ -76,34 +95,54 @@ class MCMCSEQPage1(QWizardPage):
                           'here</a>.')
         hyperlink.linkActivated.connect(self.link)
         hyperlink.setObjectName("detailsLink")
-
         
+        head = QHBoxLayout()
+        head.setSpacing(0)
+        head.addWidget(titleLabel)
+        head.addWidget(hyperlink)
+
+        #title and help link, available on each page
+        pageLayout = QVBoxLayout()
+        pageLayout.addLayout(head)
+
+        #create tabs
+        self.tabWidget = QTabWidget(self)
+        self.tabWidget.tabBar().setShape(QTabBar.TriangularNorth)
+
+        self.tabWidget.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)
+
+        #create first    
+        tabOne = QWidget(self)
+        
+        #tab sub header
         instructionLabel = QLabel()
-        instructionLabel.setText("Input data: Please upload sequence files:\n(One file per locus)")
-        instructionLabel.setObjectName("instructionLabel")
+        instructionLabel.setText("Input data: Please Upload Gene tree files:\n(one file per locus)")
+        instructionLabel.setObjectName("instructionLabel")  
 
         # Mandatory parameter labels
         self.nexus = QCheckBox(".nexus")
         self.nexus.setObjectName("nexus")
         self.fasta = QCheckBox(".fasta")
         self.fasta.setObjectName("fasta")
+        numReticulationsLbl = QLabel("Maximum number of reticulations to add:")
+        # Implement mutually exclusive check boxes
         self.nexus.stateChanged.connect(self.format)
-        self.fasta.stateChanged.connect(self.format)  # Implement mutually exclusive check boxes
+        self.fasta.stateChanged.connect(self.format)
 
         # Mandatory parameter inputs
-
         self.sequenceFileEdit = QTextEdit()
-        self.sequenceFileEdit.setObjectName("sequenceFileEdit")
+        self.sequenceFileEdit.textChanged.connect(self.inspectInputs)
         self.sequenceFileEdit.setReadOnly(False)
+        self.sequenceFileEdit.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
 
         fileSelctionBtn = QToolButton()
         fileSelctionBtn.setText("Browse")
         fileSelctionBtn.clicked.connect(self.selectFile)
-        fileSelctionBtn.setToolTip("Please put sequence alignments of different loci into separate files. \n"
-                                   "Each file is considered to contain sequence alignments from only one locus.")
-        self.registerField("sequenceFileEdit*", self.sequenceFileEdit,
-                           "plainText", self.sequenceFileEdit.textChanged)
-      # UNCOMMENT THIS ^^ FOR DEBUGGING PURPOSES ONLY
+
+        self.numReticulationsEdit = QLineEdit()
+        self.numReticulationsEdit.textChanged.connect(self.inspectInputs)
+        self.numReticulationsEdit.setValidator(NumValidator())
+        self.numReticulationsEdit.setToolTip("Please enter a non-negative integer")
 
         # Layouts
         # Layout of each parameter (label and input)
@@ -111,24 +150,417 @@ class MCMCSEQPage1(QWizardPage):
         fileFormatLayout.addWidget(instructionLabel)
         fileFormatLayout.addWidget(self.nexus)
         fileFormatLayout.addWidget(self.fasta)
+        geneTreeDataLayout = QHBoxLayout()
+        geneTreeDataLayout.addWidget(self.sequenceFileEdit)
+        geneTreeDataLayout.addWidget(fileSelctionBtn)
+      
+        numReticulationsLayout = QHBoxLayout()
+        numReticulationsLayout.addWidget(numReticulationsLbl)
+        numReticulationsLayout.addWidget(self.numReticulationsEdit)
 
-        seqInputLayout = QHBoxLayout()
-        seqInputLayout.addWidget(self.sequenceFileEdit)
-        seqInputLayout.addWidget(fileSelctionBtn)
+        # Main layout for tab one
+        tabOneLayout = QVBoxLayout()
+        tabOneLayout.addLayout(fileFormatLayout)
+        tabOneLayout.addLayout(geneTreeDataLayout)
+        tabOneLayout.addLayout(numReticulationsLayout)
 
-        seqFileLayout = QVBoxLayout()
-        seqFileLayout.addLayout(fileFormatLayout)
-        seqFileLayout.addLayout(seqInputLayout)
+        tabOne.setLayout(tabOneLayout)
 
-        # Main layout
-        topLevelLayout = QVBoxLayout()
-        topLevelLayout.addWidget(titleLabel)
-        topLevelLayout.addWidget(hyperlink)
-        topLevelLayout.addLayout(seqFileLayout)
-        self.setLayout(topLevelLayout)
+        #Add tab One
+        self.tabWidget.addTab(tabOne, 'Mandatory')
 
-        self.setWindowTitle('PhyloNetNEXGenerator')
-        self.setWindowIcon(QIcon(resource_path("logo.png")))
+        #create tab two
+        tabTwo = QWidget(self)
+        #tabTwo.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)
+
+        optionalLabel = QLabel()
+        optionalLabel.setObjectName("instructionLabel")
+        optionalLabel.setText("Optional Parameters")
+        optionalLabel.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)
+
+        # Optional parameter labels      
+        self.sNetLbl = QCheckBox("The starting network:")
+        self.sNetLbl.setObjectName("-snet")
+        self.sNetLbl.stateChanged.connect(self.onChecked)
+
+        self.chainLengthLbl = QCheckBox("The length of the MCMC chain:", self)
+        self.chainLengthLbl.setObjectName("-cl")
+        self.chainLengthLbl.stateChanged.connect(self.onChecked)
+
+        self.burnInLengthLbl = QCheckBox(
+            "The number of iterations in burn-in period:", self)
+        self.burnInLengthLbl.setObjectName("-bl")
+        self.burnInLengthLbl.stateChanged.connect(self.onChecked)
+
+        self.sampleFrequencyLbl = QCheckBox("The sample frequency:", self)
+        self.sampleFrequencyLbl.setObjectName("-sf")
+        self.sampleFrequencyLbl.stateChanged.connect(self.onChecked)
+
+        self.seedLbl = QCheckBox("The random seed:", self)
+        self.seedLbl.setObjectName("-sd")
+        self.seedLbl.stateChanged.connect(self.onChecked)
+
+        self.numProcLbl = QCheckBox(
+            "Number of threads running in parallel:", self)
+        self.numProcLbl.setObjectName("-pl")
+        self.numProcLbl.stateChanged.connect(self.onChecked)
+
+        self.tempListLbl = QCheckBox(
+            "The list of temperatures for the Metropolis-coupled MCMC chains:", self)
+        self.tempListLbl.setObjectName("-mc3")
+        self.tempListLbl.stateChanged.connect(self.onChecked)
+
+        # Optional parameter inputs
+        self.sNetEdit = QLineEdit()
+        self.sNetEdit.setDisabled(True)
+        self.sNetEdit.setPlaceholderText("")
+
+        self.chainLengthEdit = QLineEdit()
+        self.chainLengthEdit.setDisabled(True)
+        self.chainLengthEdit.setPlaceholderText("10000000")
+
+        self.burnInLengthEdit = QLineEdit()
+        self.burnInLengthEdit.setDisabled(True)
+        self.burnInLengthEdit.setPlaceholderText("2000000")
+
+        self.sampleFrequencyEdit = QLineEdit()
+        self.sampleFrequencyEdit.setDisabled(True)
+        self.sampleFrequencyEdit.setPlaceholderText("5000")
+
+        self.seedEdit = QLineEdit()
+        self.seedEdit.setDisabled(True)
+        self.seedEdit.setPlaceholderText("12345678")
+        self.registerField("seedEdit", self.seedEdit)
+
+        self.numProcEdit = QLineEdit()
+        self.numProcEdit.setDisabled(True)
+
+        self.tempListEdit = QLineEdit()
+        self.tempListEdit.setDisabled(True)
+        self.tempListEdit.setPlaceholderText("(1.0)")
+
+        # Layouts
+        # Layout of each parameter (label and input)
+        sNetLayout = QHBoxLayout()
+        sNetLayout.addWidget(self.sNetLbl)
+        sNetLayout.addWidget(self.sNetEdit)
+
+        chainLengthLayout = QHBoxLayout()
+        chainLengthLayout.addWidget(self.chainLengthLbl)
+        chainLengthLayout.addStretch(1)
+        chainLengthLayout.addWidget(self.chainLengthEdit)
+
+        burnInLengthLayout = QHBoxLayout()
+        burnInLengthLayout.addWidget(self.burnInLengthLbl)
+        burnInLengthLayout.addStretch(1)
+        burnInLengthLayout.addWidget(self.burnInLengthEdit)
+
+        sampleFrequencyLayout = QHBoxLayout()
+        sampleFrequencyLayout.addWidget(self.sampleFrequencyLbl)
+        sampleFrequencyLayout.addStretch(1)
+        sampleFrequencyLayout.addWidget(self.sampleFrequencyEdit)
+
+        seedLayout = QHBoxLayout()
+        seedLayout.addWidget(self.seedLbl)
+        seedLayout.addStretch(1)
+        seedLayout.addWidget(self.seedEdit)
+
+        numProcLayout = QHBoxLayout()
+        numProcLayout.addWidget(self.numProcLbl)
+        numProcLayout.addStretch(1)
+        numProcLayout.addWidget(self.numProcEdit)
+
+        tempListLayout = QHBoxLayout()
+        tempListLayout.addWidget(self.tempListLbl)
+        tempListLayout.addWidget(self.tempListEdit)
+
+        # Main Layout tab two
+        tabTwoLayout = QVBoxLayout()
+        tabTwoLayout.addWidget(optionalLabel)
+        tabTwoLayout.addLayout(sNetLayout)
+        tabTwoLayout.addLayout(chainLengthLayout)
+        tabTwoLayout.addLayout(burnInLengthLayout)
+        tabTwoLayout.addLayout(sampleFrequencyLayout)
+        tabTwoLayout.addLayout(seedLayout)
+        tabTwoLayout.addLayout(numProcLayout)
+        tabTwoLayout.addLayout(tempListLayout)
+        tabTwo.setLayout(tabTwoLayout)   
+
+        #add tab two
+        self.tabWidget.addTab(tabTwo, 'Parameters')
+
+        #create tab three 
+        tabThree = QWidget(self)
+        #tabThree.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)
+
+        optionalLabelA = QLabel()
+        optionalLabelA.setObjectName("instructionLabel")
+        optionalLabelA.setText("Optional Parameters")
+        optionalLabelA.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)
+
+        # Optional parameter labels
+        self.maxRetLbl = QCheckBox(
+            "The maximum number of reticulation nodes in the sampled phylogenetic networks:", self)
+        self.maxRetLbl.setObjectName("-mr")
+        self.maxRetLbl.stateChanged.connect(self.onChecked)
+
+        self.taxamapLbl = QCheckBox(
+            "Gene tree / species tree taxa association:", self)
+        self.taxamapLbl.setObjectName("-tm")
+        self.taxamapLbl.stateChanged.connect(self.onChecked)
+
+        self.popSizeLbl = QCheckBox(
+            "Fix the population sizes associated with all branches of the phylogenetic network " "to this given value:", self)
+        self.popSizeLbl.setObjectName("-fixps")
+        self.popSizeLbl.stateChanged.connect(self.onChecked)
+
+        self.varypsLbl = QCheckBox(
+            "Vary the population sizes across all branches.", self)
+ 
+        self.ppLbl = QCheckBox(
+            "The Poisson parameter in the prior on the number of reticulation nodes:", self)
+        self.ppLbl.setObjectName("-pp")
+        self.ppLbl.stateChanged.connect(self.onChecked)
+
+        self.ddLbl = QCheckBox(
+            "Disable the prior on the diameters of hybridizations.", self)
+
+        self.eeLbl = QCheckBox("Enable the Exponential(10) prior on the divergence times of nodes in the phylogenetic "
+                               "network.", self)
+
+        # Optional parameter inputs
+        self.maxRetEdit = QLineEdit()
+        self.maxRetEdit.setDisabled(True)
+        self.maxRetEdit.setPlaceholderText("4")
+
+        self.taxamapEdit = QPushButton("Set taxa map")
+        self.taxamapEdit.setObjectName("taxamapEdit")
+        self.taxamapEdit.setDisabled(True)
+        self.taxamapEdit.clicked.connect(self.getTaxamap)
+
+        self.popSizeEdit = QLineEdit()
+        self.popSizeEdit.setDisabled(True)
+
+        self.ppEdit = QLineEdit()
+        self.ppEdit.setDisabled(True)
+        self.ppEdit.setPlaceholderText("1.0")
+
+        # Layouts
+        # Layout of each parameter (label and input)      
+
+        maxRetLayout = QHBoxLayout()
+        maxRetLayout.addWidget(self.maxRetLbl)
+        maxRetLayout.addStretch(1)
+        maxRetLayout.addWidget(self.maxRetEdit)
+
+        taxamapLayout = QHBoxLayout()
+        taxamapLayout.addWidget(self.taxamapLbl)
+        taxamapLayout.addStretch(1)
+        taxamapLayout.addWidget(self.taxamapEdit)
+
+        popSizeLayout = QHBoxLayout()
+        popSizeLayout.addWidget(self.popSizeLbl)
+        popSizeLayout.addStretch(1)
+        popSizeLayout.addWidget(self.popSizeEdit)
+
+        varypsLayout = QHBoxLayout()
+        varypsLayout.addWidget(self.varypsLbl)
+
+        ppLayout = QHBoxLayout()
+        ppLayout.addWidget(self.ppLbl)
+        ppLayout.addStretch(1)
+        ppLayout.addWidget(self.ppEdit)
+
+        ddLayout = QHBoxLayout()
+        ddLayout.addWidget(self.ddLbl)
+
+        eeLayout = QHBoxLayout()
+        eeLayout.addWidget(self.eeLbl)
+
+        # Main Layout tab three
+
+        tabThreeLayout = QVBoxLayout()
+        tabThreeLayout.addWidget(optionalLabelA)
+        #tabThreeLayout.addLayout(sNetLayout)
+        tabThreeLayout.addLayout(maxRetLayout)
+        tabThreeLayout.addLayout(taxamapLayout)
+        tabThreeLayout.addLayout(popSizeLayout)
+        tabThreeLayout.addLayout(varypsLayout)
+        tabThreeLayout.addLayout(ppLayout)
+        tabThreeLayout.addLayout(ddLayout)
+        tabThreeLayout.addLayout(eeLayout)
+
+        tabThree.setLayout(tabThreeLayout)          
+
+        #add tabthree
+        self.tabWidget.addTab(tabThree, 'Parameters')
+
+        #create tab four 
+        tabFour = QWidget(self)
+
+        optionalLabelB = QLabel()
+        optionalLabelB.setObjectName("instructionLabel")
+        optionalLabelB.setText("Optional Parameters")
+        optionalLabelB.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)
+
+        # Optional parameter labels
+        self.sgtFileLbl = QCheckBox("Starting gene trees for each locus:")
+        self.sgtFileLbl.setObjectName("-sgt")
+        self.sgtFileLbl.stateChanged.connect(self.onChecked)
+
+        #self.sNetLbl = QCheckBox("The starting network:")
+        #self.sNetLbl.setObjectName("-snet")
+        #self.sNetLbl.stateChanged.connect(self.onChecked)
+
+        self.sPopLbl = QCheckBox("The starting population size:")
+        self.sPopLbl.setObjectName("-sps")
+        self.sPopLbl.stateChanged.connect(self.onChecked)
+
+        self.preLbl = QCheckBox("The number of iterations for pre burn-in:")
+        self.preLbl.setObjectName("-pre")
+        self.preLbl.stateChanged.connect(self.onChecked)
+
+        self.gtrLbl = QCheckBox(
+            "Set GTR (general time-reversible) as the substitution model:")
+        self.gtrLbl.setObjectName("-gtr")
+        self.gtrLbl.stateChanged.connect(self.onChecked)
+
+        self.diploidLbl = QCheckBox("Diploid species list:")
+        self.diploidLbl.setObjectName("-diploid")
+        self.diploidLbl.stateChanged.connect(self.onChecked)
+
+        # Optional parameter inputs
+
+        self.sgtFileEdit = QLineEdit()
+        self.sgtFileEdit.setDisabled(True)
+        self.sgtFileEdit.setReadOnly(True)
+
+        self.sgtFileSelctionBtn = QToolButton()
+        self.sgtFileSelctionBtn.setText("Browse")
+        self.sgtFileSelctionBtn.setObjectName("sgtFileSelctionBtn")
+        self.sgtFileSelctionBtn.clicked.connect(self.selectSgtFile)
+        self.sgtFileSelctionBtn.setDisabled(True)
+
+        #self.sNetEdit = QLineEdit()
+        #self.sNetEdit.setDisabled(True)
+        #self.sNetEdit.setPlaceholderText("")
+
+        self.sPopEdit = QLineEdit()
+        self.sPopEdit.setDisabled(True)
+        self.sPopEdit.setPlaceholderText("0.036")
+
+        self.preEdit = QLineEdit()
+        self.preEdit.setDisabled(True)
+        self.preEdit.setPlaceholderText("10")
+
+        self.gtrEdit = QPushButton("Set model")
+        self.gtrEdit.setObjectName("gtrEdit")
+        self.gtrEdit.setDisabled(True)
+        self.gtrEdit.clicked.connect(self.getGTR)
+
+        self.diploidEdit = QPushButton("Set diploid species")
+        self.diploidEdit.setObjectName("diploidEdit")
+        self.diploidEdit.setDisabled(True)
+        self.diploidEdit.clicked.connect(self.getDiploid)
+
+        # Launch button
+        launchBtn = QPushButton("Generate", self)
+        launchBtn.clicked.connect(self.generate)
+
+        # Layouts
+        # Layout of each parameter (label and input)
+
+        sgtFileFormatLayout = QVBoxLayout()
+        sgtFileFormatLayout.addWidget(self.sgtFileLbl)
+        sgtInputLayout = QHBoxLayout()
+        sgtInputLayout.addWidget(self.sgtFileEdit)
+        sgtInputLayout.addWidget(self.sgtFileSelctionBtn)
+        sgtFileLayout = QVBoxLayout()
+        sgtFileLayout.addLayout(sgtFileFormatLayout)
+        sgtFileLayout.addLayout(sgtInputLayout)
+
+        #sNetLayout = QHBoxLayout()
+        #sNetLayout.addWidget(self.sNetLbl)
+        #sNetLayout.addWidget(self.sNetEdit)
+
+        sPopLayout = QHBoxLayout()
+        sPopLayout.addWidget(self.sPopLbl)
+        sPopLayout.addStretch(1)
+        sPopLayout.addWidget(self.sPopEdit)
+
+        preLayout = QHBoxLayout()
+        preLayout.addWidget(self.preLbl)
+        preLayout.addStretch(1)
+        preLayout.addWidget(self.preEdit)
+
+        gtrLayout = QHBoxLayout()
+        gtrLayout.addWidget(self.gtrLbl)
+        gtrLayout.addStretch(1)
+        gtrLayout.addWidget(self.gtrEdit)
+
+        diploidLayout = QHBoxLayout()
+        diploidLayout.addWidget(self.diploidLbl)
+        diploidLayout.addStretch(1)
+        diploidLayout.addWidget(self.diploidEdit)
+
+        btnLayout = QHBoxLayout()
+        btnLayout.addStretch(1)
+        btnLayout.addWidget(launchBtn)
+
+        # Main Layout tab four
+
+        tabFourLayout = QVBoxLayout()
+        tabFourLayout.addWidget(optionalLabelB)
+        tabFourLayout.addLayout(sgtFileFormatLayout)
+        #tabFourLayout.addLayout(sNetLayout)
+        tabFourLayout.addLayout(sPopLayout)
+        tabFourLayout.addLayout(preLayout)
+        tabFourLayout.addLayout(gtrLayout)
+        tabFourLayout.addLayout(diploidLayout)
+        tabFourLayout.addLayout(btnLayout)
+
+        tabFour.setLayout(tabFourLayout)          
+
+        #add tabFour
+        self.tabWidget.addTab(tabFour, 'Generate')
+
+        #disable tab bar, initially   
+        self.tabWidget.tabBar().setDisabled(True)
+        self.tabWidget.tabBar().setToolTip("This a mandatory input. Complete it to enable the tab bar")
+
+        #add widget to page layout
+        pageLayout.addWidget(self.tabWidget)
+        self.setLayout(pageLayout)
+
+    def inspectInputs(self):
+        """
+        Inspects whether mandatory fields have been filled
+        emits signal if so
+        """
+        if self.sequenceFileEdit.document().isEmpty() or self.numReticulationsEdit.text() == "":
+            self.tabWidget.tabBar().setDisabled(True)
+            #set appropriate tool tip based on page location
+            if self.tabWidget.currentIndex() == 0:
+                self.tabWidget.tabBar().setToolTip("This a mandatory input. Complete it to enable the tab bar")
+            else:
+                self.tabWidget.tabBar().setToolTip("Click use again to return to first page")
+            self.tabWidget.setStyleSheet("QTabBar::tab:selected{background-color: #aaeeff;}")
+        else:
+            self.tabWidget.tabBar().setDisabled(False)
+            self.tabWidget.tabBar().setToolTip("Mandatory input completed! You can now use tab bar")
+            self.tabWidget.setStyleSheet("QTabBar::tab:selected{background-color: #2196f3;}")
+              
+    def __inverseMapping(self, map):
+        """
+        Convert a mapping from taxon to species to a mapping from species to a list of taxon.
+        """
+        o = {}
+        for k, v in map.items():
+            if v in o:
+                o[v].append(k)
+            else:
+                o[v] = [k]
+        return o
 
     def link(self, linkStr):
         """
@@ -165,13 +597,6 @@ class MCMCSEQPage1(QWizardPage):
         containing the length of sequences in each file and the dna character matrix.
         Execute when file selection button is clicked.
         """
-        global inputFiles
-        global loci
-        global nchar
-        inputFiles.clear()
-        loci.clear()
-        nchar = 0
-
         if (not self.fasta.isChecked()) and (not self.nexus.isChecked()):
             QMessageBox.warning(self, "Warning", "Please select a file type.", QMessageBox.Ok)
         else:
@@ -197,8 +622,6 @@ class MCMCSEQPage1(QWizardPage):
                                 seqLen = len(seq)
                                 self.nchar += seqLen
                                 break
-                                # Store all taxa encountered so far in a global set.
-                            self.taxa_names = taxa_names
                             for taxon in dna:
                                 self.taxa_names.add(taxon.label)
                             # Store data from this file in loci dictionary
@@ -229,195 +652,11 @@ class MCMCSEQPage1(QWizardPage):
                             self.inputFiles.append(str(onefname))
                 else:
                     return
-                inputFiles = self.inputFiles
-                loci = self.loci
-                nchar = self.nchar
-
-
-class MCMCSEQPage2(QWizardPage):
-
-    def __init__(self):
-        super(MCMCSEQPage2, self).__init__()
-
-        self.inputFiles = inputFiles
-        self.loci = loci
-        self.nchar = nchar
-        self.taxa_names = taxa_names
-
-        self.taxamap = taxamap
-        self.sgtFiles = sgtFiles
-        self.ListOfDiploid = ListOfDiploid
-        self.GTR = GTR
-
-        self.initUI()
-
-    def initUI(self):
-        """
-        Initialize GUI.
-        """
-
-        # Title (MCMC_SEQ)
-        titleLabel = titleHeader("MCMC_SEQ")
-
-        hyperlink = QLabel()
-        hyperlink.setText('Details of this method can be found '
-                          '<a href="https://wiki.rice.edu/confluence/display/PHYLONET/MCMC_SEQ">'
-                          'here</a>.')
-        hyperlink.linkActivated.connect(self.link)
-        hyperlink.setObjectName("detailsLink")
-
-        optionalLabel = QLabel()
-        optionalLabel.setObjectName("instructionLabel")
-        optionalLabel.setText("Input Options")
-
-        # Optional parameter labels
-        self.chainLengthLbl = QCheckBox("The length of the MCMC chain:", self)
-        self.chainLengthLbl.setObjectName("-cl")
-        self.chainLengthLbl.stateChanged.connect(self.onChecked)
-        self.registerField("chainLengthLbl", self.chainLengthLbl)
-
-        self.burnInLengthLbl = QCheckBox(
-            "The number of iterations in burn-in period:", self)
-        self.burnInLengthLbl.setObjectName("-bl")
-        self.burnInLengthLbl.stateChanged.connect(self.onChecked)
-        self.registerField("burnInLengthLbl", self.burnInLengthLbl)
-
-        self.sampleFrequencyLbl = QCheckBox("The sample frequency:", self)
-        self.sampleFrequencyLbl.setObjectName("-sf")
-        self.sampleFrequencyLbl.stateChanged.connect(self.onChecked)
-        self.registerField("sampleFrequencyLbl", self.sampleFrequencyLbl)
-
-        self.seedLbl = QCheckBox("The random seed:", self)
-        self.seedLbl.setObjectName("-sd")
-        self.seedLbl.stateChanged.connect(self.onChecked)
-        self.registerField("seedLbl", self.seedLbl)
-
-        self.numProcLbl = QCheckBox(
-            "Number of threads running in parallel:", self)
-        self.numProcLbl.setObjectName("-pl")
-        self.numProcLbl.stateChanged.connect(self.onChecked)
-        self.registerField("numProcLbl", self.numProcLbl)
-
-        self.outDirLbl = QCheckBox(
-            "The absolute path to store the output files:")
-        self.outDirLbl.setObjectName("-dir")
-        self.outDirLbl.stateChanged.connect(self.onChecked)
-        self.registerField("outDirLbl", self.outDirLbl)
-
-        self.tempListLbl = QCheckBox(
-            "The list of temperatures for the Metropolis-coupled MCMC chains:", self)
-        self.tempListLbl.setObjectName("-mc3")
-        self.tempListLbl.stateChanged.connect(self.onChecked)
-        self.registerField("tempListLbl", self.tempListLbl)
-
-        # Optional parameter inputs
-        self.chainLengthEdit = QLineEdit()
-        self.chainLengthEdit.setDisabled(True)
-        self.chainLengthEdit.setPlaceholderText("10000000")
-        self.registerField("chainLengthEdit", self.chainLengthEdit)
-
-        self.burnInLengthEdit = QLineEdit()
-        self.burnInLengthEdit.setDisabled(True)
-        self.burnInLengthEdit.setPlaceholderText("2000000")
-        self.registerField("burnInLengthEdit", self.burnInLengthEdit)
-
-        self.sampleFrequencyEdit = QLineEdit()
-        self.sampleFrequencyEdit.setDisabled(True)
-        self.sampleFrequencyEdit.setPlaceholderText("5000")
-        self.registerField("sampleFrequencyEdit", self.sampleFrequencyEdit)
-
-        self.seedEdit = QLineEdit()
-        self.seedEdit.setDisabled(True)
-        self.seedEdit.setPlaceholderText("12345678")
-        self.registerField("seedEdit", self.seedEdit)
-
-        self.numProcEdit = QLineEdit()
-        self.numProcEdit.setDisabled(True)
-        self.registerField("numProcEdit", self.numProcEdit)
-
-        self.outDirEdit = QLineEdit()
-        self.outDirEdit.setDisabled(True)
-        self.outDirEdit.setPlaceholderText(os.path.expanduser("~"))
-        self.outDirBtn = QToolButton()
-        self.outDirBtn.setText("Browse")
-        self.outDirBtn.setObjectName("outDirBtn")
-        self.outDirBtn.setDisabled(True)
-        self.outDirBtn.clicked.connect(self.selectDest)
-        self.registerField("outDirEdit", self.outDirEdit)
-
-        self.tempListEdit = QLineEdit()
-        self.tempListEdit.setDisabled(True)
-        self.tempListEdit.setPlaceholderText("(1.0)")
-        self.registerField("tempListEdit", self.tempListEdit)
-
-        # Layouts
-        # Layout of each parameter (label and input)
-        chainLengthLayout = QHBoxLayout()
-        chainLengthLayout.addWidget(self.chainLengthLbl)
-        chainLengthLayout.addStretch(1)
-        chainLengthLayout.addWidget(self.chainLengthEdit)
-
-        burnInLengthLayout = QHBoxLayout()
-        burnInLengthLayout.addWidget(self.burnInLengthLbl)
-        burnInLengthLayout.addStretch(1)
-        burnInLengthLayout.addWidget(self.burnInLengthEdit)
-
-        sampleFrequencyLayout = QHBoxLayout()
-        sampleFrequencyLayout.addWidget(self.sampleFrequencyLbl)
-        sampleFrequencyLayout.addStretch(1)
-        sampleFrequencyLayout.addWidget(self.sampleFrequencyEdit)
-
-        seedLayout = QHBoxLayout()
-        seedLayout.addWidget(self.seedLbl)
-        seedLayout.addStretch(1)
-        seedLayout.addWidget(self.seedEdit)
-
-        numProcLayout = QHBoxLayout()
-        numProcLayout.addWidget(self.numProcLbl)
-        numProcLayout.addStretch(1)
-        numProcLayout.addWidget(self.numProcEdit)
-
-        outDirLayout = QHBoxLayout()
-        outDirLayout.addWidget(self.outDirLbl)
-        outDirLayout.addWidget(self.outDirEdit)
-        outDirLayout.addWidget(self.outDirBtn)
-
-        tempListLayout = QHBoxLayout()
-        tempListLayout.addWidget(self.tempListLbl)
-        tempListLayout.addWidget(self.tempListEdit)
-
-        # Main layout
-        topLevelLayout = QVBoxLayout()
-        topLevelLayout.addWidget(titleLabel)
-        topLevelLayout.addWidget(hyperlink)
-        topLevelLayout.addWidget(optionalLabel)
-
-        topLevelLayout.addLayout(chainLengthLayout)
-        topLevelLayout.addLayout(burnInLengthLayout)
-        topLevelLayout.addLayout(sampleFrequencyLayout)
-        topLevelLayout.addLayout(seedLayout)
-        topLevelLayout.addLayout(numProcLayout)
-        topLevelLayout.addLayout(outDirLayout)
-        topLevelLayout.addLayout(tempListLayout)
-        
-        self.setLayout(topLevelLayout)
-
-        self.setWindowTitle('PhyloNetNEXGenerator')
-        self.setWindowIcon(QIcon(resource_path("logo.png")))
-
-    def selectDest(self):
-        """
-        Select and display the absolute path to store PhyloNet output files in QLineEdit.
-        The path written to output NEXUS file will be content of outDirEdit.
-        """
-        dir = str(QFileDialog.getExistingDirectory(self, "Select Directory"))
-        if dir:
-            self.outDirEdit.setText(dir)
 
     def onChecked(self):
         """
         When user clicks the checkbox for an optional command,
-        enable or disable the corresponding input widget.
+        enable or disable the corresponding text edit.
         """
         if self.sender().objectName() == "-cl":
             if self.chainLengthEdit.isEnabled():
@@ -444,190 +683,12 @@ class MCMCSEQPage2(QWizardPage):
                 self.numProcEdit.setDisabled(True)
             else:
                 self.numProcEdit.setDisabled(False)
-        elif self.sender().objectName() == "-dir":
-            if self.outDirEdit.isEnabled():
-                self.outDirEdit.setDisabled(True)
-                self.outDirBtn.setDisabled(True)
-            else:
-                self.outDirEdit.setDisabled(False)
-                self.outDirBtn.setDisabled(False)
         elif self.sender().objectName() == "-mc3":
             if self.tempListEdit.isEnabled():
                 self.tempListEdit.setDisabled(True)
             else:
                 self.tempListEdit.setDisabled(False)
-        else:
-            pass
-
-    def link(self, linkStr):
-        """
-        Open the website of PhyloNet if user clicks on the hyperlink.
-        """
-        QDesktopServices.openUrl(QtCore.QUrl(linkStr))
-
-
-class MCMCSEQPage3(QWizardPage):
-    def __init__(self):
-        super(MCMCSEQPage3, self).__init__()
-
-        self.inputFiles = inputFiles
-        self.loci = loci
-        self.nchar = nchar
-        self.taxa_names = taxa_names
-
-        self.taxamap = taxamap
-        self.sgtFiles = sgtFiles
-        self.ListOfDiploid = ListOfDiploid
-        self.GTR = GTR
-
-        self.initUI()
-
-    def initUI(self):
-        """
-        Initialize GUI.
-        """
-
-        # Title (MCMC_SEQ)
-        titleLabel = titleHeader("MCMC_SEQ")
-
-        hyperlink = QLabel()
-        hyperlink.setText('Details of this method can be found '
-                          '<a href="https://wiki.rice.edu/confluence/display/PHYLONET/MCMC_SEQ">'
-                          'here</a>.')
-        hyperlink.linkActivated.connect(self.link)
-        hyperlink.setObjectName("detailsLink")
-
-        optionalLabel = QLabel()
-        optionalLabel.setObjectName("instructionLabel")
-        optionalLabel.setText("Inference Settings and Prior Settings")
-
-        # Optional parameter labels
-        self.maxRetLbl = QCheckBox(
-            "The maximum number of reticulation nodes in the sampled phylogenetic networks:", self)
-        self.maxRetLbl.setObjectName("-mr")
-        self.maxRetLbl.stateChanged.connect(self.onChecked)
-        self.registerField("maxRetLbl", self.maxRetLbl)
-
-        self.taxamapLbl = QCheckBox(
-            "Gene tree / species tree taxa association:", self)
-        self.taxamapLbl.setObjectName("-tm")
-        self.taxamapLbl.stateChanged.connect(self.onChecked)
-        self.registerField("taxamapLbl", self.taxamapLbl)
-
-        self.popSizeLbl = QCheckBox(
-            "Fix the population sizes associated with all branches of the phylogenetic network " "to this given value:", self)
-        self.popSizeLbl.setObjectName("-fixps")
-        self.popSizeLbl.stateChanged.connect(self.onChecked)
-        self.registerField("popSizeLbl", self.popSizeLbl)
-
-        self.varypsLbl = QCheckBox(
-            "Vary the population sizes across all branches.", self)
-        self.registerField("varypsLbl", self.varypsLbl)
-
-        self.ppLbl = QCheckBox(
-            "The Poisson parameter in the prior on the number of reticulation nodes:", self)
-        self.ppLbl.setObjectName("-pp")
-        self.ppLbl.stateChanged.connect(self.onChecked)
-        self.registerField("ppLbl", self.ppLbl)
-
-        self.ddLbl = QCheckBox(
-            "Disable the prior on the diameters of hybridizations.", self)
-        self.registerField("ddLbl", self.ddLbl)
-
-        self.eeLbl = QCheckBox("Enable the Exponential(10) prior on the divergence times of nodes in the phylogenetic "
-                               "network.", self)
-        self.registerField("eeLbl", self.eeLbl)
-
-        # Optional parameter inputs
-        self.maxRetEdit = QLineEdit()
-        self.maxRetEdit.setDisabled(True)
-        self.maxRetEdit.setPlaceholderText("4")
-        self.registerField("maxRetEdit", self.maxRetEdit)
-
-        self.taxamapEdit = QPushButton("Set taxa map")
-        self.taxamapEdit.setObjectName("taxamapEdit")
-        self.taxamapEdit.setDisabled(True)
-        self.taxamapEdit.clicked.connect(self.getTaxamap)
-        self.registerField("taxamapEdit", self.taxamapEdit)
-
-        self.popSizeEdit = QLineEdit()
-        self.popSizeEdit.setDisabled(True)
-        self.registerField("popSizeEdit", self.popSizeEdit)
-
-        self.ppEdit = QLineEdit()
-        self.ppEdit.setDisabled(True)
-        self.ppEdit.setPlaceholderText("1.0")
-        self.registerField("ppEdit", self.ppEdit)
-
-        # Layouts
-        # Layout of each parameter (label and input)
-        maxRetLayout = QHBoxLayout()
-        maxRetLayout.addWidget(self.maxRetLbl)
-        maxRetLayout.addStretch(1)
-        maxRetLayout.addWidget(self.maxRetEdit)
-
-        taxamapLayout = QHBoxLayout()
-        taxamapLayout.addWidget(self.taxamapLbl)
-        taxamapLayout.addStretch(1)
-        taxamapLayout.addWidget(self.taxamapEdit)
-
-        popSizeLayout = QHBoxLayout()
-        popSizeLayout.addWidget(self.popSizeLbl)
-        popSizeLayout.addStretch(1)
-        popSizeLayout.addWidget(self.popSizeEdit)
-
-        varypsLayout = QHBoxLayout()
-        varypsLayout.addWidget(self.varypsLbl)
-
-        ppLayout = QHBoxLayout()
-        ppLayout.addWidget(self.ppLbl)
-        ppLayout.addStretch(1)
-        ppLayout.addWidget(self.ppEdit)
-
-        ddLayout = QHBoxLayout()
-        ddLayout.addWidget(self.ddLbl)
-
-        eeLayout = QHBoxLayout()
-        eeLayout.addWidget(self.eeLbl)
-
-        # Main layout
-        topLevelLayout = QVBoxLayout()
-        topLevelLayout.addWidget(titleLabel)
-        topLevelLayout.addWidget(hyperlink)
-        topLevelLayout.addWidget(optionalLabel)
-
-        # Layout contains the Inference Setting and Prior Setting options
-        topLevelLayout.addLayout(maxRetLayout)
-        topLevelLayout.addLayout(taxamapLayout)
-        topLevelLayout.addLayout(popSizeLayout)
-        topLevelLayout.addLayout(varypsLayout)
-        topLevelLayout.addLayout(ppLayout)
-        topLevelLayout.addLayout(ddLayout)
-        topLevelLayout.addLayout(eeLayout)
-
-        self.setLayout(topLevelLayout)
-
-        self.setWindowTitle('PhyloNetNEXGenerator')
-        self.setWindowIcon(QIcon(resource_path("logo.png")))
-
-    def __inverseMapping(self, map):
-        """
-        Convert a mapping from taxon to species to a mapping from species to a list of taxon.
-        """
-        o = {}
-        for k, v in map.items():
-            if v in o:
-                o[v].append(k)
-            else:
-                o[v] = [k]
-        return o
-
-    def onChecked(self):
-        """
-        When user clicks the checkbox for an optional command,
-        enable or disable the corresponding input widget.
-        """
-        if self.sender().objectName() == "-mr":
+        elif self.sender().objectName() == "-mr":
             if self.maxRetEdit.isEnabled():
                 self.maxRetEdit.setDisabled(True)
             else:
@@ -646,298 +707,8 @@ class MCMCSEQPage3(QWizardPage):
             if self.ppEdit.isEnabled():
                 self.ppEdit.setDisabled(True)
             else:
-                self.ppEdit.setDisabled(False)
-        else:
-            pass
-
-    def link(self, linkStr):
-        """
-        Open the website of PhyloNet if user clicks on the hyperlink.
-        """
-        QDesktopServices.openUrl(QtCore.QUrl(linkStr))
-
-    def getTaxamap(self):
-        """
-        When user clicks "Set taxa map", open up TaxamapDlg for user input
-        and update taxa map.
-        """
-        class emptyFileError(Exception):
-            pass
-
-        try:
-            if len(self.inputFiles) == 0:
-                raise emptyFileError
-
-            # Create a taxon_namespace object based on current taxa names set.
-            taxa = dendropy.TaxonNamespace()
-            for taxon in list(self.taxa_names):
-                taxa.add_taxon(dendropy.Taxon(taxon))
-
-            # If it's the first time being clicked, set up the initial mapping,
-            # which assumes only one individual for each species.
-            if len(self.taxamap) == 0:
-                for taxon in taxa:
-                    self.taxamap[taxon.label] = taxon.label
-            else:
-                # If it's not the first time being clicked, check if user has changed input files.
-                for taxon in taxa:
-                    if taxon.label not in self.taxamap:
-                        for taxon in taxa:
-                            self.taxamap[taxon.label] = taxon.label
-                        break
-
-            # Execute TaxamapDlg
-            dialog = TaxamapDlg.TaxamapDlg(taxa, self.taxamap, self)
-            if dialog.exec_():
-                self.taxamap = dialog.getTaxamap()
-
-        except emptyFileError:
-            QMessageBox.warning(
-                self, "Warning", "Please select a file type and upload data!", QMessageBox.Ok)
-            return
-
-
-class MCMCSEQPage4(QWizardPage):
-
-    def initializePage(self):
-
-        self.sequenceFileEdit = self.field("sequenceFileEdit")
-        self.chainLengthLbl = self.field("chainLengthLbl")
-        self.chainLengthEdit = self.field("chainLengthEdit")
-        self.burnInLengthLbl = self.field("burnInLengthLbl")
-        self.burnInLengthEdit = self.field("burnInLengthEdit")
-        self.sampleFrequencyLbl = self.field("sampleFrequencyLbl")
-        self.sampleFrequencyEdit = self.field("sampleFrequencyEdit")
-        self.seedLbl = self.field("seedLbl")
-        self.seedEdit = self.field("seedEdit")
-        self.numProcLbl = self.field("numProcLbl")
-        self.numProcEdit = self.field("numProcEdit")
-        self.outDirLbl = self.field("outDirLbl")
-        self.outDirEdit = self.field("outDirEdit")
-        self.tempListLbl = self.field("tempListLbl")
-        self.tempListEdit = self.field("tempListEdit")
-        self.maxRetLbl = self.field("maxRetLbl")
-        self.maxRetEdit = self.field("maxRetEdit")
-        self.taxamapLbl = self.field("taxamapLbl")
-        self.popSizeLbl = self.field("popSizeLbl")
-        self.popSizeEdit = self.field("popSizeEdit")
-        self.varypsLbl = self.field("varypsLbl")
-        self.ppLbl = self.field("ppLbl")
-        self.ppEdit = self.field("ppEdit")
-        self.ddLbl = self.field("ddLbl")
-        self.eeLbl = self.field("eeLbl")
-        return
-
-    def __init__(self):
-        super(MCMCSEQPage4, self).__init__()
-
-        self.taxa_names = taxa_names
-        self.inputFiles = inputFiles
-        self.sgtFiles = sgtFiles
-        self.ListOfDiploid = ListOfDiploid
-        self.GTR = GTR
-        self.nchar = nchar
-        self.loci = loci
-        self.taxamap = taxamap
-        self.isValidated = False
-
-        self.initUI()
-
-    def initUI(self):
-        """
-        Initialize GUI.
-        """
-        # Title (MCMC_SEQ)
-        titleLabel = titleHeader("MCMC_SEQ")
-
-        hyperlink = QLabel()
-        hyperlink.setText('Details of this method can be found '
-                          '<a href="https://wiki.rice.edu/confluence/display/PHYLONET/MCMC_SEQ">'
-                          'here</a>.')
-        hyperlink.linkActivated.connect(self.link)
-        hyperlink.setObjectName("detailsLink")
-
-        optionalLabel = QLabel()
-        optionalLabel.setObjectName("instructionLabel")
-        optionalLabel.setText("Starting State Settings, Substitution Model, and Phasing")
-
-        # Optional parameter labels
-
-        self.sgtFileLbl = QCheckBox("Starting gene trees for each locus:")
-        self.sgtFileLbl.setObjectName("-sgt")
-        self.sgtFileLbl.stateChanged.connect(self.onChecked)
-        self.registerField("sgtFileLbl", self.sgtFileLbl)
-
-        self.sNetLbl = QCheckBox("The starting network:")
-        self.sNetLbl.setObjectName("-snet")
-        self.sNetLbl.stateChanged.connect(self.onChecked)
-        self.registerField("sNetLbl", self.sNetLbl)
-
-        self.sPopLbl = QCheckBox("The starting population size:")
-        self.sPopLbl.setObjectName("-sps")
-        self.sPopLbl.stateChanged.connect(self.onChecked)
-        self.registerField("sPopLbl", self.sPopLbl)
-
-        self.preLbl = QCheckBox("The number of iterations for pre burn-in:")
-        self.preLbl.setObjectName("-pre")
-        self.preLbl.stateChanged.connect(self.onChecked)
-        self.registerField("preLbl", self.preLbl)
-
-        self.gtrLbl = QCheckBox(
-            "Set GTR (general time-reversible) as the substitution model:")
-        self.gtrLbl.setObjectName("-gtr")
-        self.gtrLbl.stateChanged.connect(self.onChecked)
-        self.registerField("gtrLbl", self.gtrLbl)
-
-        self.diploidLbl = QCheckBox("Diploid species list:")
-        self.diploidLbl.setObjectName("-diploid")
-        self.diploidLbl.stateChanged.connect(self.onChecked)
-        self.registerField("diploidLbl", self.diploidLbl)
-
-        # Optional parameter inputs
-
-        self.sgtFileEdit = QLineEdit()
-        self.sgtFileEdit.setDisabled(True)
-        self.sgtFileEdit.setReadOnly(True)
-        self.registerField("sgtFileEdit", self.sgtFileEdit)
-
-        self.sgtFileSelctionBtn = QToolButton()
-        self.sgtFileSelctionBtn.setText("Browse")
-        self.sgtFileSelctionBtn.setObjectName("sgtFileSelctionBtn")
-        self.sgtFileSelctionBtn.clicked.connect(self.selectSgtFile)
-        self.sgtFileSelctionBtn.setDisabled(True)
-        self.registerField("sgtFileSelctionBtn", self.sgtFileSelctionBtn)
-
-        self.sNetEdit = QLineEdit()
-        self.sNetEdit.setDisabled(True)
-        self.sNetEdit.setPlaceholderText("")
-        self.registerField("sNetEdit", self.sNetEdit)
-
-        self.sPopEdit = QLineEdit()
-        self.sPopEdit.setDisabled(True)
-        self.sPopEdit.setPlaceholderText("0.036")
-        self.registerField("sPopEdit", self.sPopEdit)
-
-        self.preEdit = QLineEdit()
-        self.preEdit.setDisabled(True)
-        self.preEdit.setPlaceholderText("10")
-        self.registerField("preEdit", self.preEdit)
-
-        self.gtrEdit = QPushButton("Set model")
-        self.gtrEdit.setObjectName("gtrEdit")
-        self.gtrEdit.setDisabled(True)
-        self.gtrEdit.clicked.connect(self.getGTR)
-        self.registerField("gtrEdit", self.gtrEdit)
-
-        self.diploidEdit = QPushButton("Set diploid species")
-        self.diploidEdit.setObjectName("diploidEdit")
-        self.diploidEdit.setDisabled(True)
-        self.diploidEdit.clicked.connect(self.getDiploid)
-        self.registerField("diploidEdit", self.diploidEdit)
-
-        # Launch button
-        launchBtn = QPushButton("Generate", self)
-        launchBtn.clicked.connect(self.generate)
-
-        # Layouts
-        # Layout of each parameter (label and input)
-
-        sgtFileFormatLayout = QVBoxLayout()
-        sgtFileFormatLayout.addWidget(self.sgtFileLbl)
-        sgtInputLayout = QHBoxLayout()
-        sgtInputLayout.addWidget(self.sgtFileEdit)
-        sgtInputLayout.addWidget(self.sgtFileSelctionBtn)
-        sgtFileLayout = QVBoxLayout()
-        sgtFileLayout.addLayout(sgtFileFormatLayout)
-        sgtFileLayout.addLayout(sgtInputLayout)
-
-        sNetLayout = QHBoxLayout()
-        sNetLayout.addWidget(self.sNetLbl)
-        sNetLayout.addWidget(self.sNetEdit)
-
-        sPopLayout = QHBoxLayout()
-        sPopLayout.addWidget(self.sPopLbl)
-        sPopLayout.addStretch(1)
-        sPopLayout.addWidget(self.sPopEdit)
-
-        preLayout = QHBoxLayout()
-        preLayout.addWidget(self.preLbl)
-        preLayout.addStretch(1)
-        preLayout.addWidget(self.preEdit)
-
-        gtrLayout = QHBoxLayout()
-        gtrLayout.addWidget(self.gtrLbl)
-        gtrLayout.addStretch(1)
-        gtrLayout.addWidget(self.gtrEdit)
-
-        diploidLayout = QHBoxLayout()
-        diploidLayout.addWidget(self.diploidLbl)
-        diploidLayout.addStretch(1)
-        diploidLayout.addWidget(self.diploidEdit)
-
-        btnLayout = QHBoxLayout()
-        btnLayout.addStretch(1)
-        btnLayout.addWidget(launchBtn)
-
-
-        # Main layout
-        topLevelLayout = QVBoxLayout()
-        topLevelLayout.addWidget(titleLabel)
-        topLevelLayout.addWidget(hyperlink)
-        topLevelLayout.addWidget(optionalLabel)
-
-        # Option layout
-        topLevelLayout.addLayout(sgtFileFormatLayout)
-        topLevelLayout.addLayout(sNetLayout)
-        topLevelLayout.addLayout(sPopLayout)
-        topLevelLayout.addLayout(preLayout)
-        topLevelLayout.addLayout(gtrLayout)
-        topLevelLayout.addLayout(diploidLayout)
-        topLevelLayout.addLayout(btnLayout)
-
-        self.setLayout(topLevelLayout)
-
-        self.setWindowTitle('PhyloNetNEXGenerator')
-        self.setWindowIcon(QIcon(resource_path("logo.png")))
-
-    def __inverseMapping(self, map):
-        """
-        Convert a mapping from taxon to species to a mapping from species to a list of taxon.
-        """
-        o = {}
-        for k, v in map.items():
-            if v in o:
-                o[v].append(k)
-            else:
-                o[v] = [k]
-        return o
-
-    def aboutMessage(self):
-
-        msg = QMessageBox()
-        msg.setIcon(QMessageBox.Information)
-        msg.setText("Co-estimation of reticulate phylogenies (ILS & hybridization), gene trees, divergence times and "
-                    "population sizes on sequences from multiple independent loci."
-                    "\n\nFor species phylogeny or phylogenetic network, we infer network topology, divergence times in "
-                    "units of expected number of mutations per site, population sizes in units of population mutation "
-                    "rate per site, and inheritance probabilities."
-                    "\n\nFor gene trees, we infer gene tree topology and coalescent times in units of expected number "
-                    "of mutations per site.")
-        font = QFont()
-        font.setPointSize(13)
-        font.setFamily("Times New Roman")
-        font.setBold(False)
-
-        msg.setFont(font)
-        msg.exec_()
-
-    def onChecked(self):
-        """
-        When user clicks the checkbox for an optional command,
-        enable or disable the corresponding input widget.
-        """
-
-        if self.sender().objectName() == "-sgt":
+                self.ppEdit.setDisabled(False)   
+        elif self.sender().objectName() == "-sgt":
             if self.sgtFileEdit.isEnabled():
                 self.sgtFileEdit.setDisabled(True)
                 self.sgtFileSelctionBtn.setDisabled(True)
@@ -968,15 +739,49 @@ class MCMCSEQPage4(QWizardPage):
             if self.diploidEdit.isEnabled():
                 self.diploidEdit.setDisabled(True)
             else:
-                self.diploidEdit.setDisabled(False)
+                self.diploidEdit.setDisabled(False)     
         else:
             pass
 
-    def link(self, linkStr):
+    def getTaxamap(self):
         """
-        Open the website of PhyloNet if user clicks on the hyperlink.
+        When user clicks "Set taxa map", open up TaxamapDlg for user input
+        and update taxa map.
         """
-        QDesktopServices.openUrl(QtCore.QUrl(linkStr))
+        class emptyFileError(Exception):
+            pass
+        try:
+            if len(self.inputFiles) == 0:
+                raise emptyFileError
+
+            # Create a taxon_namespace object based on current taxa names set.
+            taxa = dendropy.TaxonNamespace()
+            for taxon in list(self.taxa_names):
+                taxa.add_taxon(dendropy.Taxon(taxon))
+
+            # If it's the first time being clicked, set up the initial mapping,
+            # which assumes only one individual for each species.
+            if len(self.taxamap) == 0:
+                for taxon in taxa:
+                    self.taxamap[taxon.label] = taxon.label
+            else:
+                # If it's not the first time being clicked, check if user has changed input files.
+                for taxon in taxa:
+                    if taxon.label not in self.taxamap:
+                        for taxon in taxa:
+                            self.taxamap[taxon.label] = taxon.label
+                        break
+
+            # Execute TaxamapDlg
+            dialog = TaxamapDlg.TaxamapDlg(taxa, self.taxamap, self)
+            if dialog.exec_():
+                self.taxamap = dialog.getTaxamap()
+        except emptyFileError:
+            QMessageBox.warning(self, "Warning", "Please select a file type and upload data!", QMessageBox.Ok)
+            return
+        except Exception as e:
+            QMessageBox.warning(self, "Warning", str(e), QMessageBox.Ok)
+            return
 
     def sgtFormat(self):
         """
@@ -1064,9 +869,6 @@ class MCMCSEQPage4(QWizardPage):
         """
         Generate NEXUS file based on user input.
         """
-        self.inputFiles = inputFiles
-        self.loci = loci
-        self.nchar = nchar
 
         directory = QFileDialog.getSaveFileName(
             self, "Save File", "/", "Nexus Files (*.nexus)")
@@ -1155,65 +957,56 @@ class MCMCSEQPage4(QWizardPage):
                 outputFile.write("MCMC_SEQ")
 
                 # Write optional commands based on user selection.
-                if self.chainLengthLbl == True:
-                    if self.chainLengthEdit == "":
+                if self.chainLengthLbl.isChecked():
+                    if self.chainLengthEdit.text() == "":
                         pass
                     else:
                         outputFile.write(" -cl ")
-                        outputFile.write(str(self.chainLengthEdit))
+                        outputFile.write(str(self.chainLengthEdit.text()))
 
-                if self.burnInLengthLbl == True:
-                    if self.burnInLengthEdit == "":
+                if self.burnInLengthLbl.isChecked():
+                    if self.burnInLengthEdit.text() == "":
                         pass
                     else:
                         outputFile.write(" -bl ")
-                        outputFile.write(str(self.burnInLengthEdit))
+                        outputFile.write(str(self.burnInLengthEdit.text()))
 
-                if self.sampleFrequencyLbl == True:
-                    if self.sampleFrequencyEdit == "":
+                if self.sampleFrequencyLbl.isChecked():
+                    if self.sampleFrequencyEdit.text() == "":
                         pass
                     else:
                         outputFile.write(" -sf ")
-                        outputFile.write(str(self.sampleFrequencyEdit))
+                        outputFile.write(str(self.sampleFrequencyEdit.text()))
 
-                if self.seedLbl == True:
-                    if self.seedEdit == "":
+                if self.seedLbl.isChecked():
+                    if self.seedEdit.text() == "":
                         pass
                     else:
                         outputFile.write(" -sd ")
-                        outputFile.write(str(self.seedEdit))
+                        outputFile.write(str(self.seedEdit.text()))
 
-                if self.numProcLbl == True:
-                    if self.numProcEdit == "":
+                if self.numProcLbl.isChecked():
+                    if self.numProcEdit.text() == "":
                         pass
                     else:
                         outputFile.write(" -pl ")
-                        outputFile.write(str(self.numProcEdit))
+                        outputFile.write(str(self.numProcEdit.text()))
 
-                if self.outDirLbl == True:
-                    if self.outDirEdit == "":
-                        pass
-                    else:
-                        outputFile.write(" -dir ")
-                        outputFile.write('"')
-                        outputFile.write(str(self.outDirEdit))
-                        outputFile.write('"')
-
-                if self.tempListLbl == True:
-                    if self.tempListEdit == "":
+                if self.tempListLbl.isChecked():
+                    if self.tempListEdit.text() == "":
                         pass
                     else:
                         outputFile.write(" -mc3 ")
-                        outputFile.write(str(self.tempListEdit))
+                        outputFile.write(str(self.tempListEdit.text()))
 
-                if self.maxRetLbl == True:
-                    if self.maxRetEdit == "":
+                if self.maxRetLbl.isChecked():
+                    if self.maxRetEdit.text() == "":
                         pass
                     else:
                         outputFile.write(" -mr ")
-                        outputFile.write(str(self.maxRetEdit))
+                        outputFile.write(str(self.maxRetEdit.text()))
 
-                if self.taxamapLbl == True:
+                if self.taxamapLbl.isChecked():
                     if len(self.taxamap) == 0:
                         pass
                     else:
@@ -1241,27 +1034,27 @@ class MCMCSEQPage4(QWizardPage):
                                 outputFile.write(taxon)
                         outputFile.write(">")
 
-                if self.popSizeLbl == True:
-                    if self.popSizeEdit == "":
+                if self.popSizeLbl.isChecked():
+                    if self.popSizeEdit.text() == "":
                         pass
                     else:
                         outputFile.write(" -fixps ")
-                        outputFile.write(str(self.popSizeEdit))
+                        outputFile.write(str(self.popSizeEdit.text()))
 
-                if self.varypsLbl == True:
+                if self.varypsLbl.isChecked():
                     outputFile.write(" -varyps")
 
-                if self.ppLbl == True:
-                    if self.ppEdit == "":
+                if self.ppLbl.isChecked():
+                    if self.ppEdit.text() == "":
                         pass
                     else:
                         outputFile.write(" -pp ")
-                        outputFile.write(str(self.ppEdit))
+                        outputFile.write(str(self.ppEdit.text()))
 
-                if self.ddLbl == True:
+                if self.ddLbl.isChecked():
                     outputFile.write(" -dd")
 
-                if self.eeLbl == True:
+                if self.eeLbl.isChecked():
                     outputFile.write(" -ee")
 
                 if self.sgtFileLbl.isChecked() and (self.sgtNexus.isChecked() or self.sgtNewick.isChecked()):
@@ -1274,21 +1067,21 @@ class MCMCSEQPage4(QWizardPage):
                     outputFile.write(")")
 
                 if self.sNetLbl.isChecked():
-                    if self.sNetEdit.text().isEmpty():
+                    if self.sNetEdit.text() == "":
                         pass
                     else:
                         outputFile.write(" -snet ")
                         outputFile.write(str(self.sNetEdit.text()))
 
                 if self.sPopLbl.isChecked():
-                    if self.sPopEdit.text().isEmpty():
+                    if self.sPopEdit.text() == "":
                         pass
                     else:
                         outputFile.write(" -sps ")
                         outputFile.write(str(self.sPopEdit.text()))
 
                 if self.preLbl.isChecked():
-                    if self.preEdit.text().isEmpty():
+                    if self.preEdit.text() == "":
                         pass
                     else:
                         outputFile.write(" -pre ")
@@ -1335,15 +1128,8 @@ class MCMCSEQPage4(QWizardPage):
             self.validateFile(path)
             #clears inputs if they are validated      
             if self.isValidated:
-                self.inputFiles = []
-                self.taxamap = {}
-                self.sequenceFileEdit = ""
-                self.loci = {}
-                self.nchar = 0
-                self.taxa_names = set([])
-                self.ListOfDiploid = []
-                self.sgtFiles = []
-                self.sgtFileEdit.clear()
+                self.clear()
+                self.generated.emit(True)
                 self.successMessage()
 
         except emptyFileError:
@@ -1358,9 +1144,61 @@ class MCMCSEQPage4(QWizardPage):
             QMessageBox.warning(self, "Warning", str(e), QMessageBox.Ok)
             return
 
+    def clear(self):
+        """
+        CLear page's field
+        """
+        self.inputFiles = []
+        self.loci = {}
+        self.nchar = 0
+        self.taxa_names = set([])
+
+        self.taxamap = {}
+        self.sgtFiles = []
+        self.ListOfDiploid = []
+
+        self.nexus.setChecked(False)
+        self.fasta.setChecked(False)
+        self.sequenceFileEdit.clear()
+        self.numReticulationsEdit.clear()
+
+        self.chainLengthLbl.setChecked(False)
+        self.chainLengthEdit.clear()
+        self.burnInLengthLbl.setChecked(False)
+        self.burnInLengthEdit.clear()
+        self.sampleFrequencyLbl.setChecked(False)
+        self.sampleFrequencyEdit.clear()
+        self.seedLbl.setChecked(False)
+        self.seedEdit.clear()
+        self.numProcLbl.setChecked(False)
+        self.numProcEdit.clear()
+        self.tempListLbl.setChecked(False)
+        self.tempListEdit.clear()
+
+        self.maxRetLbl.setChecked(False)
+        self.maxRetEdit.clear()
+        self.taxamapLbl.setChecked(False)
+        self.popSizeLbl.setChecked(False)
+        self.popSizeEdit.clear()
+        self.varypsLbl.setChecked(False)
+        self.ppLbl.setChecked(False)
+        self.ppEdit.clear()
+        self.ddLbl.setChecked(False)
+        self.eeLbl.setChecked(False)
+
+        self.sgtFileLbl.setChecked(False)
+        self.sgtFileEdit.clear()
+        self.sNetLbl.setChecked(False)
+        self.sNetEdit.clear()
+        self.sPopLbl.setChecked(False)
+        self.sPopEdit.clear()
+        self.preLbl.setChecked(False)
+        self.preEdit.clear()
+        self.gtrLbl.setChecked(False)
+        self.diploidLbl.setChecked(False) 
+
     def successMessage(self):
         msg = QDialog()
-        msg.setStyleSheet("QDialog{min-width: 500px; min-height: 500px;}")
         msg.setWindowTitle("Phylonet") 
         msg.setWindowIcon(QIcon("logo.png"))
         flags = QtCore.Qt.WindowFlags(QtCore.Qt.CustomizeWindowHint | QtCore.Qt.WindowCloseButtonHint )
@@ -1403,8 +1241,7 @@ class MCMCSEQPage4(QWizardPage):
             QMessageBox.warning(self, "Warning", msg, QMessageBox.Ok)
 
 if __name__ == '__main__':
-    app = QtWidgets.QApplication(sys.argv)
-    app.setStyleSheet(style)
-    ex = MCMCSEQPage1()
+    app = QApplication(sys.argv)
+    ex = MCMCSEQPage()
     ex.show()
     sys.exit(app.exec_())
