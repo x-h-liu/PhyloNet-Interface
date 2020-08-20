@@ -13,6 +13,7 @@ from module import taxaList
 
 inputFiles = []
 
+
 class MCMCBiMarkersPage(QMainWindow):
     def __init__(self):
         super(MCMCBiMarkersPage, self).__init__()
@@ -120,7 +121,8 @@ class MCMCBiMarkersPage(QMainWindow):
         self.chainLengthLbl.setObjectName("-cl")
         self.chainLengthLbl.stateChanged.connect(self.onChecked)
 
-        self.burnInLbl = QCheckBox("The number of iterations in burn-in period:")
+        self.burnInLbl = QCheckBox(
+            "The number of iterations in burn-in period:")
         self.burnInLbl.setObjectName("-bl")
         self.burnInLbl.stateChanged.connect(self.onChecked)
 
@@ -132,44 +134,53 @@ class MCMCBiMarkersPage(QMainWindow):
         self.seedLbl.setObjectName("-sd")
         self.seedLbl.stateChanged.connect(self.onChecked)
 
-        self.parThreadLbl = QCheckBox("The number of threads running in parallel:")
+        self.parThreadLbl = QCheckBox(
+            "The number of threads running in parallel:")
         self.parThreadLbl.setObjectName("-pl")
         self.parThreadLbl.stateChanged.connect(self.onChecked)
 
         MC3SettingLbl = QLabel("MC3 Settings")
         MC3SettingLbl.setFont(settingLblFont)
 
-        self.tempListLbl = QCheckBox("The list of temperatures for the Metropolis-coupled MCMC chains:")
+        self.tempListLbl = QCheckBox(
+            "The list of temperatures for the Metropolis-coupled MCMC chains:")
         self.tempListLbl.setObjectName("-mc3")
         self.tempListLbl.stateChanged.connect(self.onChecked)
 
         inferenceSettingLbl = QLabel("Inference Settings")
         inferenceSettingLbl.setFont(settingLblFont)
 
-        self.maxRetLbl = QCheckBox("The maximum number of reticulation nodes in the sampled phylogenetic networks:")
+        self.maxRetLbl = QCheckBox(
+            "The maximum number of reticulation nodes in the sampled phylogenetic networks:")
         self.maxRetLbl.setObjectName("-mr")
         self.maxRetLbl.stateChanged.connect(self.onChecked)
 
-        self.taxamapLbl = QCheckBox("Gene tree / species tree taxa association:")
+        self.taxamapLbl = QCheckBox(
+            "Gene tree / species tree taxa association:")
         self.taxamapLbl.setObjectName("-tm")
         self.taxamapLbl.stateChanged.connect(self.onChecked)
 
-        self.thetaLbl = QCheckBox("Fix the population mutation rates associated with all branches to this given value:")
+        self.thetaLbl = QCheckBox(
+            "Fix the population mutation rates associated with all branches to this given value:")
         self.thetaLbl.setObjectName("-fixtheta")
         self.thetaLbl.stateChanged.connect(self.onChecked)
 
-        self.varyThetaLbl = QCheckBox("The population mutation rates across all branches may be different.")
+        self.varyThetaLbl = QCheckBox(
+            "The population mutation rates across all branches may be different.")
 
-        self.espThetaLbl = QCheckBox("Estimate the mean value of prior of population mutation rates.")
+        self.espThetaLbl = QCheckBox(
+            "Estimate the mean value of prior of population mutation rates.")
 
         priorSettingLbl = QLabel("Prior Settings")
         priorSettingLbl.setFont(settingLblFont)
 
-        self.ppLbl = QCheckBox("The Poisson parameter in the prior on the number of reticulation nodes:")
+        self.ppLbl = QCheckBox(
+            "The Poisson parameter in the prior on the number of reticulation nodes:")
         self.ppLbl.setObjectName("-pp")
         self.ppLbl.stateChanged.connect(self.onChecked)
 
-        self.ddLbl = QCheckBox("Disable the prior on the diameters of hybridizations.")
+        self.ddLbl = QCheckBox(
+            "Disable the prior on the diameters of hybridizations.")
 
         self.eeLbl = QCheckBox("The Exponential parameter in the prior on the divergence times of nodes in the "
                                "phylogenetic network:")
@@ -183,7 +194,8 @@ class MCMCBiMarkersPage(QMainWindow):
         self.sNetLbl.setObjectName("-snet")
         self.sNetLbl.stateChanged.connect(self.onChecked)
 
-        self.startingThetaPriorLbl = QCheckBox("Specify the mean value of prior of population mutation rate:")
+        self.startingThetaPriorLbl = QCheckBox(
+            "Specify the mean value of prior of population mutation rate:")
         self.startingThetaPriorLbl.setObjectName("-ptheta")
         self.startingThetaPriorLbl.stateChanged.connect(self.onChecked)
 
@@ -192,7 +204,8 @@ class MCMCBiMarkersPage(QMainWindow):
 
         self.diploidLbl = QCheckBox("Sequence sampled from diploids.")
 
-        self.dominantMarkerLbl = QCheckBox("Specify which marker is dominant if the data is dominant:")
+        self.dominantMarkerLbl = QCheckBox(
+            "Specify which marker is dominant if the data is dominant:")
         self.dominantMarkerLbl.setObjectName("-dominant")
         self.dominantMarkerLbl.stateChanged.connect(self.onChecked)
 
@@ -227,6 +240,7 @@ class MCMCBiMarkersPage(QMainWindow):
         self.maxRetEdit.setPlaceholderText("4")
 
         self.taxamapEdit = QPushButton("Set taxa map")
+        self.taxamapEdit.setObjectName("setTaxaMap")
         self.taxamapEdit.setDisabled(True)
         self.taxamapEdit.clicked.connect(self.getTaxamap)
 
@@ -415,7 +429,8 @@ class MCMCBiMarkersPage(QMainWindow):
         topLevelLayout.addLayout(startingThetaPriorLayout)
 
         topLevelLayout.addWidget(dataRelatedSettingLbl)
-        topLevelLayout.setAlignment(dataRelatedSettingLbl, QtCore.Qt.AlignCenter)
+        topLevelLayout.setAlignment(
+            dataRelatedSettingLbl, QtCore.Qt.AlignCenter)
         topLevelLayout.addLayout(diploidLayout)
         topLevelLayout.addLayout(dominantMarkerLayout)
         topLevelLayout.addLayout(opLayout)
@@ -446,7 +461,8 @@ class MCMCBiMarkersPage(QMainWindow):
         return o
 
     def aboutMessage(self):
-        QMessageBox.information(self, "About PhyloNet", "I should put something here.")
+        QMessageBox.information(self, "About PhyloNet",
+                                "I should put something here.")
 
     def onChecked(self):
         """
@@ -551,47 +567,53 @@ class MCMCBiMarkersPage(QMainWindow):
         inputFiles.clear()
 
         if str(self.dataFormatEdit.currentText()) == ".nexus":
-            fname = QFileDialog.getOpenFileNames(self, 'Open file', '/', 'Nexus files (*.nexus *.nex);;Fasta files (*.fasta)')
+            fname = QFileDialog.getOpenFileNames(
+                self, 'Open file', '/', 'Nexus files (*.nexus *.nex);;Fasta files (*.fasta)')
         elif str(self.dataFormatEdit.currentText()) == ".fasta":
-            fname = QFileDialog.getOpenFileNames(self, 'Open file', '/', 'Fasta files (*.fasta);;Nexus files (*.nexus *.nex)')
+            fname = QFileDialog.getOpenFileNames(
+                self, 'Open file', '/', 'Fasta files (*.fasta);;Nexus files (*.nexus *.nex)')
 
         if fname:
             fileType = fname[1]
             if str(self.dataFormatEdit.currentText()) == ".nexus":
                 if fileType != 'Nexus files (*.nexus *.nex)':
-                    QMessageBox.warning(self, "Warning", "Please upload only .nexus or .nex files", QMessageBox.Ok)
+                    QMessageBox.warning(
+                        self, "Warning", "Please upload only .nexus or .nex files", QMessageBox.Ok)
                 else:
                     for oneFile in fname[0]:
                         # Bi-allelic marker data should be read in as Standard Character Matrix
                         if str(self.dataTypeEdit.currentText()) == "bi-allelic markers data":
                             self.data = dendropy.StandardCharacterMatrix.get(path=str(oneFile), schema="nexus",
-                                                                                preserve_underscores=True)
+                                                                             preserve_underscores=True)
                             self.sequenceFileEdit.setText(oneFile)
                             self.taxaList = []
                             self.taxamap = {}
-                                
+
                             # Other data are DNA Character Matrix
                         else:
                             self.data = dendropy.DnaCharacterMatrix.get(path=str(oneFile), schema="nexus",
-                                                                            preserve_underscores=True)
+                                                                        preserve_underscores=True)
                             self.sequenceFileEdit.setText(oneFile)
                             self.taxaList = []
                             self.taxamap = {}
-                            
+
             elif str(self.dataFormatEdit.currentText()) == ".fasta":
                 if fileType != 'Fasta files (*.fasta)':
-                    QMessageBox.warning(self, "Warning", "Please upload only .fasta files", QMessageBox.Ok)
+                    QMessageBox.warning(
+                        self, "Warning", "Please upload only .fasta files", QMessageBox.Ok)
                 else:
                     for oneFile in fname[0]:
                         # Bi-allelic marker data should be read in as Standard Character Matrix
                         if str(self.dataTypeEdit.currentText()) == "bi-allelic markers data":
-                            self.data = dendropy.StandardCharacterMatrix.get(path=str(oneFile), schema="fasta")
+                            self.data = dendropy.StandardCharacterMatrix.get(
+                                path=str(oneFile), schema="fasta")
                             self.sequenceFileEdit.setText(oneFile)
                             self.taxaList = []
                             self.taxamap = {}
                             # Other data are DNA Character Matrix
                         else:
-                            self.data = dendropy.DnaCharacterMatrix.get(path=str(oneFile), schema="fasta")
+                            self.data = dendropy.DnaCharacterMatrix.get(
+                                path=str(oneFile), schema="fasta")
                             self.sequenceFileEdit.setText(oneFile)
                             self.taxaList = []
                             self.taxamap = {}
@@ -631,11 +653,13 @@ class MCMCBiMarkersPage(QMainWindow):
                     for taxon in self.data.taxon_namespace:
                         self.taxaList.append(taxon.label)
 
-                dialog = taxaList.TaxaListDlg(self.data.taxon_namespace, self.taxaList, self)
+                dialog = taxaList.TaxaListDlg(
+                    self.data.taxon_namespace, self.taxaList, self)
                 if dialog.exec_():
                     self.taxaList = dialog.getTaxaList()
         except emptyFileError:
-            QMessageBox.warning(self, "Warning", "Please upload data first!", QMessageBox.Ok)
+            QMessageBox.warning(
+                self, "Warning", "Please upload data first!", QMessageBox.Ok)
             return
 
     def getTaxamap(self):
@@ -671,12 +695,14 @@ class MCMCBiMarkersPage(QMainWindow):
                     for taxon in self.data.taxon_namespace:
                         self.taxamap[taxon.label] = taxon.label
 
-                dialog = TaxamapDlg.TaxamapDlg(self.data.taxon_namespace, self.taxamap, self)
+                dialog = TaxamapDlg.TaxamapDlg(
+                    self.data.taxon_namespace, self.taxamap, self)
                 if dialog.exec_():
                     self.taxamap = dialog.getTaxamap()
 
         except emptyFileError:
-            QMessageBox.warning(self, "Warning", "Please upload data first!", QMessageBox.Ok)
+            QMessageBox.warning(
+                self, "Warning", "Please upload data first!", QMessageBox.Ok)
             return
 
     def __phasing(self, dnaMatrix):
@@ -721,8 +747,10 @@ class MCMCBiMarkersPage(QMainWindow):
                     else:
                         # If there is an ambiguity symbol, randomly assign one nucleotide belonging to that ambiguity
                         # code to each taxon.
-                        phased[taxon.label + "_0"] += ambiguity_code[str(dnaMatrix[taxon][i])][0]
-                        phased[taxon.label + "_1"] += ambiguity_code[str(dnaMatrix[taxon][i])][1]
+                        phased[taxon.label +
+                               "_0"] += ambiguity_code[str(dnaMatrix[taxon][i])][0]
+                        phased[taxon.label +
+                               "_1"] += ambiguity_code[str(dnaMatrix[taxon][i])][1]
 
         return phased
 
@@ -771,7 +799,8 @@ class MCMCBiMarkersPage(QMainWindow):
             if len(self.taxaList) == 0:
                 raise taxaListEmptyError
 
-            path = "intermediate/" + str(datetime.datetime.now().strftime('%H-%M-%S')) + ".nexus"
+            path = "intermediate/" + \
+                str(datetime.datetime.now().strftime('%H-%M-%S')) + ".nexus"
 
             with open(path, "a") as outputFile:
                 outputFile.write("#NEXUS\n")
@@ -787,7 +816,8 @@ class MCMCBiMarkersPage(QMainWindow):
                 outputFile.write(" nchar=")
                 outputFile.write(str(len(self.data[0])))
                 outputFile.write(";\n")
-                outputFile.write('Format datatype=dna symbols="012" missing=? gap=-;\n')
+                outputFile.write(
+                    'Format datatype=dna symbols="012" missing=? gap=-;\n')
                 outputFile.write("Matrix\n\n")
 
                 # If data is bi-allelic markers, simply write out the data.
@@ -809,7 +839,8 @@ class MCMCBiMarkersPage(QMainWindow):
                 # bi-allelic markers, and then write out.
                 elif str(self.dataTypeEdit.currentText()) == "unphased data":
                     phased = self.__phasing(self.data)
-                    bimarkers = self.__phasedToBi(dendropy.DnaCharacterMatrix.from_dict(phased))
+                    bimarkers = self.__phasedToBi(
+                        dendropy.DnaCharacterMatrix.from_dict(phased))
                     for taxon in bimarkers:
                         outputFile.write(taxon)
                         outputFile.write(" ")
@@ -883,7 +914,8 @@ class MCMCBiMarkersPage(QMainWindow):
                         for firstSpecies in speciesToTaxonMap:
                             outputFile.write(firstSpecies)
                             outputFile.write(":")
-                            outputFile.write(speciesToTaxonMap[firstSpecies][0])
+                            outputFile.write(
+                                speciesToTaxonMap[firstSpecies][0])
                             for taxon in speciesToTaxonMap[firstSpecies][1:]:
                                 outputFile.write(",")
                                 outputFile.write(taxon)
@@ -941,14 +973,16 @@ class MCMCBiMarkersPage(QMainWindow):
                         pass
                     else:
                         outputFile.write(" -ptheta ")
-                        outputFile.write(str(self.startingThetaPriorEdit.text()))
+                        outputFile.write(
+                            str(self.startingThetaPriorEdit.text()))
 
                 if self.diploidLbl.isChecked():
                     outputFile.write(" -diploid")
 
                 if self.dominantMarkerLbl.isChecked():
                     outputFile.write(" -dominant ")
-                    outputFile.write(str(self.dominantMarkerEdit.currentText()))
+                    outputFile.write(
+                        str(self.dominantMarkerEdit.currentText()))
 
                 if self.opLbl.isChecked():
                     outputFile.write(" -op")
@@ -961,10 +995,12 @@ class MCMCBiMarkersPage(QMainWindow):
             # Validate the generated file.
             self.validateFile(path)
         except emptyFileError:
-            QMessageBox.warning(self, "Warning", "Please upload data first!", QMessageBox.Ok)
+            QMessageBox.warning(
+                self, "Warning", "Please upload data first!", QMessageBox.Ok)
             return
         except taxaListEmptyError:
-            QMessageBox.warning(self, "Warning", "Please select taxa used for inference!", QMessageBox.Ok)
+            QMessageBox.warning(
+                self, "Warning", "Please select taxa used for inference!", QMessageBox.Ok)
             return
         except Exception as e:
             QMessageBox.warning(self, "Warning", str(e), QMessageBox.Ok)

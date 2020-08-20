@@ -33,6 +33,7 @@ def resource_path(relative_path):
 
 class Launcher(QtWidgets.QWizard):
 
+
     Page_Intro = 1
     Page_BiAllelic = 2
     Page_DirectInf = 3
@@ -109,16 +110,15 @@ class Launcher(QtWidgets.QWizard):
         """
          GUI.
         """
-        # set window title and label
-        self.setWindowTitle("Phylonet")
+        #set window title and label
+        self.setWindowTitle("Phylonet") 
         self.setWindowIcon(QIcon("module/logo.png"))
-        # set maximize and minimize options
-        flags = QtCore.Qt.WindowFlags(QtCore.Qt.CustomizeWindowHint | QtCore.Qt.WindowCloseButtonHint
-                                      | QtCore.Qt.WindowMaximizeButtonHint | QtCore.Qt.WindowMinimizeButtonHint)
-        #flags = QtCore.Qt.FramelessWindowHint
+        #set maximize and minimize options
+        flags = QtCore.Qt.WindowFlags(QtCore.Qt.CustomizeWindowHint | QtCore.Qt.WindowCloseButtonHint 
+                    | QtCore.Qt.WindowMinimizeButtonHint)
         self.setWindowFlags(flags)
         self.setModal(1)
-        self.resize(1300, 1100)
+
 
     def nextId(self):
         id = self.currentId()
@@ -172,10 +172,10 @@ class Launcher(QtWidgets.QWizard):
         else:
             return -1
 
-
 class IntroPage(QtWidgets.QWizardPage):
     def __init__(self, parent=Launcher):
         super(IntroPage, self).__init__()
+
         self.initUI()
 
     def initUI(self):
@@ -199,20 +199,23 @@ class IntroPage(QtWidgets.QWizardPage):
         self.inputOption2.toggled.connect(self.onChecked)
         self.inputOption3.toggled.connect(self.onChecked)
 
+      #  self.alignBox.setFont(checkBoxFont)
+      #  self.biAllelicBox.setFont(checkBoxFont)  # Font of two checkboxes.
+
         # Layouts
         # Main vertical layout.
         vbox = QtWidgets.QVBoxLayout()
         vbox.setObjectName("vbox")
-        vbox.setSpacing(30)
 
-        # info button gotta go
-        # vbox.addWidget(getInfoButton(self))
         vbox.addWidget(questionLabel)
-        vbox.addWidget(self.inputOption1, alignment=QtCore.Qt.AlignCenter)
-        vbox.addWidget(self.inputOption2, alignment=QtCore.Qt.AlignCenter)
-        vbox.addWidget(self.inputOption3, alignment=QtCore.Qt.AlignCenter)
+        vbox.addWidget(self.inputOption1)
+        vbox.addWidget(self.inputOption2)
+        vbox.addWidget(self.inputOption3)
 
         self.setLayout(vbox)
+
+        self.setWindowTitle('PhyloNetNEXGenerator')
+        self.setWindowIcon(QtGui.QIcon(resource_path("logo.png")))
 
     def onChecked(self):
         """
@@ -220,10 +223,22 @@ class IntroPage(QtWidgets.QWizardPage):
         """
         self.invisButton.setCheckState(True)
 
+    def link(self, linkStr):
+        """
+        Open the website of PhyloNet if user clicks on the hyperlink.
+        """
+        QDesktopServices.openUrl(QtCore.QUrl(linkStr))
+
     def aboutMessage(self):
-        msg = QMessageBox()
-        msg.setIcon(QMessageBox.Information)
-        msg.setText("PhyloNet is a tool designed mainly for analyzing, "
+        msg = QDialog()
+        msg.setWindowTitle("Phylonet") 
+        msg.setWindowIcon(QIcon("logo.png"))
+        flags = QtCore.Qt.WindowFlags(QtCore.Qt.CustomizeWindowHint | QtCore.Qt.WindowCloseButtonHint )
+        msg.setWindowFlags(flags)
+        msg.setObjectName("aboutMessage")
+
+        vbox = QVBoxLayout()
+        text = QLabel("PhyloNet is a tool designed mainly for analyzing, "
                     "reconstructing, and evaluating reticulate "
                     "(or non-treelike) evolutionary relationships, "
                     "generally known as phylogenetic networks. Various "
@@ -233,15 +248,24 @@ class IntroPage(QtWidgets.QWizardPage):
                     "phylogenetic tree analysis. PhyloNet is released under "
                     "the GNU General Public License. \n\nPhyloNet is designed, "
                     "implemented, and maintained by Rice's BioInformatics Group, "
-                    "which is lead by Professor Luay Nakhleh (nakhleh@cs.rice.edu). "
-                    "For more details related to this group please visit "
-                    "http://bioinfo.cs.rice.edu.")
-        font = QFont()
-        font.setPointSize(13)
-        font.setFamily("Times New Roman")
-        font.setBold(False)
+                    "which is lead by Professor Luay Nakhleh (nakhleh@cs.rice.edu). ")
 
-        msg.setFont(font)
+        text.setWordWrap(True)
+        text.setStyleSheet("padding: 60px 100px 10px 100px;")
+        
+        hyperlink = QLabel()
+        hyperlink.setText('For more details related to this group please visit '
+                          '<a href="http://bioinfo.cs.rice.edu" style="color: #55ddff;">'
+                          'http://bioinfo.cs.rice.edu</a>.')
+        hyperlink.linkActivated.connect(self.link)
+        hyperlink.setStyleSheet("padding: 10px 100px 80px 100px ;")
+
+        buttonBox = QDialogButtonBox(QDialogButtonBox.Ok)
+        buttonBox.clicked.connect(msg.accept)
+        vbox.addWidget(text)
+        vbox.addWidget(hyperlink)
+        vbox.addWidget(buttonBox)
+        msg.setLayout(vbox)
         msg.exec_()
 
 
@@ -254,6 +278,5 @@ if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)
     app.setStyleSheet(style)
     ex = Launcher()
-    #ex.resize(1266, 982)
     ex.show()
     sys.exit(app.exec_())

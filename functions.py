@@ -13,7 +13,7 @@ def titleHeader(commandName):
 
     return titleLabel
 
-#these might all be obsolete now
+#
 
 
 def lineSeparator(self):
@@ -40,4 +40,3 @@ def getInfoButton(self):
     infoButton.clicked.connect(self.aboutMessage)
 
     return infoButton
-
