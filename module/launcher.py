@@ -37,23 +37,10 @@ class Launcher(QtWidgets.QWizard):
     Page_BiAllelic = 2
     Page_DirectInf = 3
     Page_GeneTreeEst = 4
-    Page_DirectInf2 = 5
-    Page_DirectInf3 = 6
-    Page_DirectInf4 = 7
-    Page_NetworkMP = 8
-    Page_NetworkMP2 = 9
-    Page_NetworkMP3 = 10
-    Page_NetworkML = 11
-    Page_NetworkML2 = 12
-    Page_NetworkML3 = 13
-    Page_NetworkML4 = 14
-    Page_NetworkMPL = 15
-    Page_NetworkMPL2 = 16
-    Page_NetworkMPL3 = 17
-    Page_NetworkMPL4 = 18
-    Page_MCMCGT = 19
-    Page_MCMCGT2 = 20
-    Page_MCMCGT3 = 21
+    Page_NetworkMP = 5
+    Page_NetworkML = 6
+    Page_NetworkMPL = 7
+    Page_MCMCGT = 8
 
     def __init__(self):
         super(Launcher, self).__init__()
@@ -62,63 +49,50 @@ class Launcher(QtWidgets.QWizard):
                                 QtWidgets.QTextEdit.textChanged)
         self.Intro = IntroPage()
         self.BiAllelic = BiAllelicMethodsPage.BiAllelicMethodsPage()
-        self.DirectInf = MCMCSEQ.MCMCSEQPage1(parent=self)
-        self.DirectInf2 = MCMCSEQ.MCMCSEQPage2()
-        self.DirectInf3 = MCMCSEQ.MCMCSEQPage3()
-        self.DirectInf4 = MCMCSEQ.MCMCSEQPage4()
+        self.DirectInf = MCMCSEQ.MCMCSEQPage()
         self.GeneTreeEst = TreeMethodsPage.TreeMethodsPage()
         self.NetworkMP = NetworkMP.NetworkMPPage()
-        self.NetworkMP2 = NetworkMP.NetworkMPPage2()
-        self.NetworkMP3 = NetworkMP.NetworkMPPage3()
         self.NetworkML = NetworkML.NetworkMLPage()
-        self.NetworkML2 = NetworkML.NetworkMLPage2()
-        self.NetworkML3 = NetworkML.NetworkMLPage3()
-        self.NetworkML4 = NetworkML.NetworkMLPage4()
         self.NetworkMPL = NetworkMPL.NetworkMPLPage()
-        self.NetworkMPL2 = NetworkMPL.NetworkMPLPage2()
-        self.NetworkMPL3 = NetworkMPL.NetworkMPLPage3()
-        self.NetworkMPL4 = NetworkMPL.NetworkMPLPage4()
         self.MCMCGT = MCMCGT.MCMCGTPage()
-        self.MCMCGT2 = MCMCGT.MCMCGTPage2()
-        self.MCMCGT3 = MCMCGT.MCMCGTPage3()
 
         self.setPage(self.Page_Intro, self.Intro)
         self.setPage(self.Page_DirectInf, self.DirectInf)
-        self.setPage(self.Page_DirectInf2, self.DirectInf2)
-        self.setPage(self.Page_DirectInf3, self.DirectInf3)
         self.setPage(self.Page_BiAllelic, self.BiAllelic)
         self.setPage(self.Page_GeneTreeEst, self.GeneTreeEst)
-        self.setPage(self.Page_DirectInf4, self.DirectInf4)
         self.setPage(self.Page_NetworkMP, self.NetworkMP)
         self.setPage(self.Page_NetworkML, self.NetworkML)
         self.setPage(self.Page_NetworkMPL, self.NetworkMPL)
         self.setPage(self.Page_MCMCGT, self.MCMCGT)
-        self.setPage(self.Page_NetworkMP2, self.NetworkMP2)
-        self.setPage(self.Page_NetworkML2, self.NetworkML2)
-        self.setPage(self.Page_NetworkMPL2, self.NetworkMPL2)
-        self.setPage(self.Page_NetworkML3, self.NetworkML3)
-        self.setPage(self.Page_NetworkML4, self.NetworkML4)
-        self.setPage(self.Page_NetworkMP3, self.NetworkMP3)
-        self.setPage(self.Page_NetworkMPL3, self.NetworkMPL3)
-        self.setPage(self.Page_NetworkMPL4, self.NetworkMPL4)
-        self.setPage(self.Page_MCMCGT2, self.MCMCGT2)
-        self.setPage(self.Page_MCMCGT3, self.MCMCGT3)
         self.initUI()
 
     def initUI(self):
         """
          GUI.
         """
-        # set window title and label
-        self.setWindowTitle("Phylonet")
+        #set window title and label
+        self.setWindowTitle("Phylonet") 
         self.setWindowIcon(QIcon("module/logo.png"))
-        # set maximize and minimize options
-        flags = QtCore.Qt.WindowFlags(QtCore.Qt.CustomizeWindowHint | QtCore.Qt.WindowCloseButtonHint
-                                      | QtCore.Qt.WindowMaximizeButtonHint | QtCore.Qt.WindowMinimizeButtonHint)
+        #set maximize and minimize options
+        flags = QtCore.Qt.WindowFlags(QtCore.Qt.CustomizeWindowHint | QtCore.Qt.WindowCloseButtonHint 
+                    | QtCore.Qt.WindowMaximizeButtonHint | QtCore.Qt.WindowMinimizeButtonHint)
         #flags = QtCore.Qt.FramelessWindowHint
         self.setWindowFlags(flags)
         self.setModal(1)
-        self.resize(1300, 1100)
+        #self.resize(1300, 1100)
+        self.setMinimumSize(1300, 1100)
+        bLayout = [QWizard.Stretch, QWizard.NextButton, QWizard.CustomButton1, QWizard.CustomButton2, QWizard.CancelButton, QWizard.BackButton]
+        self.setButtonLayout(bLayout)
+
+        #set custom button options
+        self.setOption(QWizard.HaveCustomButton1, True)
+        self.setOption(QWizard.HaveCustomButton2, True)
+
+        self.setButtonText(QWizard.CustomButton1, "&Use Again")
+        self.button(QWizard.CustomButton1).setVisible(False)
+  
+        self.setButtonText(QWizard.CustomButton2, "&Finish")
+        self.button(QWizard.CustomButton2).setVisible(False)
 
     def nextId(self):
         id = self.currentId()
@@ -132,12 +106,6 @@ class Launcher(QtWidgets.QWizard):
             else:
                 # Page doesn't matter, just can't be finish, this way the next button still has an "id"
                 return self.Page_DirectInf
-        elif id == Launcher.Page_DirectInf:
-            return self.Page_DirectInf2
-        elif id == Launcher.Page_DirectInf2:
-            return self.Page_DirectInf3
-        elif id == Launcher.Page_DirectInf3:
-            return self.Page_DirectInf4
         elif id == Launcher.Page_GeneTreeEst:
             if self.GeneTreeEst.methods1.isChecked():
                 return self.Page_NetworkMP
@@ -149,26 +117,6 @@ class Launcher(QtWidgets.QWizard):
                 return self.Page_MCMCGT
             else:
                 return self.Page_NetworkMP  # Like above doesn't matter, cant be finish
-        elif id == Launcher.Page_NetworkMP:
-            return self.Page_NetworkMP2
-        elif id == Launcher.Page_NetworkML:
-            return self.Page_NetworkML2
-        elif id == Launcher.Page_NetworkML2:
-            return self.Page_NetworkML3
-        elif id == Launcher.Page_NetworkML3:
-            return self.Page_NetworkML4
-        elif id == Launcher.Page_NetworkMP2:
-            return self.Page_NetworkMP3
-        elif id == Launcher.Page_NetworkMPL:
-            return self.Page_NetworkMPL2
-        elif id == Launcher.Page_NetworkMPL2:
-            return self.Page_NetworkMPL3
-        elif id == Launcher.Page_NetworkMPL3:
-            return self.Page_NetworkMPL4
-        elif id == Launcher.Page_MCMCGT:
-            return self.Page_MCMCGT2
-        elif id == Launcher.Page_MCMCGT2:
-            return self.Page_MCMCGT3
         else:
             return -1
 
@@ -205,8 +153,8 @@ class IntroPage(QtWidgets.QWizardPage):
         vbox.setObjectName("vbox")
         vbox.setSpacing(30)
 
-        # info button gotta go
-        # vbox.addWidget(getInfoButton(self))
+        #info button gotta go
+        #vbox.addWidget(getInfoButton(self))
         vbox.addWidget(questionLabel)
         vbox.addWidget(self.inputOption1, alignment=QtCore.Qt.AlignCenter)
         vbox.addWidget(self.inputOption2, alignment=QtCore.Qt.AlignCenter)
@@ -248,7 +196,6 @@ class IntroPage(QtWidgets.QWizardPage):
 def openModule(self):
     self.nexGenerator = module.launcher.Launcher()
     self.nexGenerator.show()
-
 
 if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)

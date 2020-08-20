@@ -13,7 +13,7 @@ def titleHeader(commandName):
 
     return titleLabel
 
-#
+#The rest of these functions might be superfluous
 
 
 def lineSeparator(self):

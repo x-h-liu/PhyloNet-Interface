@@ -2,7 +2,9 @@ import sys
 import os
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
-from PyQt5 import QtCore
+from PyQt5 import QtWidgets, QtCore
+from PyQt5.QtCore import Qt, pyqtSignal, pyqtSlot
+from PyQt5.QtGui import QIcon, QPixmap
 import dendropy
 import datetime
 import subprocess
@@ -12,9 +14,6 @@ from module import TaxamapDlg
 from functions import *
 
 
-inputFiles = []
-geneTreeNames = []
-taxamap = {}
 
 def resource_path(relative_path):
     """
@@ -27,33 +26,87 @@ def resource_path(relative_path):
         return os.path.join(sys._MEIPASS, relative_path)
     return os.path.join(os.path.abspath("."), relative_path)
 
-
 class MCMCGTPage(QWizardPage):
+    #set signals for page
+    restarted = QtCore.pyqtSignal(bool)
+    generated = QtCore.pyqtSignal(bool)
+    def initializePage(self):
+        #get the wizard buttons
+        again_button = self.wizard().button(QWizard.CustomButton1)
+        finish_button = self.wizard().button(QWizard.CustomButton2)
+        back_button = self.wizard().button(QWizard.BackButton)
+        
+        self.generated.connect(lambda : again_button.setVisible(True))
+        self.generated.connect(lambda : finish_button.setVisible(True))
+        self.generated.connect(lambda : self.wizard().button(QWizard.CancelButton).setVisible(False))
+
+        #close if finish button is clicked
+        finish_button.clicked.connect(lambda : self.wizard().close())
+
+        #take the user back to first page if use again is clicked
+        #and hide the wizard button
+        again_button.clicked.connect(lambda : self.tabWidget.setCurrentIndex(0))
+        again_button.clicked.connect(lambda : self.restarted.emit(True))
+
+        # in case back button is clicked while custom buttons are available
+        #hide custom buttons
+        back_button.clicked.connect(lambda: again_button.setVisible(False))
+        back_button.clicked.connect(lambda: finish_button.setVisible(False))
+
+        #if the user choosees to use again, hide custom buttons
+        #reintroduce cancel button
+        self.restarted.connect(lambda : again_button.setVisible(False))
+        self.restarted.connect(lambda: finish_button.setVisible(False))
+        self.restarted.connect(lambda : self.wizard().button(QWizard.CancelButton).setVisible(True))
+        self.restarted.connect(lambda : self.inspectInput())
+        
+        #if you're on last page and the bar is disabled restore buttons 'em
+        #edge case
+        if self.tabWidget.currentIndex() == self.TABS - 1:
+            again_button.setVisible(True)
+            finish_button.setVisible(True)
+
     def __init__(self):
         super(MCMCGTPage, self).__init__()
-
+        
         self.inputFiles = []
         self.geneTreeNames = []
         self.taxamap = {}
         self.multiTreesPerLocus = False
+        self.TABS = 3
 
+        self.isValidated = False
         self.initUI()
 
     def initUI(self):
-        """
-        Initialize GUI.
-        """
-
-        # Title (MCMC_GT)
         titleLabel = titleHeader("MCMC_GT")
 
         hyperlink = QLabel()
-        hyperlink.setText('Details of this method can be found '
-                          '<a href="https://wiki.rice.edu/confluence/display/PHYLONET/MCMC_GT">'
-                          'here</a>.')
+        hyperlink.setText('For more details '
+                          '<a style="" href="https://wiki.rice.edu/confluence/display/PHYLONET/MCMC_GT">'
+                          'click here</a>.')
         hyperlink.linkActivated.connect(self.link)
         hyperlink.setObjectName("detailsLink")
+        
+        head = QHBoxLayout()
+        head.setSpacing(0)
+        head.addWidget(titleLabel)
+        head.addWidget(hyperlink)
 
+        #title and help link, available on each page
+        pageLayout = QVBoxLayout()
+        pageLayout.addLayout(head)
+
+        #create tabs
+        self.tabWidget = QTabWidget(self)
+        self.tabWidget.tabBar().setShape(QTabBar.TriangularNorth)
+
+        self.tabWidget.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)
+
+        #create first    
+        tabOne = QWidget(self)
+        
+        #tab sub header
         instructionLabel = QLabel()
         instructionLabel.setText("Input data: Please Upload Gene tree files:\n(one file per locus)")
         instructionLabel.setObjectName("instructionLabel")  
@@ -68,15 +121,14 @@ class MCMCGTPage(QWizardPage):
         self.newick.stateChanged.connect(self.format)
 
         # Mandatory parameter inputs
-        self.geneTreesEditMCGT = QTextEdit()
-        self.geneTreesEditMCGT.setReadOnly(True)
-        self.registerField("geneTreesEditMCGT*", self.geneTreesEditMCGT, "plainText", self.geneTreesEditMCGT.textChanged)
-
+        self.geneTreesEdit = QTextEdit()
+        self.geneTreesEdit.textChanged.connect(self.inspectInput)
+        self.geneTreesEdit.setReadOnly(True)
+        #self.registerField("geneTreesEditTab*", self.geneTreesEditTab, "plainText", self.geneTreesEditTab.textChanged)
+        #self.geneTreesEdit.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         fileSelctionBtn = QToolButton()
         fileSelctionBtn.setText("Browse")
         fileSelctionBtn.clicked.connect(self.selectFile)
-        fileSelctionBtn.setToolTip(
-            "All trees in one file are considered to be from one locus.")
 
         # Layouts
         # Layout of each parameter (label and input)
@@ -85,140 +137,27 @@ class MCMCGTPage(QWizardPage):
         fileFormatLayout.addWidget(self.nexus)
         fileFormatLayout.addWidget(self.newick)
         geneTreeDataLayout = QHBoxLayout()
-        geneTreeDataLayout.addWidget(self.geneTreesEditMCGT)
+        geneTreeDataLayout.addWidget(self.geneTreesEdit)
         geneTreeDataLayout.addWidget(fileSelctionBtn)
 
-        geneTreeFileLayout = QVBoxLayout()
-        geneTreeFileLayout.addLayout(fileFormatLayout)
-        geneTreeFileLayout.addLayout(geneTreeDataLayout)
+        # Main layout for tab one
+        tabOneLayout = QVBoxLayout()
+        tabOneLayout.addLayout(fileFormatLayout)
+        tabOneLayout.addLayout(geneTreeDataLayout)
 
+        tabOne.setLayout(tabOneLayout)
 
-        # Main layout
-        topLevelLayout = QVBoxLayout()
-        topLevelLayout.addWidget(titleLabel)
-        topLevelLayout.addWidget(hyperlink)
-        topLevelLayout.addLayout(geneTreeFileLayout)
+        #Add tab One
+        self.tabWidget.addTab(tabOne, 'Mandatory')
 
-        # Scroll bar
-        self.setLayout(topLevelLayout)
-
-        self.setWindowTitle('PhyloNetNEXGenerator')
-        self.setWindowIcon(QIcon(resource_path("logo.png")))
-
-    def aboutMessage(self):
-        msg = QMessageBox()
-        msg.setIcon(QMessageBox.Information)
-        msg.setText("Bayesian estimation of the posterior distribution of phylogenetic networks given a list of "
-                    "gene tree topologies.")
-        font = QFont()
-        font.setPointSize(13)
-        font.setFamily("Times New Roman")
-        font.setBold(False)
-
-        msg.setFont(font)
-        msg.exec_()
-
-    def link(self, linkStr):
-        """
-        Open the website of PhyloNet if user clicks on the hyperlink.
-        """
-        QDesktopServices.openUrl(QtCore.QUrl(linkStr))
-
-    def format(self):
-        """
-        Process checkbox's stateChanged signal to implement mutual exclusion.
-        """
-        if self.sender().objectName() == "nexus":
-            if not self.nexus.isChecked():
-                self.geneTreesEditMCGT = ""
-                self.inputFiles = []
-                self.geneTreeNames = []
-                self.taxamap = {}
-            else:
-                self.newick.setChecked(False)
-        elif self.sender().objectName() == "newick":
-            if not self.newick.isChecked():
-                self.geneTreesEditMCGT = ""
-                self.inputFiles = []
-                self.geneTreeNames = []
-                self.taxamap = {}
-            else:
-                self.nexus.setChecked(False)
-                self.newick.setChecked(True)
-
-    def selectFile(self):
-        """
-        Store all the user uploaded gene tree files.
-        Execute when file selection button is clicked.
-        """
-        #initialize global attribute
-        global inputFiles
-        inputFiles.clear()
-        if (not self.newick.isChecked()) and (not self.nexus.isChecked()):
-            QMessageBox.warning(self, "Warning", "Please select a file type.", QMessageBox.Ok)
-        else:
-            if self.nexus.isChecked():
-                fname = QFileDialog.getOpenFileNames(self, 'Open file', '/', 'Nexus files (*.nexus *.nex)')
-            elif self.newick.isChecked():
-                fname = QFileDialog.getOpenFileNames(self, 'Open file', '/', 'Newick files (*.newick)') 
-            #if a file has been inputted, proceed
-            if len(fname[0]) > 0:
-                fileType = fname[1]
-                self.fileType = QLineEdit(fname[1])
-                self.registerField("fileTypeMCGT", self.fileType)
-                if self.nexus.isChecked():
-                    if fileType != 'Nexus files (*.nexus *.nex)':
-                        QMessageBox.warning(self, "Warning", "Please upload only .nexus or .nex files", QMessageBox.Ok)
-                    else:
-                        for onefname in fname[0]:
-                            self.geneTreesEditMCGT.append(onefname)
-                            self.inputFiles.append(str(onefname))
-
-                elif self.newick.isChecked():
-                    if fileType != 'Newick files (*.newick)':
-                        QMessageBox.warning(self, "Warning", "Please upload only .newick files", QMessageBox.Ok)
-                    else:
-                        for onefname in fname[0]:
-                            self.geneTreesEditMCGT.append(onefname)
-                            self.inputFiles.append(str(onefname))
-                else:
-                    return
-                #Update global attribute
-                inputFiles = self.inputFiles
-
-class MCMCGTPage2(QWizardPage):
-    def initializePage(self):
-        self.fileType = self.field("fileTypeMCGT")
-        self.geneTreesEditMCGT = self.field("geneTreesEditMCGT")
-
-    def __init__(self):
-        super(MCMCGTPage2, self).__init__()
-
-        self.inputFiles = []
-        self.geneTreeNames = []
-        self.taxamap = {}
-        self.multiTreesPerLocus = False
-
-        self.initUI()
-
-    def initUI(self):
-        """
-        Initialize GUI.
-        """
-
-        # Title (MCMC_GT)
-        titleLabel = titleHeader("MCMC_GT")
-
-        hyperlink = QLabel()
-        hyperlink.setText('Details of this method can be found '
-                          '<a href="https://wiki.rice.edu/confluence/display/PHYLONET/MCMC_GT">'
-                          'here</a>.')
-        hyperlink.linkActivated.connect(self.link)
-        hyperlink.setObjectName("detailsLink")
+        #create tab two
+        tabTwo = QWidget(self)
+        #tabTwo.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)
 
         optionalLabel = QLabel()
         optionalLabel.setObjectName("instructionLabel")
-        optionalLabel.setText("Input Options")
+        optionalLabel.setText("Optional Parameters")
+        optionalLabel.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)
 
         # Optional parameter labels
         self.chainLengthLbl = QCheckBox("The length of the MCMC chain:", self)
@@ -252,38 +191,29 @@ class MCMCGTPage2(QWizardPage):
         self.chainLengthEdit = QLineEdit()
         self.chainLengthEdit.setDisabled(True)
         self.chainLengthEdit.setPlaceholderText("1100000")
-        self.registerField("chainLengthEditMCGT", self.chainLengthEdit)
 
         self.burnInLengthEdit = QLineEdit()
         self.burnInLengthEdit.setDisabled(True)
         self.burnInLengthEdit.setPlaceholderText("100000")
-        self.registerField("burnInLengthEditMCGT", self.burnInLengthEdit)
 
         self.sampleFrequencyEdit = QLineEdit()
         self.sampleFrequencyEdit.setDisabled(True)
         self.sampleFrequencyEdit.setPlaceholderText("1000")
-        self.registerField("sampleFrequencyEditMCGT", self.sampleFrequencyEdit)
 
         self.seedEdit = QLineEdit()
         self.seedEdit.setDisabled(True)
         self.seedEdit.setPlaceholderText("12345678")
-        self.registerField("seedEditMCGT", self.seedEdit)
 
         self.ppEdit = QLineEdit()
         self.ppEdit.setDisabled(True)
         self.ppEdit.setPlaceholderText("1.0")
-        self.registerField("ppEditMCGT", self.ppEdit)
 
         self.maxRetEdit = QLineEdit()
         self.maxRetEdit.setDisabled(True)
-        self.maxRetEdit.setValidator(QDoubleValidator(0, float("inf"), 0, self))
         self.maxRetEdit.setPlaceholderText("infinity")
-        self.maxRetEdit.setToolTip("For infinity, leave the field unfilled")
-        self.registerField("maxRetEditMCGT", self.maxRetEdit)
 
         # Layouts
         # Layouts of each parameter and inputs
-
         chainLengthLayout = QHBoxLayout()
         chainLengthLayout.addWidget(self.chainLengthLbl)
         chainLengthLayout.addStretch(1)
@@ -314,126 +244,29 @@ class MCMCGTPage2(QWizardPage):
         maxRetLayout.addStretch(1)
         maxRetLayout.addWidget(self.maxRetEdit)
 
-        # Main Layouts
+        # Main Layout tab two
+        tabTwoLayout = QVBoxLayout()
+        tabTwoLayout.addWidget(optionalLabel)
 
-        topLevelLayout = QVBoxLayout()
-        topLevelLayout.addWidget(titleLabel)
-        topLevelLayout.addWidget(hyperlink)
-        topLevelLayout.addWidget(optionalLabel)
+        tabTwoLayout.addLayout(chainLengthLayout)
+        tabTwoLayout.addLayout(burnInLengthLayout)
+        tabTwoLayout.addLayout(sampleFrequencyLayout)
+        tabTwoLayout.addLayout(seedLayout)
+        tabTwoLayout.addLayout(ppLayout)
+        tabTwoLayout.addLayout(maxRetLayout)
+        tabTwo.setLayout(tabTwoLayout)   
 
-        topLevelLayout.addLayout(chainLengthLayout)
-        topLevelLayout.addLayout(burnInLengthLayout)
-        topLevelLayout.addLayout(sampleFrequencyLayout)
-        topLevelLayout.addLayout(seedLayout)
-        topLevelLayout.addLayout(ppLayout)
-        topLevelLayout.addLayout(maxRetLayout)
-        self.setLayout(topLevelLayout)   
+        #add tab two
+        self.tabWidget.addTab(tabTwo, 'Parameters')
 
-    def link(self, linkStr):
-        """
-        Open the website of PhyloNet if user clicks on the hyperlink.
-        """
-        QDesktopServices.openUrl(QtCore.QUrl(linkStr))
+        #create tab three 
+        tabThree = QWidget(self)
+        #tabThree.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)
 
-    def onChecked(self):
-        """
-        When user clicks the checkbox for an optional command,
-        enable or disable the corresponding text edit.
-        """
-        if self.sender().objectName() == "-cl":
-            if self.chainLengthEdit.isEnabled():
-                self.chainLengthEdit.setDisabled(True)
-            else:
-                self.chainLengthEdit.setDisabled(False)
-        elif self.sender().objectName() == "-bl":
-            if self.burnInLengthEdit.isEnabled():
-                self.burnInLengthEdit.setDisabled(True)
-            else:
-                self.burnInLengthEdit.setDisabled(False)
-        elif self.sender().objectName() == "-sf":
-            if self.sampleFrequencyEdit.isEnabled():
-                self.sampleFrequencyEdit.setDisabled(True)
-            else:
-                self.sampleFrequencyEdit.setDisabled(False)
-        elif self.sender().objectName() == "-sd":
-            if self.seedEdit.isEnabled():
-                self.seedEdit.setDisabled(True)
-            else:
-                self.seedEdit.setDisabled(False)
-        elif self.sender().objectName() == "-pp":
-            if self.ppEdit.isEnabled():
-                self.ppEdit.setDisabled(True)
-            else:
-                self.ppEdit.setDisabled(False)
-        elif self.sender().objectName() == "-mr":
-            if self.maxRetEdit.isEnabled():
-                self.maxRetEdit.setDisabled(True)
-            else:
-                self.maxRetEdit.setDisabled(False)
-        elif self.sender().objectName() == "-pl":
-            if self.numProcEdit.isEnabled():
-                self.numProcEdit.setDisabled(True)
-            else:
-                self.numProcEdit.setDisabled(False)
-        elif self.sender().objectName() == "-tp":
-            if self.tempListEdit.isEnabled():
-                self.tempListEdit.setDisabled(True)
-            else:
-                self.tempListEdit.setDisabled(False)
-        elif self.sender().objectName() == "-sn":
-            if self.sNetListEdit.isEnabled():
-                self.sNetListEdit.setDisabled(True)
-            else:
-                self.sNetListEdit.setDisabled(False)
-        elif self.sender().objectName() == "-tm":
-            if self.taxamapEdit.isEnabled():
-                self.taxamapEdit.setDisabled(True)
-            else:
-                self.taxamapEdit.setDisabled(False)
-        else:
-            pass
-
-
-class MCMCGTPage3(QWizardPage):
-    def initializePage(self):
-        self.fileType = self.field("fileTypeMCGT")
-        self.geneTreesEditMCGT = self.field("geneTreesEditMCGT")
-        self.chainLengthEdit = self.field("chainLengthEditMCGT")
-        self.burnInLengthEdit = self.field("burnInLengthEditMCGT")
-        self.sampleFrequencyEdit = self.field("sampleFrequencyEditMCGT")
-        self.seedEdit = self.field("seedEditMCGT")
-        self.ppEdit = self.field("ppEditMCGT")
-        self.maxRetEdit = self.field("maxRetEditMCGT")
-
-    def __init__(self):
-        super(MCMCGTPage3, self).__init__()
-
-        self.inputFiles = []
-        self.geneTreeNames = []
-        self.taxamap = {}
-        self.multiTreesPerLocus = False
-        self.isValidated = False
-
-        self.initUI()
-
-    def initUI(self):
-        """
-        Initialize GUI.
-        """
-
-        # Title (MCMC_GT)
-        titleLabel = titleHeader("MCMC_GT")
-
-        hyperlink = QLabel()
-        hyperlink.setText('Details of this method can be found '
-                          '<a href="https://wiki.rice.edu/confluence/display/PHYLONET/MCMC_GT">'
-                          'here</a>.')
-        hyperlink.linkActivated.connect(self.link)
-        hyperlink.setObjectName("detailsLink")
-
-        optionalLabel = QLabel()
-        optionalLabel.setObjectName("instructionLabel")
-        optionalLabel.setText("Input Options")
+        optionalLabelA = QLabel()
+        optionalLabelA.setObjectName("instructionLabel")
+        optionalLabelA.setText("Optional Parameters")
+        optionalLabelA.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)
 
         # Optional parameter labels
         self.numProcLbl = QCheckBox(
@@ -507,21 +340,47 @@ class MCMCGTPage3(QWizardPage):
         btnLayout.addStretch(1)
         btnLayout.addWidget(launchBtn)    
 
-        # Main Layouts
+        # Main Layout tab three
 
-        topLevelLayout = QVBoxLayout()
-        topLevelLayout.addWidget(titleLabel)
-        topLevelLayout.addWidget(hyperlink)
-        #topLevelLayout.addWidget(optionalLabel)
+        tabThreeLayout = QVBoxLayout()
+        tabThreeLayout.addWidget(optionalLabelA)
+        tabThreeLayout.addLayout(numProcLayout)
+        tabThreeLayout.addLayout(tempListLayout)
+        tabThreeLayout.addLayout(sNetListLayout)
+        tabThreeLayout.addLayout(taxamapLayout)
+        tabThreeLayout.addLayout(pseudoLayout)
 
-        topLevelLayout.addLayout(numProcLayout)
-        topLevelLayout.addLayout(tempListLayout)
-        topLevelLayout.addLayout(sNetListLayout)
-        topLevelLayout.addLayout(taxamapLayout)
-        topLevelLayout.addLayout(pseudoLayout)
+        tabThreeLayout.addLayout(btnLayout)
+        tabThree.setLayout(tabThreeLayout)          
 
-        topLevelLayout.addLayout(btnLayout)
-        self.setLayout(topLevelLayout)  
+        #add tabthree
+        self.tabWidget.addTab(tabThree, 'Generate')
+
+        #disable tab bar, initially   
+        self.tabWidget.tabBar().setDisabled(True)
+        self.tabWidget.tabBar().setToolTip("This a mandatory input. Complete it to enable the tab bar")
+
+        #add widget to page layout
+        pageLayout.addWidget(self.tabWidget)
+        self.setLayout(pageLayout)
+
+    def inspectInput(self):
+        """
+        Inspects whether mandatory field have been filled
+        emits signal if so
+        """
+        if self.geneTreesEdit.document().isEmpty():
+            self.tabWidget.tabBar().setDisabled(True)
+            #set appropriate tool tip based on page location
+            if self.tabWidget.currentIndex() == 0:
+                self.tabWidget.tabBar().setToolTip("This a mandatory input. Complete it to enable the tab bar")
+            else:
+                self.tabWidget.tabBar().setToolTip("Click use again to return to first page")
+            self.tabWidget.setStyleSheet("QTabBar::tab:selected{background-color: #aaeeff;}")
+        else:
+            self.tabWidget.tabBar().setDisabled(False)
+            self.tabWidget.tabBar().setToolTip("Mandatory input completed! You can now use tab bar")
+            self.tabWidget.setStyleSheet("QTabBar::tab:selected{background-color: #2196f3;}")
 
     def __inverseMapping(self, map):
         """
@@ -540,6 +399,59 @@ class MCMCGTPage3(QWizardPage):
         Open the website of PhyloNet if user clicks on the hyperlink.
         """
         QDesktopServices.openUrl(QtCore.QUrl(linkStr))
+
+    def format(self):
+        """
+        Process checkbox's stateChanged signal to implement mutual exclusion.
+        """
+        if self.sender().objectName() == "nexus":
+            if not self.nexus.isChecked():
+                self.geneTreesEdit.clear()
+                self.inputFiles = []
+                self.geneTreeNames = []
+                self.taxamap = {}
+            else:
+                self.newick.setChecked(False)
+        elif self.sender().objectName() == "newick":
+            if not self.newick.isChecked():
+                self.geneTreesEdit.clear()
+                self.inputFiles = []
+                self.geneTreeNames = []
+                self.taxamap = {}
+            else:
+                self.nexus.setChecked(False)
+                self.newick.setChecked(True)
+
+    def selectFile(self):
+        """
+        Store all the user uploaded gene tree files.
+        Execute when file selection button is clicked.
+        """
+        if (not self.newick.isChecked()) and (not self.nexus.isChecked()):
+            QMessageBox.warning(self, "Warning", "Please select a file type.", QMessageBox.Ok)
+        else:
+            if self.nexus.isChecked():
+                fname = QFileDialog.getOpenFileNames(self, 'Open file', '/', 'Nexus files (*.nexus *.nex)')
+            elif self.newick.isChecked():
+                fname = QFileDialog.getOpenFileNames(self, 'Open file', '/', 'Newick files (*.newick)') 
+            #if a file has been inputted, proceed 
+            if len(fname[0]) > 0:
+                fileType = fname[1]
+                if self.nexus.isChecked():
+                    if fileType != 'Nexus files (*.nexus *.nex)':
+                        QMessageBox.warning(self, "Warning", "Please upload only .nexus or .nex files", QMessageBox.Ok)
+                    else:
+                        for onefname in fname[0]:
+                            self.geneTreesEdit.append(onefname)
+                            self.inputFiles.append(str(onefname))
+
+                elif self.newick.isChecked():
+                    if fileType != 'Newick files (*.newick)':
+                        QMessageBox.warning(self, "Warning", "Please upload only .newick files", QMessageBox.Ok)
+                    else:
+                        for onefname in fname[0]:
+                            self.geneTreesEdit.append(onefname)
+                            self.inputFiles.append(str(onefname))
 
     def onChecked(self):
         """
@@ -598,31 +510,22 @@ class MCMCGTPage3(QWizardPage):
                 self.taxamapEdit.setDisabled(False)
         else:
             pass
-
     def getTaxamap(self):
         """
         When user clicks "Set taxa map", open up TaxamapDlg for user input
         and update taxa map.
         """
-        #initialize global attribute
-        global taxamap
-        taxamap.clear()
-        #update shared attribute
-        self.inputFiles = inputFiles
-
         class emptyFileError(Exception):
             pass
-
         try:
             if len(self.inputFiles) == 0:
                 raise emptyFileError
 
             # Read files
-            if self.fileType == 'Nexus files (*.nexus *.nex)':
+            if self.nexus.isChecked():
                 schema = "nexus"
             else:
                 schema = "newick"
-
 
             data = dendropy.TreeList()
             for file in self.inputFiles:
@@ -650,8 +553,6 @@ class MCMCGTPage3(QWizardPage):
                 data.taxon_namespace, self.taxamap, self)
             if dialog.exec_():
                 self.taxamap = dialog.getTaxamap()
-            #Update global attribute
-            taxamap = self.taxamap
         except emptyFileError:
             QMessageBox.warning(
                 self, "Warning", "Please select a file type and upload data!", QMessageBox.Ok)
@@ -664,10 +565,6 @@ class MCMCGTPage3(QWizardPage):
         """
         Generate NEXUS file based on user input.
         """
-        #update shared attributes
-        self.inputFiles = inputFiles
-        self.taxamap = taxamap
-
         directory = QFileDialog.getSaveFileName(self, "Save File", "/", "Nexus Files (*.nexus)")
         
         class emptyFileError(Exception):
@@ -677,17 +574,16 @@ class MCMCGTPage3(QWizardPage):
             pass
 
         try:
+            if (not self.nexus.isChecked()) and (not self.newick.isChecked()):
+                raise emptyFileError
             if len(self.inputFiles) == 0:
                 raise emptyFileError
-            if directory[0] == "":
-                raise emptyDesinationError
 
             # the file format to read
-            if self.fileType == 'Nexus files (*.nexus *.nex)':
+            if self.nexus.isChecked():
                 schema = "nexus"
             else:
                 schema = "newick"
-
             # a TreeList that stores all the uploaded gene trees
             data = dendropy.TreeList()
             # read each uploaded file
@@ -766,58 +662,52 @@ class MCMCGTPage3(QWizardPage):
                     outputFile.write(")")
 
                 # -cl chainLength command
-                if self.chainLengthEdit == "":
-                    pass
-                else:
-                    outputFile.write(" -cl ")
-                    outputFile.write(self.chainLengthEdit)
-                    #clear field
-                    self.chainLengthEdit = ""
+                if self.chainLengthLbl.isChecked():  
+                    if self.chainLengthEdit.text() == "":
+                        pass
+                    else:
+                        outputFile.write(" -cl ")
+                        outputFile.write(str(self.chainLengthEdit.text()))
 
                 # -bl chainLength command
-                if self.burnInLengthEdit == "":
-                    pass
-                else:
-                    outputFile.write(" -bl ")
-                    outputFile.write(self.burnInLengthEdit)
-                    #clear field
-                    self.burnInLengthEdit = ""
+                if self.burnInLengthLbl.isChecked():
+                    if self.burnInLengthEdit.text() == "":
+                        pass
+                    else:
+                        outputFile.write(" -bl ")
+                        outputFile.write(str(self.burnInLengthEdit.text()))
 
                 # -sf sampleFrequency command
-                if self.sampleFrequencyEdit == "":
-                    pass
-                else:
-                    outputFile.write(" -sf ")
-                    outputFile.write(self.sampleFrequencyEdit)
-                    #clear field
-                    self.sampleFrequency = ""
-
+                if self.sampleFrequencyLbl.isChecked():
+                    if self.sampleFrequencyEdit.text() == "":
+                        pass
+                    else:
+                        outputFile.write(" -sf ")
+                        outputFile.write(str(self.sampleFrequencyEdit.text()))
+                      
                 # -sd seed command
-                if self.seedEdit == "":
-                    pass
-                else:
-                    outputFile.write(" -sd ")
-                    outputFile.write(self.seedEdit)
-                    #clear field
-                    self.seedEdit = ""
+                if self.seedLbl.isChecked():
+                    if self.seedEdit.text() == "":
+                        pass
+                    else:
+                        outputFile.write(" -sd ")
+                        outputFile.write(str(self.seedEdit.text()))
 
                 # -pp poissonParameter command
-                if self.ppEdit == "":
-                    pass
-                else:
-                    outputFile.write(" -pp ")
-                    outputFile.write(self.ppEdit)
-                    #clear field
-                    self.ppEdit = ""
+                if self.ppLbl.isChecked():
+                    if self.ppEdit.text() == "":
+                        pass
+                    else:
+                        outputFile.write(" -pp ")
+                        outputFile.write(str(self.ppEdit.text()))
 
                 # -mr maximumReticulation command
-                if self.maxRetEdit == "":
-                    pass
-                else:
-                    outputFile.write(" -mr ")
-                    outputFile.write(self.maxRetEdit)
-                    #clear field
-                    self.maxRetEdit = ""
+                if self.maxRetLbl.isChecked():
+                    if self.maxRetEdit.text() == "":
+                        pass
+                    else:
+                        outputFile.write(" -mr ")
+                        outputFile.write(str(self.maxRetEdit.text()))
 
                 # -pl parallelThreads command
                 if self.numProcLbl.isChecked():
@@ -826,10 +716,6 @@ class MCMCGTPage3(QWizardPage):
                     else:
                         outputFile.write(" -pl ")
                         outputFile.write(str(self.numProcEdit.text()))
-                        #clear text
-                        self.numProcEdit.clear()
-                    #clear checkbox
-                    self.numProcLbl.setChecked(False)
 
                 # -tp temperatureList command
                 if self.tempListLbl.isChecked():
@@ -838,10 +724,6 @@ class MCMCGTPage3(QWizardPage):
                     else:
                         outputFile.write(" -tp ")
                         outputFile.write(str(self.tempListEdit.text()))
-                        #clear text
-                        self.tempListEdit.clear()
-                    #clear checkbox
-                    self.tempListLbl.setChecked(False)
 
                 # -sn startingNetworkList command
                 if self.sNetListLbl.isChecked():
@@ -850,11 +732,7 @@ class MCMCGTPage3(QWizardPage):
                     else:
                         outputFile.write(" -sn ")
                         outputFile.write(str(self.sNetListEdit.text()))
-                        #clear text
-                        self.sNetListEdit.clear()
-                    #clear checkbox
-                    self.sNetListLbl.setChecked(False)
-
+                        
                 # -tm taxa map command
                 if self.taxamapLbl.isChecked():
                     if len(self.taxamap) == 0:
@@ -900,10 +778,8 @@ class MCMCGTPage3(QWizardPage):
             self.validateFile(path)
             #clears inputs if they are validated
             if self.isValidated:
-                self.geneTreeNames = []
-                self.inputFiles = []
-                self.taxamap = {}
-                self.geneTreesEditMCGT = ""
+                self.clear()
+                self.generated.emit(True)
                 self.successMessage()
 
         except emptyFileError:
@@ -915,9 +791,40 @@ class MCMCGTPage3(QWizardPage):
         except Exception as e:
             QMessageBox.warning(self, "Warning", str(e), QMessageBox.Ok)
             return
+    def clear(self):
+        """
+        CLear page's field
+        """
+        self.geneTreeNames = []
+        self.inputFiles = []
+        self.taxamap = {}
+        self.multiTreesPerLocus = False
+        self.nexus.setChecked(False)
+        self.newick.setChecked(False)
+        self.geneTreesEdit.clear()
+        self.numProcLbl.setChecked(False)
+        self.numProcEdit.clear()
+        self.tempListLbl.setChecked(False)
+        self.tempListEdit.clear()
+        self.sNetListLbl.setChecked(False)
+        self.sNetListEdit.clear()
+        self.taxamapLbl.setChecked(False)
+        self.chainLengthLbl.setChecked(False)
+        self.chainLengthEdit.clear()
+        self.burnInLengthLbl.setChecked(False)
+        self.burnInLengthEdit.clear()
+        self.sampleFrequencyLbl.setChecked(False)
+        self.sampleFrequencyEdit.clear()
+        self.seedLbl.setChecked(False)
+        self.seedEdit.clear()
+        self.ppLbl.setChecked(False)
+        self.ppEdit.clear()
+        self.maxRetLbl.setChecked(False)
+        self.maxRetEdit.clear()
+        self.pseudoLbl.setChecked(False)       
+
     def successMessage(self):
         msg = QDialog()
-        msg.setStyleSheet("QDialog{min-width: 500px; min-height: 500px;}")
         msg.setWindowTitle("Phylonet") 
         msg.setWindowIcon(QIcon("logo.png"))
         flags = QtCore.Qt.WindowFlags(QtCore.Qt.CustomizeWindowHint | QtCore.Qt.WindowCloseButtonHint )
