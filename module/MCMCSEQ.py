@@ -90,9 +90,9 @@ class MCMCSEQPage(QWizardPage):
         titleLabel = titleHeader("MCMC_SEQ")
 
         hyperlink = QLabel()
-        hyperlink.setText('Details of this method can be found '
+        hyperlink.setText(' For more details '
                           '<a href="https://wiki.rice.edu/confluence/display/PHYLONET/MCMC_SEQ">'
-                          'here</a>.')
+                          'click here</a>.')
         hyperlink.linkActivated.connect(self.link)
         hyperlink.setObjectName("detailsLink")
         
@@ -230,7 +230,6 @@ class MCMCSEQPage(QWizardPage):
         self.seedEdit = QLineEdit()
         self.seedEdit.setDisabled(True)
         self.seedEdit.setPlaceholderText("12345678")
-        self.registerField("seedEdit", self.seedEdit)
 
         self.numProcEdit = QLineEdit()
         self.numProcEdit.setDisabled(True)

@@ -2,118 +2,183 @@ import sys
 import os
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
-from PyQt5 import QtCore
+from PyQt5 import QtWidgets, QtCore
+from PyQt5.QtCore import Qt, pyqtSignal, pyqtSlot
+from PyQt5.QtGui import QIcon, QPixmap
 import dendropy
 import datetime
 import subprocess
 import shutil
 
+from Validator import NumValidator
 from module import TaxamapDlg
-from module import taxaList
+from module import diploidList
+from module import paramList
+from functions import *
 
 
-class MLEBiMarkersPage(QMainWindow):
+def resource_path(relative_path):
+    """
+    Refer to the location of a file at run-time.
+    This function is from
+    https://www.reddit.com/r/learnpython/comments/4kjie3/how_to_include_gui_images_with_pyinstaller/
+    For more information, visit https://pythonhosted.org/PyInstaller/runtime-information.html#run-time-information
+    """
+    if hasattr(sys, '_MEIPASS'):
+        return os.path.join(sys._MEIPASS, relative_path)
+    return os.path.join(os.path.abspath("."), relative_path)
+
+class MLEBiMarkersPage(QWizardPage):
+    #set signals for page
+    restarted = QtCore.pyqtSignal(bool)
+    generated = QtCore.pyqtSignal(bool)
+    def initializePage(self):
+        #get the wizard buttons
+        again_button = self.wizard().button(QWizard.CustomButton1)
+        finish_button = self.wizard().button(QWizard.CustomButton2)
+        back_button = self.wizard().button(QWizard.BackButton)
+        
+        self.generated.connect(lambda : again_button.setVisible(True))
+        self.generated.connect(lambda : finish_button.setVisible(True))
+        self.generated.connect(lambda : self.wizard().button(QWizard.CancelButton).setVisible(False))
+
+        #close if finish button is clicked
+        finish_button.clicked.connect(lambda : self.wizard().close())
+
+        #take the user back to first page if use again is clicked
+        #and hide the wizard button
+        again_button.clicked.connect(lambda : self.tabWidget.setCurrentIndex(0))
+        again_button.clicked.connect(lambda : self.restarted.emit(True))
+
+        # in case back button is clicked while custom buttons are available
+        #hide custom buttons
+        back_button.clicked.connect(lambda: again_button.setVisible(False))
+        back_button.clicked.connect(lambda: finish_button.setVisible(False))
+
+        #if the user choosees to use again, hide custom buttons
+        #reintroduce cancel button
+        self.restarted.connect(lambda : again_button.setVisible(False))
+        self.restarted.connect(lambda: finish_button.setVisible(False))
+        self.restarted.connect(lambda : self.wizard().button(QWizard.CancelButton).setVisible(True))
+        self.restarted.connect(lambda : self.inspectInputs())
+        
+        #if you're on last page and the bar is disabled restore buttons 'em
+        #edge case
+        if self.tabWidget.currentIndex() == self.TABS - 1:
+            again_button.setVisible(True)
+            finish_button.setVisible(True)
+
     def __init__(self):
         super(MLEBiMarkersPage, self).__init__()
 
-        self.data = None
-        self.taxaList = []
-        self.taxamap = {}
+        self.inputFiles = []
+        self.loci = {}
+        self.nchar = 0
+        self.taxa_names = set([])
 
+        self.taxamap = {}
+        self.sgtFiles = []
+        self.ListOfDiploid = []
+        self.GTR = {"A": "0.25", "C": "0.25", "G": "0.25", "T": "0.25", "AC": "1", "AG": "1", "AT": "1", "CG": "1",
+       "CT": "1", "GT": "1"}
+        self.TABS = 4
+
+        self.isValidated = False
         self.initUI()
 
     def initUI(self):
-        """
-        Initialize GUI.
-        """
-        wid = QWidget()
-        scroll = QScrollArea()
-        self.setCentralWidget(scroll)
-
-        # Menubar and action
-        aboutAction = QAction('About', self)
-        aboutAction.triggered.connect(self.aboutMessage)
-        aboutAction.setShortcut("Ctrl+A")
-
-        menubar = self.menuBar()
-        menuMenu = menubar.addMenu('Menu')
-        menuMenu.addAction(aboutAction)
-
-        # Title (MLE_BiMarkers)
-        titleLabel = QLabel()
-        titleLabel.setText("MLE_BiMarkers")
-
-        titleFont = QFont()
-        titleFont.setPointSize(24)
-        titleFont.setFamily("Helvetica")
-        titleFont.setBold(True)
-        titleLabel.setFont(titleFont)
+        titleLabel = titleHeader("MLE_BiMarkers")
 
         hyperlink = QLabel()
-        hyperlink.setText('Details of this method can be found '
+        hyperlink.setText(' For more details '
                           '<a href="https://wiki.rice.edu/confluence/display/PHYLONET/MLE_BiMarkers">'
-                          'here</a>.')
+                          'click here</a>.')
         hyperlink.linkActivated.connect(self.link)
+        hyperlink.setObjectName("detailsLink")
+        
+        head = QHBoxLayout()
+        head.setSpacing(0)
+        head.addWidget(titleLabel)
+        head.addWidget(hyperlink)
 
-        # Separation lines
-        line1 = QFrame(self)
-        line1.setFrameShape(QFrame.HLine)
-        line1.setFrameShadow(QFrame.Sunken)
+        #title and help link, available on each page
+        pageLayout = QVBoxLayout()
+        pageLayout.addLayout(head)
 
-        line2 = QFrame(self)
-        line2.setFrameShape(QFrame.HLine)
-        line2.setFrameShadow(QFrame.Sunken)
+        #create tabs
+        self.tabWidget = QTabWidget(self)
+        self.tabWidget.tabBar().setShape(QTabBar.TriangularNorth)
 
-        # Two subtitles (mandatory and optional commands)
-        mandatoryLabel = QLabel()
-        mandatoryLabel.setText("Mandatory commands")
-        optionalLabel = QLabel()
-        optionalLabel.setText("Optional commands")
+        self.tabWidget.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)
 
-        subTitleFont = QFont()
-        subTitleFont.setPointSize(18)
-        subTitleFont.setFamily("Times New Roman")
-        subTitleFont.setBold(True)
-        mandatoryLabel.setFont(subTitleFont)
-        optionalLabel.setFont(subTitleFont)
+        #create first    
+        tabOne = QWidget(self)
+        
+        #tab sub header
+        instructionLabel = QLabel()
+        instructionLabel.setText("Input data: Please Upload Gene tree files:\n(one file per locus)")
+        instructionLabel.setObjectName("instructionLabel")  
 
         # Mandatory parameter labels
-        dataTypeLbl = QLabel("Data Type:")
-        dataFormatLbl = QLabel("Data Format:")
-        sequenceFileLbl = QLabel("Upload sequence files:")
-        taxaListLbl = QLabel("Select taxa used for inference:")
+        self.nexus = QCheckBox(".nexus")
+        self.nexus.setObjectName("nexus")
+        self.fasta = QCheckBox(".fasta")
+        self.fasta.setObjectName("fasta")
+        numReticulationsLbl = QLabel("Maximum number of reticulations to add:")
+        # Implement mutually exclusive check boxes
+        self.nexus.stateChanged.connect(self.format)
+        self.fasta.stateChanged.connect(self.format)
 
         # Mandatory parameter inputs
-        self.dataTypeEdit = QComboBox(self)
-        self.dataTypeEdit.addItem("phased data")
-        self.dataTypeEdit.addItem("unphased data")
-        self.dataTypeEdit.addItem("bi-allelic markers data")
-        self.dataTypeEdit.currentIndexChanged.connect(self.cleanData)
+        self.sequenceFileEdit = QTextEdit()
+        self.sequenceFileEdit.textChanged.connect(self.inspectInputs)
+        self.sequenceFileEdit.setReadOnly(False)
+        self.sequenceFileEdit.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
 
-        self.dataFormatEdit = QComboBox(self)
-        self.dataFormatEdit.addItem(".nexus")
-        self.dataFormatEdit.addItem(".fasta")
-        self.dataFormatEdit.currentIndexChanged.connect(self.cleanData)
+        fileSelctionBtn = QToolButton()
+        fileSelctionBtn.setText("Browse")
+        fileSelctionBtn.clicked.connect(self.selectFile)
 
-        self.sequenceFileEdit = QLineEdit()
-        self.sequenceFileEdit.setReadOnly(True)
+        self.numReticulationsEdit = QLineEdit()
+        self.numReticulationsEdit.textChanged.connect(self.inspectInputs)
+        self.numReticulationsEdit.setValidator(NumValidator())
+        self.numReticulationsEdit.setToolTip("Please enter a non-negative integer")
 
-        fileSelectionBtn = QToolButton()
-        fileSelectionBtn.setText("...")
-        fileSelectionBtn.clicked.connect(self.selectFile)
+        # Layouts
+        # Layout of each parameter (label and input)
+        fileFormatLayout = QVBoxLayout()
+        fileFormatLayout.addWidget(instructionLabel)
+        fileFormatLayout.addWidget(self.nexus)
+        fileFormatLayout.addWidget(self.fasta)
+        geneTreeDataLayout = QHBoxLayout()
+        geneTreeDataLayout.addWidget(self.sequenceFileEdit)
+        geneTreeDataLayout.addWidget(fileSelctionBtn)
+      
+        numReticulationsLayout = QHBoxLayout()
+        numReticulationsLayout.addWidget(numReticulationsLbl)
+        numReticulationsLayout.addWidget(self.numReticulationsEdit)
 
-        taxaListBtn = QPushButton("Select")
-        taxaListBtn.clicked.connect(self.getTaxaList)
+        # Main layout for tab one
+        tabOneLayout = QVBoxLayout()
+        tabOneLayout.addLayout(fileFormatLayout)
+        tabOneLayout.addLayout(geneTreeDataLayout)
+        tabOneLayout.addLayout(numReticulationsLayout)
 
-        # Optional parameter labels
-        MLSettingLbl = QLabel("ML Settings")
-        settingLblFont = QFont()
-        settingLblFont.setPointSize(13)
-        settingLblFont.setFamily("Times New Roman")
-        settingLblFont.setBold(True)
-        settingLblFont.setItalic(True)
-        MLSettingLbl.setFont(settingLblFont)
+        tabOne.setLayout(tabOneLayout)
 
+        #Add tab One
+        self.tabWidget.addTab(tabOne, 'Mandatory')
+
+        #create tab two
+        tabTwo = QWidget(self)
+        #tabTwo.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)
+
+        optionalLabel = QLabel()
+        optionalLabel.setObjectName("instructionLabel")
+        optionalLabel.setText("ML Settings")
+        optionalLabel.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)
+
+        # Optional parameter labels      
         self.numRunLbl = QCheckBox("The number of iterations of simulated annealing:", self)
         self.numRunLbl.setObjectName("-mnr")
         self.numRunLbl.stateChanged.connect(self.onChecked)
@@ -135,46 +200,12 @@ class MLEBiMarkersPage(QMainWindow):
         self.parThreadLbl.setObjectName("-pl")
         self.parThreadLbl.stateChanged.connect(self.onChecked)
 
-        inferenceSettingLbl = QLabel("Inference Settings")
-        inferenceSettingLbl.setFont(settingLblFont)
+        #changed till here
 
-        self.pseudoLbl = QCheckBox("Use pseudolikelihood.")
-
-        self.maxRetLbl = QCheckBox("The maximum number of reticulation nodes in the sampled phylogenetic networks:")
-        self.maxRetLbl.setObjectName("-mr")
-        self.maxRetLbl.stateChanged.connect(self.onChecked)
-
-        self.taxamapLbl = QCheckBox("Gene tree / species tree taxa association:")
-        self.taxamapLbl.setObjectName("-tm")
-        self.taxamapLbl.stateChanged.connect(self.onChecked)
-
-        self.thetaLbl = QCheckBox("Fix the population mutation rates associated with all branches to this given value:")
-        self.thetaLbl.setObjectName("-fixtheta")
-        self.thetaLbl.stateChanged.connect(self.onChecked)
-
-        self.espThetaLbl = QCheckBox("Estimate the mean value of prior of population mutation rates.")
-
-        startingStateLbl = QLabel("Starting State Settings")
-        startingStateLbl.setFont(settingLblFont)
-
-        self.sNetLbl = QCheckBox("Specify the starting network:")
-        self.sNetLbl.setObjectName("-snet")
-        self.sNetLbl.stateChanged.connect(self.onChecked)
-
-        self.startingThetaPriorLbl = QCheckBox("Specify the mean value of prior of population mutation rate:")
-        self.startingThetaPriorLbl.setObjectName("-ptheta")
-        self.startingThetaPriorLbl.stateChanged.connect(self.onChecked)
-
-        dataRelatedSettingLbl = QLabel("Data related settings")
-        dataRelatedSettingLbl.setFont(settingLblFont)
-
-        self.diploidLbl = QCheckBox("Sequence sampled from diploids.")
-
-        self.dominantMarkerLbl = QCheckBox("Specify which marker is dominant if the data is dominant:")
-        self.dominantMarkerLbl.setObjectName("-dominant")
-        self.dominantMarkerLbl.stateChanged.connect(self.onChecked)
-
-        self.opLbl = QCheckBox("Ignore all monomorphic sites.")
+        self.tempListLbl = QCheckBox(
+            "The list of temperatures for the Metropolis-coupled MCMC chains:", self)
+        self.tempListLbl.setObjectName("-mc3")
+        self.tempListLbl.stateChanged.connect(self.onChecked)
 
         # Optional parameter inputs
         self.numRunEdit = QLineEdit()
@@ -196,59 +227,8 @@ class MLEBiMarkersPage(QMainWindow):
         self.parThreadEdit = QLineEdit()
         self.parThreadEdit.setDisabled(True)
 
-        self.maxRetEdit = QLineEdit()
-        self.maxRetEdit.setDisabled(True)
-        self.maxRetEdit.setPlaceholderText("4")
-
-        self.taxamapEdit = QPushButton("Set taxa map")
-        self.taxamapEdit.setDisabled(True)
-        self.taxamapEdit.clicked.connect(self.getTaxamap)
-
-        self.thetaEdit = QLineEdit()
-        self.thetaEdit.setDisabled(True)
-
-        self.sNetEdit = QLineEdit()
-        self.sNetEdit.setDisabled(True)
-
-        self.startingThetaPriorEdit = QLineEdit()
-        self.startingThetaPriorEdit.setDisabled(True)
-        self.startingThetaPriorEdit.setPlaceholderText("0.036")
-
-        self.dominantMarkerEdit = QComboBox(self)
-        self.dominantMarkerEdit.addItem("0")
-        self.dominantMarkerEdit.addItem("1")
-        self.dominantMarkerEdit.setDisabled(True)
-
-        # Launch button
-        launchBtn = QPushButton("Generate", self)
-        launchBtn.clicked.connect(self.generate)
-
         # Layouts
-        typeLayout = QHBoxLayout()
-        typeLayout.addWidget(dataTypeLbl)
-        typeLayout.addWidget(self.dataTypeEdit)
-
-        formatLayout = QHBoxLayout()
-        formatLayout.addWidget(dataFormatLbl)
-        formatLayout.addWidget(self.dataFormatEdit)
-
-        typeFormatLayout = QHBoxLayout()
-        typeFormatLayout.addStretch(1)
-        typeFormatLayout.addLayout(typeLayout)
-        typeFormatLayout.addStretch(1)
-        typeFormatLayout.addLayout(formatLayout)
-        typeFormatLayout.addStretch(1)
-
-        fileLayout = QHBoxLayout()
-        fileLayout.addWidget(sequenceFileLbl)
-        fileLayout.addWidget(self.sequenceFileEdit)
-        fileLayout.addWidget(fileSelectionBtn)
-
-        taxaListLayout = QHBoxLayout()
-        taxaListLayout.addWidget(taxaListLbl)
-        taxaListLayout.addStretch(1)
-        taxaListLayout.addWidget(taxaListBtn)
-
+        # Layout of each parameter (label and input)
         numRunLayout = QHBoxLayout()
         numRunLayout.addWidget(self.numRunLbl)
         numRunLayout.addStretch(1)
@@ -274,8 +254,59 @@ class MLEBiMarkersPage(QMainWindow):
         parThreadLayout.addStretch(1)
         parThreadLayout.addWidget(self.parThreadEdit)
 
-        pseudoLayout = QHBoxLayout()
-        pseudoLayout.addWidget(self.pseudoLbl)
+        # Main Layout tab two
+        tabTwoLayout = QVBoxLayout()
+        tabTwoLayout.addWidget(optionalLabel)
+        tabTwoLayout.addLayout(numRunLayout)
+        tabTwoLayout.addLayout(maxExamLayout)
+        tabTwoLayout.addLayout(numOptimumsLayout)
+        tabTwoLayout.addLayout(maxFailuresLayout)
+        tabTwoLayout.addLayout(parThreadLayout)
+        tabTwo.setLayout(tabTwoLayout)   
+
+        #add tab two
+        self.tabWidget.addTab(tabTwo, 'Parameters')
+
+        #create tab three 
+        tabThree = QWidget(self)
+        #tabThree.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)
+
+        optionalLabelA = QLabel()
+        optionalLabelA.setObjectName("instructionLabel")
+        optionalLabelA.setText("Inference Settings")
+        optionalLabelA.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)
+
+        # Optional parameter labels
+        self.pseudoLbl = QCheckBox("Use pseudolikelihood.")
+
+        self.maxRetLbl = QCheckBox("The maximum number of reticulation nodes in the sampled phylogenetic networks:")
+        self.maxRetLbl.setObjectName("-mr")
+        self.maxRetLbl.stateChanged.connect(self.onChecked)
+
+        self.taxamapLbl = QCheckBox("Gene tree / species tree taxa association:")
+        self.taxamapLbl.setObjectName("-tm")
+        self.taxamapLbl.stateChanged.connect(self.onChecked)
+
+        self.thetaLbl = QCheckBox("Fix the population mutation rates associated with all branches to this given value:")
+        self.thetaLbl.setObjectName("-fixtheta")
+        self.thetaLbl.stateChanged.connect(self.onChecked)
+
+        self.espThetaLbl = QCheckBox("Estimate the mean value of prior of population mutation rates.")
+
+        # Optional parameter inputs
+        self.maxRetEdit = QLineEdit()
+        self.maxRetEdit.setDisabled(True)
+        self.maxRetEdit.setPlaceholderText("4")
+
+        self.taxamapEdit = QPushButton("Set taxa map")
+        self.taxamapEdit.setDisabled(True)
+        self.taxamapEdit.clicked.connect(self.getTaxamap)
+
+        self.thetaEdit = QLineEdit()
+        self.thetaEdit.setDisabled(True)
+
+        # Layouts
+        # Layout of each parameter (label and input)      
 
         maxRetLayout = QHBoxLayout()
         maxRetLayout.addWidget(self.maxRetLbl)
@@ -294,6 +325,68 @@ class MLEBiMarkersPage(QMainWindow):
 
         espThetaLayout = QHBoxLayout()
         espThetaLayout.addWidget(self.espThetaLbl)
+
+        # Main Layout tab three
+
+        tabThreeLayout = QVBoxLayout()
+        tabThreeLayout.addWidget(optionalLabelA)
+        tabThreeLayout.addLayout(maxRetLayout)
+        tabThreeLayout.addLayout(taxamapLayout)
+        tabThreeLayout.addLayout(thetaLayout)
+        tabThreeLayout.addLayout(espThetaLayout)
+
+        tabThree.setLayout(tabThreeLayout)          
+
+        #add tabthree
+        self.tabWidget.addTab(tabThree, 'Parameters')
+
+        #create tab four 
+        tabFour = QWidget(self)
+
+        optionalLabelB = QLabel()
+        optionalLabelB.setObjectName("instructionLabel")
+        optionalLabelB.setText("Starting State and Data Related Settings")
+        optionalLabelB.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)
+
+        # Optional parameter labels
+        self.sNetLbl = QCheckBox("Specify the starting network:")
+        self.sNetLbl.setObjectName("-snet")
+        self.sNetLbl.stateChanged.connect(self.onChecked)
+
+        self.startingThetaPriorLbl = QCheckBox(
+            "Specify the mean value of prior of population mutation rate:")
+        self.startingThetaPriorLbl.setObjectName("-ptheta")
+        self.startingThetaPriorLbl.stateChanged.connect(self.onChecked)
+
+        self.diploidLbl = QCheckBox("Sequence sampled from diploids.")
+
+        self.dominantMarkerLbl = QCheckBox(
+            "Specify which marker is dominant if the data is dominant:")
+        self.dominantMarkerLbl.setObjectName("-dominant")
+        self.dominantMarkerLbl.stateChanged.connect(self.onChecked)
+
+        self.opLbl = QCheckBox("Ignore all monomorphic sites.")
+
+        # Optional parameter inputs
+
+        self.sNetEdit = QLineEdit()
+        self.sNetEdit.setDisabled(True)
+
+        self.startingThetaPriorEdit = QLineEdit()
+        self.startingThetaPriorEdit.setDisabled(True)
+        self.startingThetaPriorEdit.setPlaceholderText("0.036")
+
+        self.dominantMarkerEdit = QComboBox(self)
+        self.dominantMarkerEdit.addItem("0")
+        self.dominantMarkerEdit.addItem("1")
+        self.dominantMarkerEdit.setDisabled(True)
+
+        # Launch button
+        launchBtn = QPushButton("Generate", self)
+        launchBtn.clicked.connect(self.generate)
+
+        # Layouts
+        # Layout of each parameter (label and input)
 
         sNetLayout = QHBoxLayout()
         sNetLayout.addWidget(self.sNetLbl)
@@ -319,60 +412,48 @@ class MLEBiMarkersPage(QMainWindow):
         btnLayout.addStretch(1)
         btnLayout.addWidget(launchBtn)
 
-        # Main layout
-        topLevelLayout = QVBoxLayout()
-        topLevelLayout.addWidget(titleLabel)
-        topLevelLayout.addWidget(hyperlink)
-        topLevelLayout.addWidget(line1)
-        topLevelLayout.addWidget(mandatoryLabel)
+        # Main Layout tab four
 
-        topLevelLayout.addLayout(typeFormatLayout)
-        topLevelLayout.addLayout(fileLayout)
-        topLevelLayout.addLayout(taxaListLayout)
+        tabFourLayout = QVBoxLayout()
+        tabFourLayout.addWidget(optionalLabelB)
+        tabFourLayout.addLayout(sNetLayout)
+        tabFourLayout.addLayout(startingThetaPriorLayout)
+        tabFourLayout.addLayout(diploidLayout)
+        tabFourLayout.addLayout(dominantMarkerLayout)
+        tabFourLayout.addLayout(opLayout)
+        tabFourLayout.addLayout(btnLayout)
 
-        topLevelLayout.addWidget(line2)
-        topLevelLayout.addWidget(optionalLabel)
+        tabFour.setLayout(tabFourLayout)          
 
-        topLevelLayout.addWidget(MLSettingLbl)
-        topLevelLayout.setAlignment(MLSettingLbl, QtCore.Qt.AlignCenter)
-        topLevelLayout.addLayout(numRunLayout)
-        topLevelLayout.addLayout(maxExamLayout)
-        topLevelLayout.addLayout(numOptimumsLayout)
-        topLevelLayout.addLayout(maxFailuresLayout)
-        topLevelLayout.addLayout(parThreadLayout)
+        #add tabFour
+        self.tabWidget.addTab(tabFour, 'Generate')
 
-        topLevelLayout.addWidget(inferenceSettingLbl)
-        topLevelLayout.setAlignment(inferenceSettingLbl, QtCore.Qt.AlignCenter)
-        topLevelLayout.addLayout(pseudoLayout)
-        topLevelLayout.addLayout(maxRetLayout)
-        topLevelLayout.addLayout(taxamapLayout)
-        topLevelLayout.addLayout(thetaLayout)
-        topLevelLayout.addLayout(espThetaLayout)
+        #disable tab bar, initially   
+        self.tabWidget.tabBar().setDisabled(True)
+        self.tabWidget.tabBar().setToolTip("This a mandatory input. Complete it to enable the tab bar")
 
-        topLevelLayout.addWidget(startingStateLbl)
-        topLevelLayout.setAlignment(startingStateLbl, QtCore.Qt.AlignCenter)
-        topLevelLayout.addLayout(sNetLayout)
-        topLevelLayout.addLayout(startingThetaPriorLayout)
+        #add widget to page layout
+        pageLayout.addWidget(self.tabWidget)
+        self.setLayout(pageLayout)
 
-        topLevelLayout.addWidget(dataRelatedSettingLbl)
-        topLevelLayout.setAlignment(dataRelatedSettingLbl, QtCore.Qt.AlignCenter)
-        topLevelLayout.addLayout(diploidLayout)
-        topLevelLayout.addLayout(dominantMarkerLayout)
-        topLevelLayout.addLayout(opLayout)
-
-        topLevelLayout.addLayout(btnLayout)
-
-        # Scroll bar
-        wid.setLayout(topLevelLayout)
-        scroll.setWidget(wid)
-        scroll.setWidgetResizable(True)
-        scroll.setMinimumWidth(695)
-        scroll.setMinimumHeight(750)
-
-        menubar.setNativeMenuBar(False)
-        self.setWindowTitle('PhyloNetNEXGenerator')
-        self.setWindowIcon(QIcon("imgs/logo.png"))
-
+    def inspectInputs(self):
+        """
+        Inspects whether mandatory fields have been filled
+        emits signal if so
+        """
+        if self.sequenceFileEdit.document().isEmpty() or self.numReticulationsEdit.text() == "":
+            self.tabWidget.tabBar().setDisabled(True)
+            #set appropriate tool tip based on page location
+            if self.tabWidget.currentIndex() == 0:
+                self.tabWidget.tabBar().setToolTip("This a mandatory input. Complete it to enable the tab bar")
+            else:
+                self.tabWidget.tabBar().setToolTip("Click use again to return to first page")
+            self.tabWidget.setStyleSheet("QTabBar::tab:selected{background-color: #aaeeff;}")
+        else:
+            self.tabWidget.tabBar().setDisabled(False)
+            self.tabWidget.tabBar().setToolTip("Mandatory input completed! You can now use tab bar")
+            self.tabWidget.setStyleSheet("QTabBar::tab:selected{background-color: #2196f3;}")
+              
     def __inverseMapping(self, map):
         """
         Convert a mapping from taxon to species to a mapping from species to a list of taxon.
@@ -385,39 +466,132 @@ class MLEBiMarkersPage(QMainWindow):
                 o[v] = [k]
         return o
 
-    def aboutMessage(self):
-        QMessageBox.information(self, "About PhyloNet", "I should put something here.")
+    def link(self, linkStr):
+        """
+        Open the website of PhyloNet if user clicks on the hyperlink.
+        """
+        QDesktopServices.openUrl(QtCore.QUrl(linkStr))
+
+    def format(self):
+        """
+        Process checkbox's stateChanged signal to implement mutual exclusion.
+        """
+        if self.sender().objectName() == "nexus":
+            if not self.nexus.isChecked():
+                self.sequenceFileEdit.clear()
+                self.inputFiles = []
+                self.loci = {}
+                self.taxamap = {}
+            else:
+                self.fasta.setChecked(False)
+        elif self.sender().objectName() == "fasta":
+            if not self.fasta.isChecked():
+                self.sequenceFileEdit.clear()
+                self.inputFiles = []
+                self.loci = {}
+                self.taxamap = {}
+            else:
+                self.nexus.setChecked(False)
+                self.fasta.setChecked(True)
+
+    def selectFile(self):
+        """
+        Read and store all the user uploaded sequence files. Read a file as soon as user uploads it.
+        Store information in a dictionary, where keys are file names(loci names), and values are tuples
+        containing the length of sequences in each file and the dna character matrix.
+        Execute when file selection button is clicked.
+        """
+        if (not self.fasta.isChecked()) and (not self.nexus.isChecked()):
+            QMessageBox.warning(self, "Warning", "Please select a file type.", QMessageBox.Ok)
+        else:
+            if self.nexus.isChecked():
+                fname = QFileDialog.getOpenFileNames(self, 'Open file', '/', 'Nexus files (*.nexus *.nex)')
+            elif self.fasta.isChecked():
+                fname = QFileDialog.getOpenFileNames(self, 'Open file', '/', 'Fasta files (*.fasta)')
+            #if a file has been inputted, proceed
+            if len(fname[0]) > 0:
+                fileType = fname[1]
+                if self.nexus.isChecked():
+                    if fileType != 'Nexus files (*.nexus *.nex)':
+                        QMessageBox.warning(self, "Warning", "Please upload only .nexus or .nex files", QMessageBox.Ok)
+                    else:
+                        for onefname in fname[0]:
+                            # Read in sequences from one file.
+                            dna = dendropy.DnaCharacterMatrix.get(path=str(onefname), schema="nexus"
+                                                                      , preserve_underscores=True)
+                            # Get the length of sequences in this file, and accumulate lengths of sequences in
+                            # all input files
+                            self.nchar = 0
+                            for seq in dna.values():
+                                seqLen = len(seq)
+                                self.nchar += seqLen
+                                break
+                            for taxon in dna:
+                                self.taxa_names.add(taxon.label)
+                            # Store data from this file in loci dictionary
+                            self.loci[os.path.splitext(os.path.basename(str(onefname)))[0]] = [seqLen, dna]
+                            self.sequenceFileEdit.append(onefname)
+                            self.inputFiles.append(str(onefname))
+
+                elif self.fasta.isChecked():
+                    if fileType != 'Fasta files (*.fasta)':
+                        QMessageBox.warning(self, "Warning", "Please upload only .fasta files", QMessageBox.Ok)
+                    else:
+                        for onefname in fname[0]:
+                            # Read in sequences from one file.
+                            dna = dendropy.DnaCharacterMatrix.get(path=str(onefname), schema="fasta")
+                            # Get the length of sequences in this file, and accumulate lengths of sequences in
+                            # all input files
+                            self.nchar = 0
+                            for seq in dna.values():
+                                seqLen = len(seq)
+                                self.nchar += seqLen
+                                break
+                            # Store all taxa encountered so far in a global set.
+                            for taxon in dna:
+                                self.taxa_names.add(taxon.label)
+                            # Store data from this file in loci dictionary
+                            self.loci[os.path.splitext(os.path.basename(str(onefname)))[0]] = [seqLen, dna]
+                            self.sequenceFileEdit.append(onefname)
+                            self.inputFiles.append(str(onefname))
+                else:
+                    return
 
     def onChecked(self):
         """
         When user clicks the checkbox for an optional command,
-        enable or disable the corresponding input widget.
+        enable or disable the corresponding text edit.
         """
-        if self.sender().objectName() == "-mnr":
-            if self.numRunEdit.isEnabled():
-                self.numRunEdit.setDisabled(True)
+        if self.sender().objectName() == "-cl":
+            if self.chainLengthEdit.isEnabled():
+                self.chainLengthEdit.setDisabled(True)
             else:
-                self.numRunEdit.setDisabled(False)
-        elif self.sender().objectName() == "-mec":
-            if self.maxExamEdit.isEnabled():
-                self.maxExamEdit.setDisabled(True)
+                self.chainLengthEdit.setDisabled(False)
+        elif self.sender().objectName() == "-bl":
+            if self.burnInLengthEdit.isEnabled():
+                self.burnInLengthEdit.setDisabled(True)
             else:
-                self.maxExamEdit.setDisabled(False)
-        elif self.sender().objectName() == "-mno":
-            if self.numOptimumsEdit.isEnabled():
-                self.numOptimumsEdit.setDisabled(True)
+                self.burnInLengthEdit.setDisabled(False)
+        elif self.sender().objectName() == "-sf":
+            if self.sampleFrequencyEdit.isEnabled():
+                self.sampleFrequencyEdit.setDisabled(True)
             else:
-                self.numOptimumsEdit.setDisabled(False)
-        elif self.sender().objectName() == "-mf":
-            if self.maxFailuresEdit.isEnabled():
-                self.maxFailuresEdit.setDisabled(True)
+                self.sampleFrequencyEdit.setDisabled(False)
+        elif self.sender().objectName() == "-sd":
+            if self.seedEdit.isEnabled():
+                self.seedEdit.setDisabled(True)
             else:
-                self.maxFailuresEdit.setDisabled(False)
+                self.seedEdit.setDisabled(False)
         elif self.sender().objectName() == "-pl":
-            if self.parThreadEdit.isEnabled():
-                self.parThreadEdit.setDisabled(True)
+            if self.numProcEdit.isEnabled():
+                self.numProcEdit.setDisabled(True)
             else:
-                self.parThreadEdit.setDisabled(False)
+                self.numProcEdit.setDisabled(False)
+        elif self.sender().objectName() == "-mc3":
+            if self.tempListEdit.isEnabled():
+                self.tempListEdit.setDisabled(True)
+            else:
+                self.tempListEdit.setDisabled(False)
         elif self.sender().objectName() == "-mr":
             if self.maxRetEdit.isEnabled():
                 self.maxRetEdit.setDisabled(True)
@@ -428,136 +602,50 @@ class MLEBiMarkersPage(QMainWindow):
                 self.taxamapEdit.setDisabled(True)
             else:
                 self.taxamapEdit.setDisabled(False)
-        elif self.sender().objectName() == "-fixtheta":
-            if self.thetaEdit.isEnabled():
-                self.thetaEdit.setDisabled(True)
+        elif self.sender().objectName() == "-fixps":
+            if self.popSizeEdit.isEnabled():
+                self.popSizeEdit.setDisabled(True)
             else:
-                self.thetaEdit.setDisabled(False)
+                self.popSizeEdit.setDisabled(False)
+        elif self.sender().objectName() == "-pp":
+            if self.ppEdit.isEnabled():
+                self.ppEdit.setDisabled(True)
+            else:
+                self.ppEdit.setDisabled(False)   
+        elif self.sender().objectName() == "-sgt":
+            if self.sgtFileEdit.isEnabled():
+                self.sgtFileEdit.setDisabled(True)
+                self.sgtFileSelctionBtn.setDisabled(True)
+            else:
+                self.sgtFileEdit.setDisabled(False)
+                self.sgtFileSelctionBtn.setDisabled(False)
         elif self.sender().objectName() == "-snet":
             if self.sNetEdit.isEnabled():
                 self.sNetEdit.setDisabled(True)
             else:
                 self.sNetEdit.setDisabled(False)
-        elif self.sender().objectName() == "-ptheta":
-            if self.startingThetaPriorEdit.isEnabled():
-                self.startingThetaPriorEdit.setDisabled(True)
+        elif self.sender().objectName() == "-sps":
+            if self.sPopEdit.isEnabled():
+                self.sPopEdit.setDisabled(True)
             else:
-                self.startingThetaPriorEdit.setDisabled(False)
-        elif self.sender().objectName() == "-dominant":
-            if self.dominantMarkerEdit.isEnabled():
-                self.dominantMarkerEdit.setDisabled(True)
+                self.sPopEdit.setDisabled(False)
+        elif self.sender().objectName() == "-pre":
+            if self.preEdit.isEnabled():
+                self.preEdit.setDisabled(True)
             else:
-                self.dominantMarkerEdit.setDisabled(False)
+                self.preEdit.setDisabled(False)
+        elif self.sender().objectName() == "-gtr":
+            if self.gtrEdit.isEnabled():
+                self.gtrEdit.setDisabled(True)
+            else:
+                self.gtrEdit.setDisabled(False)
+        elif self.sender().objectName() == "-diploid":
+            if self.diploidEdit.isEnabled():
+                self.diploidEdit.setDisabled(True)
+            else:
+                self.diploidEdit.setDisabled(False)     
         else:
             pass
-
-    def link(self, linkStr):
-        """
-        Open the website of PhyloNet if user clicks on the hyperlink.
-        """
-        QDesktopServices.openUrl(QtCore.QUrl(linkStr))
-
-    def cleanData(self):
-        """
-        Clean all internal data for new input.
-        Execute when user changes input data format or successfully generates a file.
-        """
-        self.data = None
-        self.taxaList = []
-        self.sequenceFileEdit.clear()
-        self.taxamap = {}
-
-    def selectFile(self):
-        """
-        Once user uploads a file, read it in as a DNA character matrix.
-        Execute when file selection button is clicked
-        """
-        if str(self.dataFormatEdit.currentText()) == ".nexus":
-            fname = QFileDialog.getOpenFileNames(self, 'Open file', '/', 'Nexus files (*.nexus *.nex);;Fasta files (*.fasta)')
-        elif str(self.dataFormatEdit.currentText()) == ".fasta":
-            fname = QFileDialog.getOpenFileNames(self, 'Open file', '/', 'Fasta files (*.fasta);;Nexus files (*.nexus *.nex)')
-
-        if fname:
-            fileType = fname[1]
-            if str(self.dataFormatEdit.currentText()) == ".nexus":
-                if fileType != 'Nexus files (*.nexus *.nex)':
-                    QMessageBox.warning(self, "Warning", "Please upload only .nexus or .nex files", QMessageBox.Ok)
-                else:
-                    for oneFile in fname[0]:
-                        # Bi-allelic marker data should be read in as Standard Character Matrix
-                         if str(self.dataTypeEdit.currentText()) == "bi-allelic markers data":
-                            self.data = dendropy.StandardCharacterMatrix.get(path=str(oneFile), schema="nexus",
-                                                                              preserve_underscores=True)
-                            self.sequenceFileEdit.setText(oneFile)
-                            self.taxaList = []
-                            self.taxamap = {}
-                         # Other data are DNA Character Matrix
-                         else:
-                            self.data = dendropy.DnaCharacterMatrix.get(path=str(oneFile), schema="nexus",
-                                                                         preserve_underscores=True)
-                            self.sequenceFileEdit.setText(oneFile)
-                            self.taxaList = []
-                            self.taxamap = {}
-
-            elif str(self.dataFormatEdit.currentText()) == ".fasta":
-                if fileType != 'Fasta files (*.fasta)':
-                    QMessageBox.warning(self, "Warning", "Please upload only .fasta files", QMessageBox.Ok)
-                else:
-                    for oneFile in fname[0]:
-                        # Bi-allelic marker data should be read in as Standard Character Matrix
-                         if str(self.dataTypeEdit.currentText()) == "bi-allelic markers data":
-                            self.data = dendropy.StandardCharacterMatrix.get(path=str(oneFile), schema="fasta")
-                            self.sequenceFileEdit.setText(oneFile)
-                            self.taxaList = []
-                            self.taxamap = {}
-                         # Other data are DNA Character Matrix
-                         else:
-                            self.data = dendropy.DnaCharacterMatrix.get(path=str(oneFile), schema="fasta")
-                            self.sequenceFileEdit.setText(oneFile)
-                            self.taxaList = []
-                            self.taxamap = {}
-            else:
-                return
-
-    def getTaxaList(self):
-        """
-        When user clicks "Select", open up taxaList dialog for user to select taxa used for inference.
-        Update self.taxaList based on user input.
-        """
-        class emptyFileError(Exception):
-            pass
-
-        try:
-            if self.data is None:
-                raise emptyFileError
-
-            # For unphased data, the number of taxa should double because of phasing.
-            if str(self.dataTypeEdit.currentText()) == "unphased data":
-                taxa = dendropy.TaxonNamespace()
-                # Turn each taxon into two.
-                for taxon in self.data.taxon_namespace:
-                    taxa.add_taxon(dendropy.Taxon(taxon.label + "_0"))
-                    taxa.add_taxon(dendropy.Taxon(taxon.label + "_1"))
-                # Default is all taxa are used for inference.
-                if len(self.taxaList) == 0:
-                    for taxon in taxa:
-                        self.taxaList.append(taxon.label)
-
-                dialog = taxaList.TaxaListDlg(taxa, self.taxaList, self)
-                if dialog.exec_():
-                    self.taxaList = dialog.getTaxaList()
-            else:
-                # Default is all taxa are used for inference.
-                if len(self.taxaList) == 0:
-                    for taxon in self.data.taxon_namespace:
-                        self.taxaList.append(taxon.label)
-
-                dialog = taxaList.TaxaListDlg(self.data.taxon_namespace, self.taxaList, self)
-                if dialog.exec_():
-                    self.taxaList = dialog.getTaxaList()
-        except emptyFileError:
-            QMessageBox.warning(self, "Warning", "Please upload data first!", QMessageBox.Ok)
-            return
 
     def getTaxamap(self):
         """
@@ -566,256 +654,257 @@ class MLEBiMarkersPage(QMainWindow):
         """
         class emptyFileError(Exception):
             pass
-
         try:
-            if self.data is None:
+            if len(self.inputFiles) == 0:
                 raise emptyFileError
 
-            # For unphased data, the number of taxa should double because of phasing.
-            if str(self.dataTypeEdit.currentText()) == "unphased data":
-                taxa = dendropy.TaxonNamespace()
-                # Turn each taxon into two.
-                for taxon in self.data.taxon_namespace:
-                    taxa.add_taxon(dendropy.Taxon(taxon.label + "_0"))
-                    taxa.add_taxon(dendropy.Taxon(taxon.label + "_1"))
-                # Default is only one individual for each species.
-                if len(self.taxamap) == 0:
-                    for taxon in taxa:
-                        self.taxamap[taxon.label] = taxon.label
+            # Create a taxon_namespace object based on current taxa names set.
+            taxa = dendropy.TaxonNamespace()
+            for taxon in list(self.taxa_names):
+                taxa.add_taxon(dendropy.Taxon(taxon))
 
-                dialog = TaxamapDlg.TaxamapDlg(taxa, self.taxamap, self)
-                if dialog.exec_():
-                    self.taxamap = dialog.getTaxamap()
+            # If it's the first time being clicked, set up the initial mapping,
+            # which assumes only one individual for each species.
+            if len(self.taxamap) == 0:
+                for taxon in taxa:
+                    self.taxamap[taxon.label] = taxon.label
             else:
-                # Default is only one individual for each species.
-                if len(self.taxamap) == 0:
-                    for taxon in self.data.taxon_namespace:
-                        self.taxamap[taxon.label] = taxon.label
+                # If it's not the first time being clicked, check if user has changed input files.
+                for taxon in taxa:
+                    if taxon.label not in self.taxamap:
+                        for taxon in taxa:
+                            self.taxamap[taxon.label] = taxon.label
+                        break
 
-                dialog = TaxamapDlg.TaxamapDlg(self.data.taxon_namespace, self.taxamap, self)
-                if dialog.exec_():
-                    self.taxamap = dialog.getTaxamap()
-
+            # Execute TaxamapDlg
+            dialog = TaxamapDlg.TaxamapDlg(taxa, self.taxamap, self)
+            if dialog.exec_():
+                self.taxamap = dialog.getTaxamap()
         except emptyFileError:
-            QMessageBox.warning(self, "Warning", "Please upload data first!", QMessageBox.Ok)
+            QMessageBox.warning(self, "Warning", "Please select a file type and upload data!", QMessageBox.Ok)
+            return
+        except Exception as e:
+            QMessageBox.warning(self, "Warning", str(e), QMessageBox.Ok)
             return
 
-    def __phasing(self, dnaMatrix):
+    def sgtFormat(self):
         """
-        Convert unphased data into phased data.
-        :param dnaMatrix: a DnaCharacterMatrix object for unphased data
-        :return: phased, a dictionary from taxon to sequence for phased data
+        Process checkbox's stateChanged signal to implement mutual exclusion.
+        Only one of .nexus and .newick can be selected.
         """
-        ambiguity_code = {
-            "M": ["A", "C"],
-            "R": ["A", "G"],
-            "W": ["A", "T"],
-            "S": ["C", "G"],
-            "Y": ["C", "T"],
-            "K": ["G", "T"]
-        }
-
-        # Ignore the entire column if the column contains these symbols.
-        ignore_code = ["V", "H", "D", "B", "N", "-"]
-
-        phased = {}
-        # Split each taxon into two.
-        for taxon in dnaMatrix.taxon_namespace:
-            phased[taxon.label + "_0"] = ""
-            phased[taxon.label + "_1"] = ""
-
-        # Iterate through each column.
-        for i in range(len(dnaMatrix[0])):
-            nucleotides = set([])
-            for taxon in dnaMatrix:
-                nucleotides.add(str(dnaMatrix[taxon][i]))
-            # If column contains any symbol that should be ignored, continue to next iteration
-            if any(x in ignore_code for x in nucleotides):
-                continue
+        if self.sender().objectName() == "sgtNexus":
+            if not self.sgtNexus.isChecked():
+                pass
             else:
-                # Assign a value to this site of each taxon.
-                for taxon in dnaMatrix:
-                    # If no ambiguity code, copy the original nucleotide.
-                    if str(dnaMatrix[taxon][i]) not in ambiguity_code:
-                        phased[taxon.label + "_0"] += str(dnaMatrix[taxon][i])
-                        phased[taxon.label + "_1"] += str(dnaMatrix[taxon][i])
-                    else:
-                        # If there is an ambiguity symbol, randomly assign one nucleotide belonging to that ambiguity
-                        # code to each taxon.
-                        phased[taxon.label + "_0"] += ambiguity_code[str(dnaMatrix[taxon][i])][0]
-                        phased[taxon.label + "_1"] += ambiguity_code[str(dnaMatrix[taxon][i])][1]
+                self.sgtNewick.setChecked(False)
+                # Clear stored starting gene tree files.
+                self.sgtFileEdit.clear()
+                self.sgtFiles = []
+        elif self.sender().objectName() == "sgtNewick":
+            if not self.sgtNewick.isChecked():
+                pass
+            else:
+                self.sgtNexus.setChecked(False)
+                # Clear stored starting gene tree files.
+                self.sgtFileEdit.clear()
+                self.sgtFiles = []
 
-        return phased
-
-    def __phasedToBi(self, dnaMatrix):
+    def selectSgtFile(self):
         """
-        Convert phased data into bi-allelic markers.
-        :param dnaMatrix: a DnaCharacterMatrix object for phased data
-        :return: bimarkers, a dictionary from taxon to bi-allelic markers
+        Store all the user uploaded starting gene tree file names. Reading happens in the "generate" function.
+        Files should be uploaded in the same order as loci.
+        Each file should contain only one gene tree (Or multiple gene trees, as long as gene trees themselves
+        are in the same order as loci).
+        Execute when starting gene tree file selection button is clicked.
         """
-        bimarkers = {}
-        # Initialie each taxon to empty sequence.
-        for taxon in dnaMatrix.taxon_namespace:
-            bimarkers[taxon.label] = ""
-        # Iterate through each column.
-        for i in range(len(dnaMatrix[0])):
-            nucleotides = set([])
-            for taxon in dnaMatrix:
-                nucleotides.add(str(dnaMatrix[taxon][i]))
-            # If there are only two kinds of nucleotides in this column, an indication of bi-allelic marker.
-            if len(nucleotides) == 2 and "-" not in nucleotides:
-                uniqueNucleotides = list(nucleotides)
-                # Randomly assign 0 or 1 to each of the nucleotides.
-                zero = uniqueNucleotides[0]
-                for taxon in dnaMatrix:
-                    if str(dnaMatrix[taxon][i]) == zero:
-                        bimarkers[taxon.label] += "0"
-                    else:
-                        bimarkers[taxon.label] += "1"
+        fname = QFileDialog.getOpenFileName(
+            self, 'Open file', '/', 'Nexus files (*.nexus *.nex);; Newick files (*.newick)')
+        if fname[1] == 'Nexus files (*.nexus *.nex)':
+            # Store the file name in a global list.
+            self.sgtFileEdit.insert(fname[0])
+            self.sgtFiles.append(str(fname[0]))
+        elif fname[1] == 'Newick files (*.newick)':
+            # Store the file name in a global list.
+            self.sgtFileEdit.insert(fname[0])
+            self.sgtFiles.append(str(fname[0]))
+        else:
+            return
 
-        return bimarkers
+    def getGTR(self):
+        """
+        Set general time-reversible as the substitution model.
+        Open up a dialog for user to input ten parameters. Get result from the dialog and store as
+        a global variable. Default parameters is JC69 model.
+        """
+        dialog = paramList.ParamListDlg(self.GTR, self)
+        if dialog.exec_():
+            self.GTR = dialog.getParamList()
+
+    def getDiploid(self):
+        """
+        Set diploid species list.
+        Open up a dialog for user to select diploid species. Get result from the dialog and store as
+        a global variable.
+        """
+        class emptyFileError(Exception):
+            pass
+
+        try:
+            if len(self.inputFiles) == 0:
+                raise emptyFileError
+
+            # Create a taxon_namespace object based on current taxa names set.
+            taxa = dendropy.TaxonNamespace()
+            for taxon in list(self.taxa_names):
+                taxa.add_taxon(dendropy.Taxon(taxon))
+
+            dialog = diploidList.DiploidListDlg(taxa, self.ListOfDiploid, self)
+
+            if dialog.exec_():
+                # If executed, update diploid species list.
+                self.ListOfDiploid = dialog.getDiploidSpeciesList()
+
+        except emptyFileError:
+            QMessageBox.warning(
+                self, "Warning", "Please select a file type and upload data!", QMessageBox.Ok)
+            return
 
     def generate(self):
         """
         Generate NEXUS file based on user input.
         """
+
+        directory = QFileDialog.getSaveFileName(
+            self, "Save File", "/", "Nexus Files (*.nexus)")
+
         class emptyFileError(Exception):
             pass
 
-        class taxaListEmptyError(Exception):
+        class emptyDesinationError(Exception):
             pass
 
         try:
-            if self.data is None:
+            if len(self.inputFiles) == 0:
                 raise emptyFileError
+            if directory[0] == "":
+                raise emptyDesinationError
 
-            if len(self.taxaList) == 0:
-                raise taxaListEmptyError
+            # If user specifies starting gene trees, read gene tree files and write them to output NEXUS first.
+            if self.sgtFileLbl.isChecked() and (self.sgtNexus.isChecked() or self.sgtNewick.isChecked()):
+                if self.sgtNexus.isChecked():
+                    schema = "nexus"
+                else:
+                    schema = "newick"
 
-            if str(self.dataTypeEdit.currentText()) == "unphased data":
-                maximum = len(self.data) * 2 + 1
+                # a TreeList that stores all the uploaded gene trees
+                data = dendropy.TreeList()
+                # All uploaded gene tree names
+                geneTreeNames = []
+                # read each uploaded file
+                for file in self.sgtFiles:
+                    fileName = os.path.splitext(os.path.basename(file))[0]
+                    currentFile = dendropy.TreeList()
+                    # read in gene trees
+                    currentFile.read(path=file, schema=schema,
+                                     preserve_underscores=True)
+                    if len(currentFile) == 0:
+                        raise Exception("No tree data found in gene tree file")
+                    counter = 0
+                    for tree in currentFile:
+                        # rename gene trees
+                        tree.label = fileName + str(counter)
+                        geneTreeNames.append(tree.label)
+                        counter += 1
+                    data.extend(currentFile)
+
+                # Write out TREES block.
+                path = str(directory[0])
+                data.write(path=path, schema="nexus",
+                           suppress_taxa_blocks=True, unquoted_underscores=True)
             else:
-                maximum = len(self.data) + 1
-
-            progress = QProgressDialog("Generating NEXUS file...", "", 0, maximum, self)
-            progress.setCancelButton(None)
-            progress.setWindowModality(QtCore.Qt.WindowModal)
-            progress.show()
-            current = 0
-
-            path = "intermediate/" + str(datetime.datetime.now().strftime('%H-%M-%S')) + ".nexus"
-
+                # If not, just create a file to write.
+                path = str(directory[0])
             with open(path, "a") as outputFile:
-                outputFile.write("#NEXUS\n")
+                # Write #NEXUS or not depends on the existence of TREES block.
+                if self.sgtFileLbl.isChecked() and (self.sgtNexus.isChecked() or self.sgtNewick.isChecked()):
+                    outputFile.write("\n")
+                else:
+                    outputFile.write("#NEXUS\n")
+                # Write headers of DATA block
                 outputFile.write("Begin data;\n")
                 outputFile.write("Dimensions ntax=")
-
-                # If data is unphased, number of taxa should double because of phasing.
-                if str(self.dataTypeEdit.currentText()) == "unphased data":
-                    outputFile.write(str(2 * len(self.data.taxon_namespace)))
-                else:
-                    outputFile.write(str(len(self.data.taxon_namespace)))
-
+                outputFile.write(str(len(self.taxa_names)))
                 outputFile.write(" nchar=")
-                outputFile.write(str(len(self.data[0])))
+                outputFile.write(str(self.nchar))
                 outputFile.write(";\n")
-                outputFile.write('Format datatype=dna symbols="012" missing=? gap=-;\n')
-                outputFile.write("Matrix\n\n")
+                outputFile.write(
+                    'Format datatype=dna symbols="ACGTMRWSYK" missing=? gap=-;\n')
+                outputFile.write("Matrix\n")
 
-                QApplication.processEvents()
+                # Write loci.
+                for locus in self.loci:
+                    outputFile.write("[")
+                    outputFile.write(locus)
+                    outputFile.write(", ")
+                    outputFile.write(str(self.loci[locus][0]))
+                    outputFile.write("]\n")
 
-                # If data is bi-allelic markers, simply write out the data.
-                if str(self.dataTypeEdit.currentText()) == "bi-allelic markers data":
-                    for taxon in self.data:
+                    for taxon, seq in self.loci[locus][1].items():
                         outputFile.write(taxon.label)
                         outputFile.write(" ")
-                        outputFile.write(str(self.data[taxon]))
+                        outputFile.write(seq.symbols_as_string())
                         outputFile.write("\n")
-
-                        current += 1
-                        progress.setValue(current)
-                        QApplication.processEvents()
-                # If data is phased, convert into bi-allelic markers, and then write out.
-                elif str(self.dataTypeEdit.currentText()) == "phased data":
-                    bimarkers = self.__phasedToBi(self.data)
-                    for taxon in bimarkers:
-                        outputFile.write(taxon)
-                        outputFile.write(" ")
-                        outputFile.write(bimarkers[taxon])
-                        outputFile.write("\n")
-
-                        current += 1
-                        progress.setValue(current)
-                        QApplication.processEvents()
-                # If data is unphased, convert into phased data first, then convert the phased data into
-                # bi-allelic markers, and then write out.
-                elif str(self.dataTypeEdit.currentText()) == "unphased data":
-                    phased = self.__phasing(self.data)
-                    bimarkers = self.__phasedToBi(dendropy.DnaCharacterMatrix.from_dict(phased))
-                    for taxon in bimarkers:
-                        outputFile.write(taxon)
-                        outputFile.write(" ")
-                        outputFile.write(bimarkers[taxon])
-                        outputFile.write("\n")
-
-                        current += 1
-                        progress.setValue(current)
-                        QApplication.processEvents()
-
-                outputFile.write(";End;\n\n")
+                outputFile.write(";END;\n")
 
                 # Write PHYLONET block.
                 outputFile.write("BEGIN PHYLONET;\n")
                 outputFile.write("MLE_BiMarkers")
-                # Write taxa list used for inference.
-                outputFile.write(" -taxa (")
-                outputFile.write(self.taxaList[0])
-                for taxon in self.taxaList[1:]:
-                    outputFile.write(",")
-                    outputFile.write(taxon)
-                outputFile.write(")")
 
                 # Write optional commands based on user selection.
-                if self.pseudoLbl.isChecked():
-                    outputFile.write(" -pseudo")
-
-                if self.numRunLbl.isChecked():
-                    if self.numRunEdit.text().isEmpty():
+                if self.chainLengthLbl.isChecked():
+                    if self.chainLengthEdit.text() == "":
                         pass
                     else:
-                        outputFile.write(" -mnr ")
-                        outputFile.write(str(self.numRunEdit.text()))
+                        outputFile.write(" -cl ")
+                        outputFile.write(str(self.chainLengthEdit.text()))
 
-                if self.maxExamLbl.isChecked():
-                    if self.maxRetEdit.text().isEmpty():
+                if self.burnInLengthLbl.isChecked():
+                    if self.burnInLengthEdit.text() == "":
                         pass
                     else:
-                        outputFile.write(" -mec ")
-                        outputFile.write(str(self.maxExamEdit.text()))
+                        outputFile.write(" -bl ")
+                        outputFile.write(str(self.burnInLengthEdit.text()))
 
-                if self.numOptimumsLbl.isChecked():
-                    if self.numOptimumsEdit.text().isEmpty():
+                if self.sampleFrequencyLbl.isChecked():
+                    if self.sampleFrequencyEdit.text() == "":
                         pass
                     else:
-                        outputFile.write(" -mno ")
-                        outputFile.write(str(self.numOptimumsEdit.text()))
+                        outputFile.write(" -sf ")
+                        outputFile.write(str(self.sampleFrequencyEdit.text()))
 
-                if self.maxFailuresLbl.isChecked():
-                    if self.maxFailuresEdit.text().isEmpty():
+                if self.seedLbl.isChecked():
+                    if self.seedEdit.text() == "":
                         pass
                     else:
-                        outputFile.write(" -mf ")
-                        outputFile.write(str(self.maxFailuresEdit.text()))
+                        outputFile.write(" -sd ")
+                        outputFile.write(str(self.seedEdit.text()))
 
-                if self.parThreadLbl.isChecked():
-                    if self.parThreadEdit.text().isEmpty():
+                if self.numProcLbl.isChecked():
+                    if self.numProcEdit.text() == "":
                         pass
                     else:
                         outputFile.write(" -pl ")
-                        outputFile.write(str(self.parThreadEdit.text()))
+                        outputFile.write(str(self.numProcEdit.text()))
+
+                if self.tempListLbl.isChecked():
+                    if self.tempListEdit.text() == "":
+                        pass
+                    else:
+                        outputFile.write(" -mc3 ")
+                        outputFile.write(str(self.tempListEdit.text()))
 
                 if self.maxRetLbl.isChecked():
-                    if self.maxRetEdit.text().isEmpty():
+                    if self.maxRetEdit.text() == "":
                         pass
                     else:
                         outputFile.write(" -mr ")
@@ -832,7 +921,8 @@ class MLEBiMarkersPage(QMainWindow):
                         for firstSpecies in speciesToTaxonMap:
                             outputFile.write(firstSpecies)
                             outputFile.write(":")
-                            outputFile.write(speciesToTaxonMap[firstSpecies][0])
+                            outputFile.write(
+                                speciesToTaxonMap[firstSpecies][0])
                             for taxon in speciesToTaxonMap[firstSpecies][1:]:
                                 outputFile.write(",")
                                 outputFile.write(taxon)
@@ -848,78 +938,211 @@ class MLEBiMarkersPage(QMainWindow):
                                 outputFile.write(taxon)
                         outputFile.write(">")
 
-                if self.thetaLbl.isChecked():
-                    if self.thetaEdit.text().isEmpty():
+                if self.popSizeLbl.isChecked():
+                    if self.popSizeEdit.text() == "":
                         pass
                     else:
-                        outputFile.write(" -fixtheta ")
-                        outputFile.write(str(self.thetaEdit.text()))
+                        outputFile.write(" -fixps ")
+                        outputFile.write(str(self.popSizeEdit.text()))
 
-                if self.espThetaLbl.isChecked():
-                    outputFile.write(" -esptheta")
+                if self.varypsLbl.isChecked():
+                    outputFile.write(" -varyps")
+
+                if self.ppLbl.isChecked():
+                    if self.ppEdit.text() == "":
+                        pass
+                    else:
+                        outputFile.write(" -pp ")
+                        outputFile.write(str(self.ppEdit.text()))
+
+                if self.ddLbl.isChecked():
+                    outputFile.write(" -dd")
+
+                if self.eeLbl.isChecked():
+                    outputFile.write(" -ee")
+
+                if self.sgtFileLbl.isChecked() and (self.sgtNexus.isChecked() or self.sgtNewick.isChecked()):
+                    # Write out all the gene tree names.
+                    outputFile.write(" -sgt (")
+                    outputFile.write(geneTreeNames[0])
+                    for genetree in geneTreeNames[1:]:
+                        outputFile.write(",")
+                        outputFile.write(genetree)
+                    outputFile.write(")")
 
                 if self.sNetLbl.isChecked():
-                    if self.sNetEdit.text().isEmpty():
+                    if self.sNetEdit.text() == "":
                         pass
                     else:
                         outputFile.write(" -snet ")
                         outputFile.write(str(self.sNetEdit.text()))
 
-                if self.startingThetaPriorLbl.isChecked():
-                    if self.startingThetaPriorEdit.text().isEmpty():
+                if self.sPopLbl.isChecked():
+                    if self.sPopEdit.text() == "":
                         pass
                     else:
-                        outputFile.write(" -ptheta ")
-                        outputFile.write(str(self.startingThetaPriorEdit.text()))
+                        outputFile.write(" -sps ")
+                        outputFile.write(str(self.sPopEdit.text()))
+
+                if self.preLbl.isChecked():
+                    if self.preEdit.text() == "":
+                        pass
+                    else:
+                        outputFile.write(" -pre ")
+                        outputFile.write(str(self.preEdit.text()))
+
+                if self.gtrLbl.isChecked():
+                    outputFile.write(" -gtr (")
+                    outputFile.write(self.GTR["A"])
+                    outputFile.write(",")
+                    outputFile.write(self.GTR["C"])
+                    outputFile.write(",")
+                    outputFile.write(self.GTR["G"])
+                    outputFile.write(",")
+                    outputFile.write(self.GTR["T"])
+                    outputFile.write(",")
+                    outputFile.write(self.GTR["AC"])
+                    outputFile.write(",")
+                    outputFile.write(self.GTR["AG"])
+                    outputFile.write(",")
+                    outputFile.write(self.GTR["AT"])
+                    outputFile.write(",")
+                    outputFile.write(self.GTR["CG"])
+                    outputFile.write(",")
+                    outputFile.write(self.GTR["CT"])
+                    outputFile.write(",")
+                    outputFile.write(self.GTR["GT"])
+                    outputFile.write(")")
 
                 if self.diploidLbl.isChecked():
-                    outputFile.write(" -diploid")
-
-                if self.dominantMarkerLbl.isChecked():
-                    outputFile.write(" -dominant ")
-                    outputFile.write(str(self.dominantMarkerEdit.currentText()))
-
-                if self.opLbl.isChecked():
-                    outputFile.write(" -op")
+                    if len(self.ListOfDiploid) == 0:
+                        pass
+                    else:
+                        outputFile.write(" -diploid (")
+                        outputFile.write(self.ListOfDiploid[0])
+                        for species in self.ListOfDiploid[1:]:
+                            outputFile.write(",")
+                            outputFile.write(species)
+                        outputFile.write(")")
 
                 outputFile.write(";\n")
                 outputFile.write("END;")
 
-            # Clear all data after one write.
-            self.cleanData()
             # Validate the generated file.
             self.validateFile(path)
-
-            current += 1
-            progress.setValue(current)
-            QApplication.processEvents()
+            #clears inputs if they are validated      
+            if self.isValidated:
+                self.clear()
+                self.generated.emit(True)
+                self.successMessage()
 
         except emptyFileError:
-            QMessageBox.warning(self, "Warning", "Please upload data first!", QMessageBox.Ok)
+            QMessageBox.warning(
+                self, "Warning", "Please select a file type and upload data!", QMessageBox.Ok)
             return
-        except taxaListEmptyError:
-            QMessageBox.warning(self, "Warning", "Please select taxa used for inference!", QMessageBox.Ok)
+        except emptyDesinationError:
+            QMessageBox.warning(
+                self, "Warning", "Please specify destination for generated NEXUS file.", QMessageBox.Ok)
             return
         except Exception as e:
             QMessageBox.warning(self, "Warning", str(e), QMessageBox.Ok)
             return
 
+    def clear(self):
+        """
+        CLear page's field
+        """
+        self.inputFiles = []
+        self.loci = {}
+        self.nchar = 0
+        self.taxa_names = set([])
+
+        self.taxamap = {}
+        self.sgtFiles = []
+        self.ListOfDiploid = []
+
+        self.nexus.setChecked(False)
+        self.fasta.setChecked(False)
+        self.sequenceFileEdit.clear()
+        self.numReticulationsEdit.clear()
+
+        self.chainLengthLbl.setChecked(False)
+        self.chainLengthEdit.clear()
+        self.burnInLengthLbl.setChecked(False)
+        self.burnInLengthEdit.clear()
+        self.sampleFrequencyLbl.setChecked(False)
+        self.sampleFrequencyEdit.clear()
+        self.seedLbl.setChecked(False)
+        self.seedEdit.clear()
+        self.numProcLbl.setChecked(False)
+        self.numProcEdit.clear()
+        self.tempListLbl.setChecked(False)
+        self.tempListEdit.clear()
+
+        self.maxRetLbl.setChecked(False)
+        self.maxRetEdit.clear()
+        self.taxamapLbl.setChecked(False)
+        self.popSizeLbl.setChecked(False)
+        self.popSizeEdit.clear()
+        self.varypsLbl.setChecked(False)
+        self.ppLbl.setChecked(False)
+        self.ppEdit.clear()
+        self.ddLbl.setChecked(False)
+        self.eeLbl.setChecked(False)
+
+        self.sgtFileLbl.setChecked(False)
+        self.sgtFileEdit.clear()
+        self.sNetLbl.setChecked(False)
+        self.sNetEdit.clear()
+        self.sPopLbl.setChecked(False)
+        self.sPopEdit.clear()
+        self.preLbl.setChecked(False)
+        self.preEdit.clear()
+        self.gtrLbl.setChecked(False)
+        self.diploidLbl.setChecked(False) 
+
+    def successMessage(self):
+        msg = QDialog()
+        msg.setWindowTitle("Phylonet") 
+        msg.setWindowIcon(QIcon("logo.png"))
+        flags = QtCore.Qt.WindowFlags(QtCore.Qt.CustomizeWindowHint | QtCore.Qt.WindowCloseButtonHint )
+        msg.setWindowFlags(flags)
+        msg.setObjectName("successMessage")
+
+        vbox = QVBoxLayout()
+
+        ico = QLabel()
+        complete = QPixmap("module/complete.svg")
+        ico.setPixmap(complete)
+        buttonBox = QDialogButtonBox(QDialogButtonBox.Ok)
+        buttonBox.clicked.connect(msg.accept)
+
+        vbox.addWidget(ico, alignment=QtCore.Qt.AlignCenter)
+        vbox.addWidget(buttonBox)
+        vbox.setSpacing(0)
+ 
+        msg.setLayout(vbox)
+        msg.setModal(1)
+        msg.exec_()
+
     def validateFile(self, filePath):
         """
         After the .nexus file is generated, validate the file by feeding it to PhyloNet.
-        Specify -checkParams on command line to make sure PhyloNet checks the input
-        without executing the command.
+        Specify -checkParams on command line to make sure PhyloNet checks input without executing the command.
         """
+  
         try:
             subprocess.check_output(
-                ["java", "-jar", "testphylonet.jar",
+                ["java", "-jar", resource_path("module/testphylonet.jar"),
                  filePath, "checkParams"], stderr=subprocess.STDOUT)
-            # If no problem, move the generated file to output directory
-            shutil.move(filePath, "output/" + os.path.basename(filePath))
+            self.isValidated = True
         except subprocess.CalledProcessError as e:
-            # If an error is encountered, display the error to user.
-            QMessageBox.warning(self, "Warning", e.output, QMessageBox.Ok)
-
+            # If an error is encountered, delete the generated file and display the error to user.
+            self.isValidated = False
+            msg = e.output.decode("utf-8")
+            msg = msg.replace("\n", "", 1)
+            os.remove(filePath)
+            QMessageBox.warning(self, "Warning", msg, QMessageBox.Ok)
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)

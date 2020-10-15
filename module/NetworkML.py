@@ -87,7 +87,7 @@ class NetworkMLPage(QWizardPage):
 
         hyperlink = QLabel()
         hyperlink.setText('For more details '
-                          '<a href="https://wiki.rice.edu/confluence/display/PHYLONET/InferNetwork_MPL">'
+                          '<a href="https://wiki.rice.edu/confluence/display/PHYLONET/InferNetwork_ML">'
                           'click here</a>.')
         hyperlink.linkActivated.connect(self.link)
         hyperlink.setObjectName("detailsLink")
@@ -295,6 +295,7 @@ class NetworkMLPage(QWizardPage):
 
         # Optional parameter labels
         self.branchlengthLbl = QCheckBox("Use the branch lengths of the gene trees for the inference.", self)
+        self.branchlengthLbl.setObjectName("-bl")
         self.branchlengthLbl.stateChanged.connect(self.onChecked)
 
         self.nNetExamLbl = QCheckBox("Maximum number of network topologies to examine:", self)
@@ -647,11 +648,6 @@ class NetworkMLPage(QWizardPage):
                 self.retDiaEdit.setDisabled(True)
             else:
                 self.retDiaEdit.setDisabled(False)
-        elif self.sender().objectName() == "-f":
-            if self.maxFEdit.isEnabled():
-                self.maxFEdit.setDisabled(True)
-            else:
-                self.maxFEdit.setDisabled(False)
         elif self.sender().objectName() == "-p":
             if self.stopCriterionEdit.isEnabled():
                 self.stopCriterionEdit.setDisabled(True)
@@ -802,7 +798,7 @@ class NetworkMLPage(QWizardPage):
             # Ready to write PHYLONET block.
             with open(path, "a") as outputFile:
                 outputFile.write("\nBEGIN PHYLONET;\n\n")
-                outputFile.write("InferNetwork_MPL (")
+                outputFile.write("InferNetwork_ML (")
                 # Write out all the gene tree names.
                 if not self.multiTreesPerLocus:
                     # If there's only one tree per locus, write a comma delimited list of gene tree identifiers.
@@ -920,6 +916,10 @@ class NetworkMLPage(QWizardPage):
                     else:
                         outputFile.write(" -x ")
                         outputFile.write(str(self.numRunEdit.text()))
+                        
+                # -bl branchlength command
+                if self.branchlengthLbl.isChecked():
+                    outputFile.write(" -bl ")
 
                 # -m maxNetExamined command
                 if self.nNetExamLbl.isChecked():

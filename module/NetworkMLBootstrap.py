@@ -14,11 +14,11 @@ from Validator import NumValidator
 from module import TaxamapDlg
 from functions import *
 
-"""
+
 inputFiles = []
 geneTreeNames = []
 taxamap = {}
-"""
+
 def resource_path(relative_path):
     """
     Refer to the location of a file at run-time.
@@ -30,7 +30,7 @@ def resource_path(relative_path):
         return os.path.join(sys._MEIPASS, relative_path)
     return os.path.join(os.path.abspath("."), relative_path)
 
-class NetworkMPPage(QWizardPage):
+class NetworkMLBootstrapPage(QWizardPage):
     #set signals for page
     restarted = QtCore.pyqtSignal(bool)
     generated = QtCore.pyqtSignal(bool)
@@ -71,23 +71,23 @@ class NetworkMPPage(QWizardPage):
             finish_button.setVisible(True)
 
     def __init__(self):
-        super(NetworkMPPage, self).__init__()
+        super(NetworkMLBootstrapPage, self).__init__()
         
         self.inputFiles = []
         self.geneTreeNames = []
         self.taxamap = {}
-
-        self.TABS = 3
+        self.multiTreesPerLocus = False
+        self.TABS = 4
 
         self.isValidated = False
         self.initUI()
 
     def initUI(self):
-        titleLabel = titleHeader("InferNetwork_MP")
+        titleLabel = titleHeader("InferNetwork_ML_Bootstrap")
 
         hyperlink = QLabel()
         hyperlink.setText('For more details '
-                          '<a href="https://wiki.rice.edu/confluence/display/PHYLONET/InferNetwork_MP">'
+                          '<a href="https://wiki.rice.edu/confluence/display/PHYLONET/InferNetwork_ML_Bootstrap">'
                           'click here</a>.')
         hyperlink.linkActivated.connect(self.link)
         hyperlink.setObjectName("detailsLink")
@@ -170,10 +170,14 @@ class NetworkMPPage(QWizardPage):
 
         optionalLabel = QLabel()
         optionalLabel.setObjectName("instructionLabel")
-        optionalLabel.setText("Optional Parameters")
+        optionalLabel.setText("Optional")
         optionalLabel.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)
 
         # Optional parameter labels
+        self.samplingRoundsLbl = QCheckBox("Number of sampling processes repeated in parametric bootstrap", self)
+        self.samplingRoundsLbl.setObjectName("-sr")
+        self.samplingRoundsLbl.stateChanged.connect(self.onChecked)
+
         self.thresholdLbl = QCheckBox("Gene trees bootstrap threshold:", self)
         self.thresholdLbl.setObjectName("-b")
         self.thresholdLbl.stateChanged.connect(self.onChecked)
@@ -187,22 +191,23 @@ class NetworkMPPage(QWizardPage):
         self.sNetLbl.setObjectName("-s")
         self.sNetLbl.stateChanged.connect(self.onChecked)
 
-        self.nNetRetLbl = QCheckBox(
-            "Number of optimal networks to return:", self)
-        self.nNetRetLbl.setObjectName("-n")
-        self.nNetRetLbl.stateChanged.connect(self.onChecked)
+        self.hybridLbl = QCheckBox("A set of specified hybrid species:", self)
+        self.hybridLbl.setObjectName("-h")
+        self.hybridLbl.stateChanged.connect(self.onChecked)
 
-        self.nNetExamLbl = QCheckBox(
-            "Maximum number of network topologies to examine:", self)
-        self.nNetExamLbl.setObjectName("-m")
-        self.nNetExamLbl.stateChanged.connect(self.onChecked)
+        self.wetOpLbl = QCheckBox("Weights of operations for network arrangement during the network search:", self)
+        self.wetOpLbl.setObjectName("-w")
+        self.wetOpLbl.stateChanged.connect(self.onChecked)
 
-        self.maxDiaLbl = QCheckBox(
-            "Maximum diameter to make an arrangement during network search:", self)
-        self.maxDiaLbl.setObjectName("-d")
-        self.maxDiaLbl.stateChanged.connect(self.onChecked)
+        self.numRunLbl = QCheckBox("The number of runs of the search:", self)
+        self.numRunLbl.setObjectName("-x")
+        self.numRunLbl.stateChanged.connect(self.onChecked)
 
         # Optional parameter inputs
+        self.samplingRoundsEdit = QLineEdit()
+        self.samplingRoundsEdit.setDisabled(True)
+        self.samplingRoundsEdit.setPlaceholderText("100")
+
         self.thresholdEdit = QLineEdit()
         self.thresholdEdit.setDisabled(True)
 
@@ -214,20 +219,25 @@ class NetworkMPPage(QWizardPage):
         self.sNetEdit = QLineEdit()
         self.sNetEdit.setDisabled(True)
 
-        self.nNetRetEdit = QLineEdit()
-        self.nNetRetEdit.setDisabled(True)
-        self.nNetRetEdit.setPlaceholderText("1")
+        self.hybridEdit = QLineEdit()
+        self.hybridEdit.setDisabled(True)
 
-        self.nNetExamEdit = QLineEdit()
-        self.nNetExamEdit.setDisabled(True)
-        self.nNetExamEdit.setPlaceholderText("infinity")
+        self.wetOpEdit = QLineEdit()
+        self.wetOpEdit.setDisabled(True)
+        self.wetOpEdit.setPlaceholderText("(0.1,0.1,0.15,0.55,0.15,0.15,2.8)")
+        self.wetOpEdit.setMinimumWidth(200)
 
-        self.maxDiaEdit = QLineEdit()
-        self.maxDiaEdit.setDisabled(True)
-        self.maxDiaEdit.setPlaceholderText("infinity")
+        self.numRunEdit = QLineEdit()
+        self.numRunEdit.setDisabled(True)
+        self.numRunEdit.setPlaceholderText("5")
  
         # Layouts
         # Layout of each parameter (label and input)
+        samplingRoundsLayout = QHBoxLayout()
+        samplingRoundsLayout.addWidget(self.samplingRoundsLbl)
+        samplingRoundsLayout.addStretch(1)
+        samplingRoundsLayout.addWidget(self.samplingRoundsEdit)
+
         thresholdLayout = QHBoxLayout()
         thresholdLayout.addWidget(self.thresholdLbl)
         thresholdLayout.addStretch(1)
@@ -242,31 +252,30 @@ class NetworkMPPage(QWizardPage):
         sNetLayout.addWidget(self.sNetLbl)
         sNetLayout.addWidget(self.sNetEdit)
 
-        nNetRetLayout = QHBoxLayout()
-        nNetRetLayout.addWidget(self.nNetRetLbl)
-        nNetRetLayout.addStretch(1)
-        nNetRetLayout.addWidget(self.nNetRetEdit)
+        hybridLayout = QHBoxLayout()
+        hybridLayout.addWidget(self.hybridLbl)
+        hybridLayout.addWidget(self.hybridEdit)
 
-        nNetExamLayout = QHBoxLayout()
-        nNetExamLayout.addWidget(self.nNetExamLbl)
-        nNetExamLayout.addStretch(1)
-        nNetExamLayout.addWidget(self.nNetExamEdit)
+        wetOpLayout = QHBoxLayout()
+        wetOpLayout.addWidget(self.wetOpLbl)
+        wetOpLayout.addStretch(1)
+        wetOpLayout.addWidget(self.wetOpEdit)
 
-        maxDiaLayout = QHBoxLayout()
-        maxDiaLayout.addWidget(self.maxDiaLbl)
-        maxDiaLayout.addStretch(1)
-        maxDiaLayout.addWidget(self.maxDiaEdit)
+        numRunLayout = QHBoxLayout()
+        numRunLayout.addWidget(self.numRunLbl)
+        numRunLayout.addStretch(1)
+        numRunLayout.addWidget(self.numRunEdit)
 
         # Main Layout tab two
         tabTwoLayout = QVBoxLayout()
         tabTwoLayout.addWidget(optionalLabel)
-
+        tabTwoLayout.addLayout(samplingRoundsLayout)
         tabTwoLayout.addLayout(thresholdLayout)
         tabTwoLayout.addLayout(taxamapLayout)
         tabTwoLayout.addLayout(sNetLayout)
-        tabTwoLayout.addLayout(nNetRetLayout)
-        tabTwoLayout.addLayout(nNetExamLayout)
-        tabTwoLayout.addLayout(maxDiaLayout)
+        tabTwoLayout.addLayout(hybridLayout)
+        tabTwoLayout.addLayout(wetOpLayout)
+        tabTwoLayout.addLayout(numRunLayout)
         tabTwo.setLayout(tabTwoLayout)   
 
         #add tab two
@@ -278,127 +287,253 @@ class NetworkMPPage(QWizardPage):
 
         optionalLabelA = QLabel()
         optionalLabelA.setObjectName("instructionLabel")
-        optionalLabelA.setText("Optional Parameters")
+        optionalLabelA.setText("Optional")
         optionalLabelA.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)
 
-        self.hybridLbl = QCheckBox("A set of specified hybrid species:", self)
-        self.hybridLbl.setObjectName("-h")
-        self.hybridLbl.stateChanged.connect(self.onChecked)
 
-        self.wetOpLbl = QCheckBox(
-            "Weights of operations for network arrangement during the network search:", self)
-        self.wetOpLbl.setObjectName("-w")
-        self.wetOpLbl.stateChanged.connect(self.onChecked)
+        # Optional parameter labels
+        self.nNetExamLbl = QCheckBox("Maximum number of network topologies to examine:", self)
+        self.nNetExamLbl.setObjectName("-m")
+        self.nNetExamLbl.stateChanged.connect(self.onChecked)
 
-        self.maxFLbl = QCheckBox(
-            "The maximum number of consecutive failures before the search terminates:", self)
-        self.maxFLbl.setObjectName("-f")
-        self.maxFLbl.stateChanged.connect(self.onChecked)
+        self.maxDiaLbl = QCheckBox("Maximum diameter to make an arrangement during network search:", self)
+        self.maxDiaLbl.setObjectName("-md")
+        self.maxDiaLbl.stateChanged.connect(self.onChecked)
 
-        self.numRunLbl = QCheckBox("The number of runs of the search:", self)
-        self.numRunLbl.setObjectName("-x")
-        self.numRunLbl.stateChanged.connect(self.onChecked)
+        self.retDiaLbl = QCheckBox("Maximum diameter for a reticulation event:", self)
+        self.retDiaLbl.setObjectName("-rd")
+        self.retDiaLbl.stateChanged.connect(self.onChecked)
+
+        self.oLabel = QCheckBox("Optimize branch lengths and inheritance probabilities for every proposed species "
+                                "network during the search", self)
+
+        self.stopCriterionLbl = QCheckBox("The original stopping criterion of Brent's algorithm:", self)
+        self.stopCriterionLbl.setObjectName("-p")
+        self.stopCriterionLbl.stateChanged.connect(self.onChecked)
+
+        # Optional parameter inputs
+        self.nNetExamEdit = QLineEdit()
+        self.nNetExamEdit.setDisabled(True)
+        self.nNetExamEdit.setPlaceholderText("infinity")
+
+        self.maxDiaEdit = QLineEdit()
+        self.maxDiaEdit.setDisabled(True)
+        self.maxDiaEdit.setPlaceholderText("infinity")
+
+        self.retDiaEdit = QLineEdit()
+        self.retDiaEdit.setDisabled(True)
+        self.retDiaEdit.setPlaceholderText("infinity")     
+
+        self.stopCriterionEdit = QLineEdit()
+        self.stopCriterionEdit.setDisabled(True)
+        self.stopCriterionEdit.setPlaceholderText("(0.01, 0.001)")
+
+        #Layouts
+        nNetExamLayout = QHBoxLayout()
+        nNetExamLayout.addWidget(self.nNetExamLbl)
+        nNetExamLayout.addStretch(1)
+        nNetExamLayout.addWidget(self.nNetExamEdit)
+
+        maxDiaLayout = QHBoxLayout()
+        maxDiaLayout.addWidget(self.maxDiaLbl)
+        maxDiaLayout.addStretch(1)
+        maxDiaLayout.addWidget(self.maxDiaEdit)
+
+        retDiaLayout = QHBoxLayout()
+        retDiaLayout.addWidget(self.retDiaLbl)
+        retDiaLayout.addStretch(1)
+        retDiaLayout.addWidget(self.retDiaEdit)
+
+        oLayout = QHBoxLayout()
+        oLayout.addWidget(self.oLabel)
+
+        stopCriterionLayout = QHBoxLayout()
+        stopCriterionLayout.addWidget(self.stopCriterionLbl)
+        stopCriterionLayout.addStretch(1)
+        stopCriterionLayout.addWidget(self.stopCriterionEdit)
+
+        # Main Layout tab three
+
+        tabThreeLayout = QVBoxLayout()
+        tabThreeLayout.addWidget(optionalLabelA)
+        tabThreeLayout.addLayout(nNetExamLayout)
+        tabThreeLayout.addLayout(maxDiaLayout)
+        tabThreeLayout.addLayout(retDiaLayout)
+        tabThreeLayout.addLayout(oLayout)
+        tabThreeLayout.addLayout(stopCriterionLayout)
+
+        tabThree.setLayout(tabThreeLayout)          
+
+        #add tabthree
+        self.tabWidget.addTab(tabThree, 'Parameters')
+
+        #create tab four 
+        tabFour = QWidget(self)
+
+        optionalLabelB = QLabel()
+        optionalLabelB.setObjectName("instructionLabel")
+        optionalLabelB.setText("Optional")
+        optionalLabelB.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)
+
+        # Optional parameter labels
+        self.maxRoundLbl = QCheckBox("Maximum number of rounds to optimize branch lengths for a network topology:", self)
+        self.maxRoundLbl.setObjectName("-r")
+        self.maxRoundLbl.stateChanged.connect(self.onChecked)
+
+        self.maxTryPerBrLbl = QCheckBox("Maximum number of trial per branch in one round to optimize branch lengths for "
+                                        "a network topology:", self)
+        self.maxTryPerBrLbl.setObjectName("-t")
+        self.maxTryPerBrLbl.stateChanged.connect(self.onChecked)
+
+        self.improveThresLbl = QCheckBox("Minimum threshold of improvement to continue the next round of optimization "
+                                         "of branch lengths:", self)
+        self.improveThresLbl.setObjectName("-i")
+        self.improveThresLbl.stateChanged.connect(self.onChecked)
+
+        self.maxBlLbl = QCheckBox("Maximum branch lengths considered:", self)
+        self.maxBlLbl.setObjectName("-l")
+        self.maxBlLbl.stateChanged.connect(self.onChecked)
 
         self.numProcLbl = QCheckBox("Number of processors:", self)
         self.numProcLbl.setObjectName("-pl")
         self.numProcLbl.stateChanged.connect(self.onChecked)
 
-                
-        self.diLbl = QCheckBox(
-            "Output Rich Newick string that can be read by Dendroscope.")
+        self.diLbl = QCheckBox("Output Rich Newick string that can be read by Dendroscope.")
         self.diLbl.stateChanged.connect(self.onChecked)
-  
-        self.fileDestLbl = QCheckBox("Specify file destination for command output:")
-        self.fileDestLbl.setObjectName("resultOutputFile")
-        self.fileDestLbl.stateChanged.connect(self.onChecked)
 
+        # Optional parameter inputs
+        self.maxRoundEdit = QLineEdit()
+        self.maxRoundEdit.setDisabled(True)
+        self.maxRoundEdit.setPlaceholderText("100")
 
-        # Inputs
-        self.hybridEdit = QLineEdit()
-        self.hybridEdit.setDisabled(True)
+        self.maxTryPerBrEdit = QLineEdit()
+        self.maxTryPerBrEdit.setDisabled(True)
+        self.maxTryPerBrEdit.setPlaceholderText("100")
 
-        self.wetOpEdit = QLineEdit()
-        self.wetOpEdit.setDisabled(True)
-        self.wetOpEdit.setPlaceholderText("(0.1,0.1,0.15,0.55,0.15,0.15)")
-        self.wetOpEdit.setMinimumWidth(200)
+        self.improveThresEdit = QLineEdit()
+        self.improveThresEdit.setDisabled(True)
+        self.improveThresEdit.setPlaceholderText("0.001")
 
-        self.maxFEdit = QLineEdit()
-        self.maxFEdit.setDisabled(True)
-        self.maxFEdit.setPlaceholderText("100")
-
-        self.numRunEdit = QLineEdit()
-        self.numRunEdit.setDisabled(True)
-        self.numRunEdit.setPlaceholderText("5")
+        self.maxBlEdit = QLineEdit()
+        self.maxBlEdit.setDisabled(True)
+        self.maxBlEdit.setPlaceholderText("6")
 
         self.numProcEdit = QLineEdit()
         self.numProcEdit.setDisabled(True)
         self.numProcEdit.setPlaceholderText("1")
 
-        self.fileDestEdit = QLineEdit()
-        self.fileDestEdit.setDisabled(True)
-        self.fileDestBtn = QToolButton()
-        self.fileDestBtn.setText("Browse")
-        self.fileDestBtn.setDisabled(True)
-        self.fileDestBtn.clicked.connect(self.selectDest)
+        # Layouts
+        # Layout of each parameter (label and input)
+        maxRoundLayout = QHBoxLayout()
+        maxRoundLayout.addWidget(self.maxRoundLbl)
+        maxRoundLayout.addStretch(1)
+        maxRoundLayout.addWidget(self.maxRoundEdit)
 
-        #Layouts
-        hybridLayout = QHBoxLayout()
-        hybridLayout.addWidget(self.hybridLbl)
-        hybridLayout.addWidget(self.hybridEdit)
+        maxTryPerBrLayout = QHBoxLayout()
+        maxTryPerBrLayout.addWidget(self.maxTryPerBrLbl)
+        maxTryPerBrLayout.addStretch(1)
+        maxTryPerBrLayout.addWidget(self.maxTryPerBrEdit)
 
-        wetOpLayout = QHBoxLayout()
-        wetOpLayout.addWidget(self.wetOpLbl)
-        wetOpLayout.addStretch(1)
-        wetOpLayout.addWidget(self.wetOpEdit)
+        improveThresLayout = QHBoxLayout()
+        improveThresLayout.addWidget(self.improveThresLbl)
+        improveThresLayout.addStretch(1)
+        improveThresLayout.addWidget(self.improveThresEdit)
 
-        maxFLayout = QHBoxLayout()
-        maxFLayout.addWidget(self.maxFLbl)
-        maxFLayout.addStretch(1)
-        maxFLayout.addWidget(self.maxFEdit)
-
-        numRunLayout = QHBoxLayout()
-        numRunLayout.addWidget(self.numRunLbl)
-        numRunLayout.addStretch(1)
-        numRunLayout.addWidget(self.numRunEdit)
+        maxBlLayout = QHBoxLayout()
+        maxBlLayout.addWidget(self.maxBlLbl)
+        maxBlLayout.addStretch(1)
+        maxBlLayout.addWidget(self.maxBlEdit)
 
         numProcLayout = QHBoxLayout()
         numProcLayout.addWidget(self.numProcLbl)
         numProcLayout.addStretch(1)
         numProcLayout.addWidget(self.numProcEdit)
 
+        diLayout = QHBoxLayout()
+        diLayout.addWidget(self.diLbl)
+
+        # Main Layout tab four
+
+        tabFourLayout = QVBoxLayout()
+        tabFourLayout.addWidget(optionalLabelB)
+        tabFourLayout.addLayout(maxRoundLayout)
+        tabFourLayout.addLayout(maxTryPerBrLayout)
+        tabFourLayout.addLayout(improveThresLayout)
+        tabFourLayout.addLayout(maxBlLayout)
+        tabFourLayout.addLayout(numProcLayout)
+        tabFourLayout.addLayout(diLayout)
+        tabFour.setLayout(tabFourLayout)          
+
+        #add tabFour
+        self.tabWidget.addTab(tabFour, 'Parameters')
+
+        #create tab five
+        tabFive = QWidget(self)
+
+        optionalLabelC = QLabel()
+        optionalLabelC.setObjectName("instructionLabel")
+        optionalLabelC.setText("Optional")
+        optionalLabelC.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)
+
+        # Optional parameter labels
+        self.branchlengthLbl = QCheckBox("Use the branch lengths of the gene trees for the inference.", self)
+        self.branchlengthLbl.setObjectName("-bl")
+        self.branchlengthLbl.stateChanged.connect(self.onChecked)
+
+        self.msCommandLbl = QCheckBox("The path of the executable of MS software", self)
+        self.msCommandLbl.setObjectName("-ms")
+        self.msCommandLbl.stateChanged.connect(self.onChecked)
+
+        self.wiredLbl = QCheckBox("The method that is used for evaluate the support of the branches", self)
+        self.wiredLbl.setObjectName("-bl")
+        self.wiredLbl.stateChanged.connect(self.onChecked)
+
+        # Optional parameter inputs
+        self.msCommandEdit = QLineEdit()
+        self.msCommandEdit.setDisabled(True)
+        self.msCommandEdit.setPlaceholderText(os.path.expanduser("~"))
+        self.msCommandBtn = QToolButton()
+        self.msCommandBtn.setText("Browse")
+        self.msCommandBtn.setDisabled(True)
+        self.msCommandBtn.clicked.connect(self.selectDest)
+
+        self.wiredBox = QComboBox()
+        self.wiredBox.addItem("softwired")
+        self.wiredBox.addItem("hardwired")
+  
         # Launch button
         launchBtn = QPushButton("Generate", self)
         launchBtn.clicked.connect(self.generate)
 
-        diLayout = QHBoxLayout()
-        diLayout.addWidget(self.diLbl)
+        #Layouts
+        blLayout = QHBoxLayout()
+        blLayout.addWidget(self.branchlengthLbl)     
+           
+        msCommandLayout = QHBoxLayout()
+        msCommandLayout.addWidget(self.msCommandLbl)
+        msCommandLayout.addWidget(self.msCommandEdit)
+        msCommandLayout.addWidget(self.msCommandBtn)
 
-        fileDestLayout = QHBoxLayout()
-        fileDestLayout.addWidget(self.fileDestLbl)
-        fileDestLayout.addWidget(self.fileDestEdit)
-        fileDestLayout.addWidget(self.fileDestBtn)
+        wiredLayout = QHBoxLayout()
+        wiredLayout.addWidget(self.wiredLbl)
+        wiredLayout.addWidget(self.wiredBox)
 
         btnLayout = QHBoxLayout()
         btnLayout.addStretch(1)
-        btnLayout.addWidget(launchBtn)   
+        btnLayout.addWidget(launchBtn)
 
-        # Main Layout tab three
+        # Main Layout tab five
+        tabFiveLayout = QVBoxLayout()
+        tabFiveLayout.addWidget(optionalLabelC)
+        tabFiveLayout.addLayout(blLayout)
+        tabFiveLayout.addLayout(msCommandLayout)
+        tabFiveLayout.addLayout(wiredLayout)
+        tabFiveLayout.addLayout(btnLayout)
 
-        tabThreeLayout = QVBoxLayout()
-        tabThreeLayout.addWidget(optionalLabelA)
-        tabThreeLayout.addLayout(hybridLayout)
-        tabThreeLayout.addLayout(wetOpLayout)
-        tabThreeLayout.addLayout(maxFLayout)
-        tabThreeLayout.addLayout(numRunLayout)
-        tabThreeLayout.addLayout(numProcLayout)
-        tabThreeLayout.addLayout(diLayout)
-        tabThreeLayout.addLayout(fileDestLayout)
-        tabThreeLayout.addLayout(btnLayout)
+        tabFive.setLayout(tabFiveLayout)          
 
-        tabThree.setLayout(tabThreeLayout)          
-
-        #add tabthree
-        self.tabWidget.addTab(tabThree, 'Generate')
+        #add tabFive
+        self.tabWidget.addTab(tabFive, 'Generate')
 
         #disable tab bar, initially   
         self.tabWidget.tabBar().setDisabled(True)
@@ -407,6 +542,15 @@ class NetworkMPPage(QWizardPage):
         #add widget to page layout
         pageLayout.addWidget(self.tabWidget)
         self.setLayout(pageLayout)
+
+    def selectDest(self):
+        """
+        Select and display the absolute path to store PhyloNet output files in QLineEdit.
+        The path written to output NEXUS file will be content of msCommandEdit.
+        """
+        dir = str(QFileDialog.getExistingDirectory(self, "Select Directory"))
+        if dir:
+            self.msCommandEdit.setText(dir)    
 
     def inspectInputs(self):
         """
@@ -425,7 +569,7 @@ class NetworkMPPage(QWizardPage):
             self.tabWidget.tabBar().setDisabled(False)
             self.tabWidget.tabBar().setToolTip("Mandatory input completed! You can now use tab bar")
             self.tabWidget.setStyleSheet("QTabBar::tab:selected{background-color: #2196f3;}")
-               
+              
     def __inverseMapping(self, map):
         """
         Convert a mapping from taxon to species to a mapping from species to a list of taxon.
@@ -502,6 +646,11 @@ class NetworkMPPage(QWizardPage):
         When user clicks the checkbox for an optional command,
         enable or disable the corresponding text edit.
         """
+        if self.sender().objectName() == "-sr":
+            if self.samplingRoundsEdit.isEnabled():
+                self.samplingRoundsEdit.setDisabled(True)
+            else:
+                self.samplingRoundsEdit.setDisabled(False)
         if self.sender().objectName() == "-b":
             if self.thresholdEdit.isEnabled():
                 self.thresholdEdit.setDisabled(True)
@@ -517,21 +666,6 @@ class NetworkMPPage(QWizardPage):
                 self.sNetEdit.setDisabled(True)
             else:
                 self.sNetEdit.setDisabled(False)
-        elif self.sender().objectName() == "-n":
-            if self.nNetRetEdit.isEnabled():
-                self.nNetRetEdit.setDisabled(True)
-            else:
-                self.nNetRetEdit.setDisabled(False)
-        elif self.sender().objectName() == "-m":
-            if self.nNetExamEdit.isEnabled():
-                self.nNetExamEdit.setDisabled(True)
-            else:
-                self.nNetExamEdit.setDisabled(False)
-        elif self.sender().objectName() == "-d":
-            if self.maxDiaEdit.isEnabled():
-                self.maxDiaEdit.setDisabled(True)
-            else:
-                self.maxDiaEdit.setDisabled(False)
         elif self.sender().objectName() == "-h":
             if self.hybridEdit.isEnabled():
                 self.hybridEdit.setDisabled(True)
@@ -542,28 +676,68 @@ class NetworkMPPage(QWizardPage):
                 self.wetOpEdit.setDisabled(True)
             else:
                 self.wetOpEdit.setDisabled(False)
-        elif self.sender().objectName() == "-f":
-            if self.maxFEdit.isEnabled():
-                self.maxFEdit.setDisabled(True)
+        elif self.sender().objectName() == "-ms":
+            if self.msCommandEdit.isEnabled():
+                self.msCommandEdit.setDisabled(True)
+                self.msCommandBtn.setDisabled(True)
             else:
-                self.maxFEdit.setDisabled(False)
+                self.msCommandEdit.setDisabled(False)
+                self.msCommandBtn.setDisabled(False)
         elif self.sender().objectName() == "-x":
             if self.numRunEdit.isEnabled():
                 self.numRunEdit.setDisabled(True)
             else:
                 self.numRunEdit.setDisabled(False)
+        elif self.sender().objectName() == "-m":
+            if self.nNetExamEdit.isEnabled():
+                self.nNetExamEdit.setDisabled(True)
+            else:
+                self.nNetExamEdit.setDisabled(False)
+        elif self.sender().objectName() == "-md":
+            if self.maxDiaEdit.isEnabled():
+                self.maxDiaEdit.setDisabled(True)
+            else:
+                self.maxDiaEdit.setDisabled(False)
+        elif self.sender().objectName() == "-rd":
+            if self.retDiaEdit.isEnabled():
+                self.retDiaEdit.setDisabled(True)
+            else:
+                self.retDiaEdit.setDisabled(False)
+        elif self.sender().objectName() == "-f":
+            if self.maxFEdit.isEnabled():
+                self.maxFEdit.setDisabled(True)
+            else:
+                self.maxFEdit.setDisabled(False)
+        elif self.sender().objectName() == "-p":
+            if self.stopCriterionEdit.isEnabled():
+                self.stopCriterionEdit.setDisabled(True)
+            else:
+                self.stopCriterionEdit.setDisabled(False)
+        elif self.sender().objectName() == "-r":
+            if self.maxRoundEdit.isEnabled():
+                self.maxRoundEdit.setDisabled(True)
+            else:
+                self.maxRoundEdit.setDisabled(False)
+        elif self.sender().objectName() == "-t":
+            if self.maxTryPerBrEdit.isEnabled():
+                self.maxTryPerBrEdit.setDisabled(True)
+            else:
+                self.maxTryPerBrEdit.setDisabled(False)
+        elif self.sender().objectName() == "-i":
+            if self.improveThresEdit.isEnabled():
+                self.improveThresEdit.setDisabled(True)
+            else:
+                self.improveThresEdit.setDisabled(False)
+        elif self.sender().objectName() == "-l":
+            if self.maxBlEdit.isEnabled():
+                self.maxBlEdit.setDisabled(True)
+            else:
+                self.maxBlEdit.setDisabled(False)
         elif self.sender().objectName() == "-pl":
             if self.numProcEdit.isEnabled():
                 self.numProcEdit.setDisabled(True)
             else:
                 self.numProcEdit.setDisabled(False)
-        elif self.sender().objectName() == "resultOutputFile":
-            if self.fileDestEdit.isEnabled():
-                self.fileDestEdit.setDisabled(True)
-                self.fileDestBtn.setDisabled(True)
-            else:
-                self.fileDestEdit.setDisabled(False)
-                self.fileDestBtn.setDisabled(False)
         else:
             pass
     def getTaxamap(self):
@@ -605,25 +779,17 @@ class NetworkMPPage(QWizardPage):
                         break
 
             # Execute TaxamapDlg
-            dialog = TaxamapDlg.TaxamapDlg(
-                data.taxon_namespace, self.taxamap, self)
+            dialog = TaxamapDlg.TaxamapDlg(data.taxon_namespace, self.taxamap, self)
             if dialog.exec_():
                 self.taxamap = dialog.getTaxamap()
+            #Update global attribute
+            taxamap = self.taxamap
         except emptyFileError:
-            QMessageBox.warning(
-                self, "Warning", "Please select a file type and upload data!", QMessageBox.Ok)
+            QMessageBox.warning(self, "Warning", "Please select a file type and upload data!", QMessageBox.Ok)
             return
         except Exception as e:
             QMessageBox.warning(self, "Warning", str(e), QMessageBox.Ok)
             return
-
-    def selectDest(self):
-        """
-        Select and store destination for PhyloNet output.
-        """
-        fname = str(QFileDialog.getExistingDirectory(self, 'Open file', '/'))
-        if fname:
-            self.fileDestEdit.setText(fname)
 
     def generate(self):
         """
@@ -661,15 +827,25 @@ class NetworkMPPage(QWizardPage):
                 fileName = os.path.splitext(os.path.basename(file))[0]
                 currentFile = dendropy.TreeList()
                 # read in gene trees
-                currentFile.read(path=file, schema=schema,
-                                 preserve_underscores=True)
-                counter = 0
-                for tree in currentFile:
-                    # rename gene trees
-                    tree.label = fileName + str(counter)
-                    self.geneTreeNames.append(tree.label)
-                    counter += 1
-                data.extend(currentFile)
+                currentFile.read(path=file, schema=schema, preserve_underscores=True)
+                if len(currentFile) > 1:
+                    # If a file contains multiple trees, assume those trees come from one locus
+                    self.multiTreesPerLocus = True
+                    counter = 0
+                    currentLocus = []
+                    for tree in currentFile:
+                        # rename gene trees
+                        tree.label = fileName + str(counter)
+                        currentLocus.append(tree.label)
+                        counter += 1
+                    self.geneTreeNames.append(currentLocus)
+                    data.extend(currentFile)
+                else:
+                    # If a file contains only one tree, assume only that tree comes from that locus
+                    for tree in currentFile:
+                        tree.label = fileName
+                        self.geneTreeNames.append(tree.label)
+                    data.extend(currentFile)
 
             # Raise exception is found no tree data.
             if len(data) == 0:
@@ -677,19 +853,49 @@ class NetworkMPPage(QWizardPage):
 
             # Write out TREES block.
             path = str(directory[0])
-            data.write(path=path, schema="nexus",
-                       suppress_taxa_blocks=True, unquoted_underscores=True)
+            data.write(path=path, schema="nexus", suppress_taxa_blocks=True, unquoted_underscores=True)
 
             # Ready to write PHYLONET block.
             with open(path, "a") as outputFile:
                 outputFile.write("\nBEGIN PHYLONET;\n\n")
-                outputFile.write("InferNetwork_MP (")
+                outputFile.write("Infernetwork_ML_Bootstrap (")
                 # Write out all the gene tree names.
-                outputFile.write(self.geneTreeNames[0])
-                for genetree in self.geneTreeNames[1:]:
-                    outputFile.write(",")
-                    outputFile.write(genetree)
-                outputFile.write(") ")
+                if not self.multiTreesPerLocus:
+                    # If there's only one tree per locus, write a comma delimited list of gene tree identifiers.
+                    outputFile.write(self.geneTreeNames[0])
+                    for genetree in self.geneTreeNames[1:]:
+                        outputFile.write(",")
+                        outputFile.write(genetree)
+                    outputFile.write(") ")
+                else:
+                    # If there are multiple trees per locus, write a comma delimited list of sets of gene tree
+                    # identifiers.
+                    if type(self.geneTreeNames[0]) is list:
+                        outputFile.write("{")
+                        outputFile.write(self.geneTreeNames[0][0])
+                        for genetree in self.geneTreeNames[0][1:]:
+                            outputFile.write(",")
+                            outputFile.write(genetree)
+                        outputFile.write("}")
+                    else:
+                        outputFile.write("{")
+                        outputFile.write(self.geneTreeNames[0])
+                        outputFile.write("}")
+
+                    for locus in self.geneTreeNames[1:]:
+                        outputFile.write(",")
+                        if type(locus) is list:
+                            outputFile.write("{")
+                            outputFile.write(locus[0])
+                            for genetree in locus[1:]:
+                                outputFile.write(",")
+                                outputFile.write(genetree)
+                            outputFile.write("}")
+                        else:
+                            outputFile.write("{")
+                            outputFile.write(locus)
+                            outputFile.write("}")
+                    outputFile.write(") ")
 
                 # Write out maximum number of reticulation to add.
                 outputFile.write(str(self.numReticulationsEdit.text()))
@@ -722,6 +928,13 @@ class NetworkMPPage(QWizardPage):
                                 outputFile.write(taxon)
 
                         outputFile.write(">")
+                # -sr samplingRounds command
+                if self.samplingRoundsLbl.isChecked():
+                    if self.samplingRoundsEdit.text() == "":
+                        pass
+                    else:
+                        outputFile.write(" -sr ")
+                        outputFile.write(str(self.samplingRoundsEdit.text()))
 
                 # -b threshold command
                 if self.thresholdLbl.isChecked():
@@ -739,33 +952,9 @@ class NetworkMPPage(QWizardPage):
                         outputFile.write(" -s ")
                         outputFile.write(str(self.sNetEdit.text()))
 
-                # -n numNetReturned command
-                if self.nNetRetLbl.isChecked():
-                    if self.nNetRetEdit.text() == "":
-                        pass
-                    else:
-                        outputFile.write(" -n ")
-                        outputFile.write(str(self.nNetRetEdit.text()))
-
-                # -m maxNetExamined command  
-                if self.nNetExamLbl.isChecked():            
-                    if self.nNetExamEdit.text() == "":
-                        pass
-                    else:
-                        outputFile.write(" -m ")
-                        outputFile.write(str(self.nNetExamEdit.text()))
-
-                # -d maxDiameter command
-                if self.maxDiaLbl.isChecked():
-                    if self.maxDiaEdit.text() == "":
-                        pass
-                    else:
-                        outputFile.write(" -rd ")
-                        outputFile.write(str(self.maxDiaEdit.text()))
-
                 # -h {s1 [, s2...]} command
                 if self.hybridLbl.isChecked():
-                    if self.hybridLbl.text() == "":
+                    if self.hybridEdit.text() == "":
                         pass
                     else:
                         outputFile.write(" -h ")
@@ -778,14 +967,6 @@ class NetworkMPPage(QWizardPage):
                     else:
                         outputFile.write(" -w ")
                         outputFile.write(str(self.wetOpEdit.text()))
-                   
-                # -f maxFailure command
-                if self.maxFLbl.isChecked():
-                    if self.maxFEdit.text() == "":
-                        pass
-                    else:
-                        outputFile.write(" -f ")
-                        outputFile.write(str(self.maxFEdit.text()))
 
                 # -x numRuns command
                 if self.numRunLbl.isChecked():
@@ -794,6 +975,93 @@ class NetworkMPPage(QWizardPage):
                     else:
                         outputFile.write(" -x ")
                         outputFile.write(str(self.numRunEdit.text()))
+
+                # -bl branchlength command
+                if self.branchlengthLbl.isChecked():
+                    outputFile.write(" -bl ")
+
+                # -bl branchlength command
+                if self.wiredLbl.isChecked():
+                    outputFile.write(" -em ")
+                    outputFile.write(str(self.wiredBox.currentText()))
+
+                # -ms mscommand command
+                if self.msCommandLbl.isChecked():
+                    if self.msCommandEdit.text() == "":
+                        pass
+                    else:
+                        outputFile.write(" -ms ")
+                        outputFile.write('"')
+                        outputFile.write(str(self.msCommandEdit.text()))
+                        outputFile.write('"')
+
+                # -m maxNetExamined command
+                if self.nNetExamLbl.isChecked():
+                    if self.nNetExamEdit.text() == "":
+                        pass
+                    else:
+                        outputFile.write(" -m ")
+                        outputFile.write(str(self.nNetExamEdit.text()))
+
+                # -md maxDiameter command
+                if self.maxDiaLbl.isChecked():
+                    if self.maxDiaEdit.text() == "":
+                        pass
+                    else:
+                        outputFile.write(" -md ")
+                        outputFile.write(str(self.maxDiaEdit.text()))
+
+                # -rd reticulationDiameter command
+                if self.retDiaLbl.isChecked():
+                    if self.retDiaEdit.text() == "":
+                        pass
+                    else:
+                        outputFile.write(" -rd ")
+                        outputFile.write(str(self.retDiaEdit.text()))
+
+                # -o command
+                if self.oLabel.isChecked():
+                    outputFile.write(" -o")
+
+                # -p command
+                if self.stopCriterionLbl.isChecked():
+                    if self.stopCriterionEdit.text() == "":
+                        pass
+                    else:
+                        outputFile.write(" -p ")
+                        outputFile.write(str(self.stopCriterionEdit.text()))
+
+                # -r command
+                if self.maxRoundLbl.isChecked():
+                    if self.maxRoundEdit.text() == "":
+                        pass
+                    else:
+                        outputFile.write(" -r ")
+                        outputFile.write(str(self.maxRoundEdit.text()))
+
+                # -t command
+                if self.maxTryPerBrLbl.isChecked():
+                    if self.maxTryPerBrEdit.text() == "":
+                        pass
+                    else:
+                        outputFile.write(" -t ")
+                        outputFile.write(str(self.maxTryPerBrEdit.text()))
+
+                # -i command
+                if self.improveThresLbl.isChecked():
+                    if self.improveThresEdit.text() == "":
+                        pass
+                    else:
+                        outputFile.write(" -i ")
+                        outputFile.write(str(self.improveThresEdit.text()))
+
+                # -l command
+                if self.maxBlLbl.isChecked():
+                    if self.maxBlEdit.text() == "":
+                        pass
+                    else:
+                        outputFile.write(" -l ")
+                        outputFile.write(str(self.maxBlEdit.text()))
 
                 # -pl numProcessors command
                 if self.numProcLbl.isChecked():
@@ -807,15 +1075,6 @@ class NetworkMPPage(QWizardPage):
                 if self.diLbl.isChecked():
                     outputFile.write(" -di")
 
-                # resultOutputFile command
-                if self.fileDestEdit.text() == "":
-                    pass
-                else:
-                    outputFile.write(" ")
-                    outputFile.write('"')
-                    outputFile.write(self.fileDestEdit.text())
-                    outputFile.write('"')
-    
 
                 # End of NEXUS
                 outputFile.write(";\n\n")
@@ -846,18 +1105,20 @@ class NetworkMPPage(QWizardPage):
         self.geneTreeNames = []
         self.inputFiles = []
         self.taxamap = {}
+        self.multiTreesPerLocus = False
+
         self.nexus.setChecked(False)
         self.newick.setChecked(False)
         self.geneTreesEdit.clear()
         self.numReticulationsEdit.clear()
 
+        self.samplingRoundsLbl.setChecked(False)
+        self.samplingRoundsEdit.clear()
         self.thresholdLbl.setChecked(False)
         self.thresholdEdit.clear()
         self.taxamapLbl.setChecked(False)
         self.sNetLbl.setChecked(False)
         self.sNetEdit.clear()
-        self.nNetRetLbl.setChecked(False)
-        self.nNetRetEdit.clear()
         self.nNetExamLbl.setChecked(False)
         self.nNetExamEdit.clear()
         self.maxDiaLbl.setChecked(False)
@@ -866,10 +1127,25 @@ class NetworkMPPage(QWizardPage):
         self.hybridEdit.clear()
         self.wetOpLbl.setChecked(False)
         self.wetOpEdit.clear()
-        self.maxFLbl.setChecked(False)
-        self.maxFEdit.clear() 
+        self.retDiaLbl.setChecked(False)
+        self.retDiaEdit.clear()
+        self.stopCriterionLbl.setChecked(False)
+        self.stopCriterionEdit.clear()
+        self.oLabel.setChecked(False)
         self.numRunLbl.setChecked(False)
         self.numRunEdit.clear()
+        self.maxRoundLbl.setChecked(False)
+        self.maxRoundEdit.clear()
+        self.maxTryPerBrLbl.setChecked(False)
+        self.maxTryPerBrEdit.clear()
+        self.improveThresLbl.setChecked(False)
+        self.improveThresEdit.clear()
+        self.branchlengthLbl.setChecked(False)
+        self.maxBlLbl.setChecked(False)
+        self.maxBlEdit.clear()
+        self.msCommandLbl.setChecked(False)
+        self.msCommandEdit.clear()
+        self.wiredLbl.setChecked(False)
         self.numProcLbl.setChecked(False)
         self.numProcEdit.clear()
         self.diLbl.setChecked(False)     
@@ -919,6 +1195,6 @@ class NetworkMPPage(QWizardPage):
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
-    ex = NetworkMPPage()
+    ex = NetworkMLBootstrapPage()
     ex.show()
     sys.exit(app.exec_())

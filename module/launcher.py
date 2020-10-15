@@ -9,8 +9,12 @@ from module import MCMCSEQ
 from module import TreeMethodsPage
 from module import NetworkMP
 from module import NetworkML
+from module import NetworkMLCV
+from module import NetworkMLBootstrap
 from module import NetworkMPL
 from module import MCMCGT
+from module import MCMCBiMarkers
+from module import MLEBiMarkers
 
 import PostProcessingModule.menu
 
@@ -39,8 +43,12 @@ class Launcher(QtWidgets.QWizard):
     Page_GeneTreeEst = 4
     Page_NetworkMP = 5
     Page_NetworkML = 6
-    Page_NetworkMPL = 7
-    Page_MCMCGT = 8
+    Page_NetworkML_CV = 7
+    Page_NetworkML_Boostrap = 8
+    Page_NetworkMPL = 9
+    Page_MCMCGT = 10
+    Page_MCMCBI = 11
+    Page_MLEBI = 12
 
     def __init__(self):
         super(Launcher, self).__init__()
@@ -53,8 +61,12 @@ class Launcher(QtWidgets.QWizard):
         self.GeneTreeEst = TreeMethodsPage.TreeMethodsPage()
         self.NetworkMP = NetworkMP.NetworkMPPage()
         self.NetworkML = NetworkML.NetworkMLPage()
+        self.NetworkMLCV = NetworkMLCV.NetworkMLCVPage()
+        self.NetworkML_Boostrap = NetworkMLBootstrap.NetworkMLBootstrapPage()
         self.NetworkMPL = NetworkMPL.NetworkMPLPage()
         self.MCMCGT = MCMCGT.MCMCGTPage()
+        self.MCMCBI = MCMCBiMarkers.MCMCBiMarkersPage()
+        self.MLEBI = MLEBiMarkers.MLEBiMarkersPage()
 
         self.setPage(self.Page_Intro, self.Intro)
         self.setPage(self.Page_DirectInf, self.DirectInf)
@@ -62,8 +74,12 @@ class Launcher(QtWidgets.QWizard):
         self.setPage(self.Page_GeneTreeEst, self.GeneTreeEst)
         self.setPage(self.Page_NetworkMP, self.NetworkMP)
         self.setPage(self.Page_NetworkML, self.NetworkML)
+        self.setPage(self.Page_NetworkML_CV, self.NetworkMLCV)
+        self.setPage(self.Page_NetworkML_Boostrap, self.NetworkML_Boostrap)
         self.setPage(self.Page_NetworkMPL, self.NetworkMPL)
         self.setPage(self.Page_MCMCGT, self.MCMCGT)
+        self.setPage(self.Page_MCMCBI, self.MCMCBI)
+        self.setPage(self.Page_MLEBI, self.MLEBI)
         self.initUI()
 
     def initUI(self):
@@ -112,11 +128,22 @@ class Launcher(QtWidgets.QWizard):
             elif self.GeneTreeEst.methods2.isChecked():
                 return self.Page_NetworkML
             elif self.GeneTreeEst.methods3.isChecked():
-                return self.Page_NetworkMPL
+                return self.Page_NetworkML_CV
             elif self.GeneTreeEst.methods4.isChecked():
+                return self.Page_NetworkML_Boostrap
+            elif self.GeneTreeEst.methods5.isChecked():
+                return self.Page_NetworkMPL
+            elif self.GeneTreeEst.methods6.isChecked():
                 return self.Page_MCMCGT
             else:
                 return self.Page_NetworkMP  # Like above doesn't matter, cant be finish
+        elif id == Launcher.Page_BiAllelic:
+            if self.BiAllelic.methods1.isChecked():
+                return self.Page_MCMCBI
+            elif self.BiAllelic.methods2.isChecked():
+                return self.Page_MLEBI
+            else:
+                return self.Page_MCMCBI  # Like above doesn't matter, cant be finish
         else:
             return -1
 
@@ -201,6 +228,5 @@ if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)
     app.setStyleSheet(style)
     ex = Launcher()
-    #ex.resize(1266, 982)
     ex.show()
     sys.exit(app.exec_())
