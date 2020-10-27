@@ -35,9 +35,6 @@ class MLEBiMarkersPage(QMainWindow):
         self.taxaList = []
         self.taxamap = {}
 
-        self.progress = QProgressDialog("Generating NEXUS file...", "", 0, 0, self)
-        self.progress.setCancelButton(None)
-        self.progress.setWindowModality(QtCore.Qt.WindowModal)
 
         self.initUI()
 
