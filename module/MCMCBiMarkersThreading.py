@@ -11,7 +11,7 @@ import shutil
 from module import TaxamapDlg
 from module import taxaList
 
-
+# Test to see if committing + pushing is working
 def resource_path(relative_path):
     """
     Refer to the location of a file at run-time.
