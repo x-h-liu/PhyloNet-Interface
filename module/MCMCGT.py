@@ -403,23 +403,29 @@ class MCMCGTPage(QWizardPage):
         """
         if self.sender().objectName() == "nexus":
             if not self.nexus.isChecked():
-                pass
+            #    pass
+           # else:
+            #    self.newick.setChecked(False)
+                self.geneTreesEdit.clear()
+                self.inputFiles = []
+                self.geneTreeNames = []
+                self.taxamap = {}
             else:
                 self.newick.setChecked(False)
-                self.geneTreesEdit.clear()
-                self.inputFiles = []
-                self.geneTreeNames = []
-                self.taxamap = {}
+
         elif self.sender().objectName() == "newick":
             if not self.newick.isChecked():
-                pass
-            else:
-                self.nexus.setChecked(False)
-                self.newick.setChecked(True)
+            #    pass
+            #else:
+            #    self.nexus.setChecked(False)
+            #    self.newick.setChecked(True)
                 self.geneTreesEdit.clear()
                 self.inputFiles = []
                 self.geneTreeNames = []
                 self.taxamap = {}
+            else:
+                self.nexus.setChecked(False)
+                self.nexus.setChecked(True)
 
     def selectFile(self):
         """
@@ -427,26 +433,49 @@ class MCMCGTPage(QWizardPage):
         Execute when file selection button is clicked.
         """
         if (not self.newick.isChecked()) and (not self.nexus.isChecked()):
+            #QMessageBox.warning(self, "Warning", "Please select a file type.", QMessageBox.Ok)
             QMessageBox.warning(self, "Warning", "Please select a file type.", QMessageBox.Ok)
         else:
-            fname = QFileDialog.getOpenFileNames(self, 'Open file', '/', 'Nexus files (*.nexus *.nex);;Newick files (*.newick)')
+            #fname = QFileDialog.getOpenFileNames(self, 'Open file', '/', 'Nexus files (*.nexus *.nex);;Newick files (*.newick)')
+            if self.nexus.isChecked():
+                 fname = QFileDialog.getOpenFileNames(self, 'Open file', '/', 'Nexus files (*.nexus *.nex);;Newick files (*.newick)')
+            elif self.newick.isChecked():
+                 fname = QFileDialog.getOpenFileNames(self, 'Open file', '/', 'Newick files (*.newick);;Nexus files (*.nexus *.nex)')
             if fname:
-                if fname[1] == 'Nexus files (*.nexus *.nex)':
-                    for onefname in fname[0]:
-                        self.geneTreesEdit.append(str(onefname))
-                        self.inputFiles.append(str(onefname))
-                elif fname[1] == 'Newick files (*.newick)':
-                    for onefname in fname[0]:
-                        self.geneTreesEdit.append(str(onefname))
-                        self.inputFiles.append(str(onefname))
+                # if fname[1] == 'Nexus files (*.nexus *.nex)':
+                #     for onefname in fname[0]:
+                #         self.geneTreesEdit.append(str(onefname))
+                #         self.inputFiles.append(str(onefname))
+                # elif fname[1] == 'Newick files (*.newick)':
+                #     for onefname in fname[0]:
+                #         self.geneTreesEdit.append(str(onefname))
+                #         self.inputFiles.append(str(onefname))
+                fileType = fname[1]
+                if self.nexus.isChecked():
+                    if fileType != 'Nexus files (*.nexus *.nex)':
+                        QMessageBox.warning(self, "Warning", "Please upload only .nexus or .nex files", QMessageBox.Ok)
+                    else:
+                        for onefname in fname[0]:
+                            self.geneTreesEdit.append(onefname)
+                            self.inputFiles.append(str(onefname))
+
+                elif self.newick.isChecked():
+                    if fileType != 'Newick files (*.newick)':
+                        QMessageBox.warning(self, "Warning", "Please upload only .newick files", QMessageBox.Ok)
+                    else:
+                        for onefname in fname[0]:
+                            self.geneTreesEdit.append(onefname)
+                            self.inputFiles.append(str(onefname))
                 else:
                     return
+
 
     def getTaxamap(self):
         """
         When user clicks "Set taxa map", open up TaxamapDlg for user input
         and update taxa map.
         """
+
         class emptyFileError(Exception):
             pass
 
@@ -497,8 +526,9 @@ class MCMCGTPage(QWizardPage):
         """
         Generate NEXUS file based on user input.
         """
+        #directory = QFileDialog.getSaveFileName(self, "Save File", "/", "Nexus Files (*.nexus)")
         directory = QFileDialog.getSaveFileName(self, "Save File", "/", "Nexus Files (*.nexus)")
-        
+
         class emptyFileError(Exception):
             pass
 
@@ -523,6 +553,7 @@ class MCMCGTPage(QWizardPage):
                 fileName = os.path.splitext(os.path.basename(file))[0]
                 currentFile = dendropy.TreeList()
                 # read in gene trees
+                #currentFile.read(path=file, schema=schema, preserve_underscores=True)
                 currentFile.read(path=file, schema=schema, preserve_underscores=True)
                 if len(currentFile) > 1:
                     # If a file contains multiple trees, assume those trees come from one locus
