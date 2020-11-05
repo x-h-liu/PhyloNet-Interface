@@ -174,17 +174,6 @@ class NetworkMPPage(QWizardPage):
         Store all the user uploaded gene tree files.
         Execute when file selection button is clicked.
         """
-        # fname = QFileDialog.getOpenFileNames(self, 'Open file', '/', 'Nexus files (*.nexus *.nex);;Newick files (*.newick)')
-        # self.fileType = QLineEdit(fname[1])
-        # self.registerField("fileType", self.fileType)
-        # if fname[1] == 'Nexus files (*.nexus *.nex)':
-        #     for onefname in fname[0]:
-        #         self.geneTreesEdit.append(str(onefname))
-        #         self.inputFiles.append(str(onefname))
-        # elif fname[1] == 'Newick files (*.newick)':
-        #     for onefname in fname[0]:
-        #         self.geneTreesEdit.append(str(onefname))
-        #         self.inputFiles.append(str(onefname))
         if (not self.newick.isChecked()) and (not self.nexus.isChecked()):
             QMessageBox.warning(self, "Warning", "Please select a file type.", QMessageBox.Ok)
         else:
@@ -815,10 +804,6 @@ class NetworkMPPage3(QWizardPage):
         """
         if self.sender().objectName() == "nexus":
             if not self.nexus.isChecked():
-            #     pass
-            # else:
-            #     self.newick.setChecked(False)
-            #     self.geneTreesEdit = ""
                 self.geneTreesEdit.clear()
                 self.inputFiles = []
                 self.geneTreeNames = []
@@ -827,11 +812,6 @@ class NetworkMPPage3(QWizardPage):
                 self.newick.setChecked(False)
         elif self.sender().objectName() == "newick":
             if not self.newick.isChecked():
-            #     pass
-            # else:
-            #     self.nexus.setChecked(False)
-            #     self.newick.setChecked(True)
-            #     self.geneTreesEdit = ""
                 self.geneTreesEdit.clear()
                 self.inputFiles = []
                 self.geneTreeNames = []

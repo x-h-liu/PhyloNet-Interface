@@ -40,9 +40,6 @@ class NetworkMLPage(QWizardPage):
         """
         Initialize GUI.
         """
-      #  wid = QWidget()
-      #  scroll = QScrollArea()
-      #  self.setCentralWidget(scroll)
 
         # Menubar and action
         aboutAction = QAction('About', self)
@@ -135,10 +132,6 @@ class NetworkMLPage(QWizardPage):
 
         # Scroll bar
         self.setLayout(topLevelLayout)
-      #  scroll.setWidget(wid)
-      #  scroll.setWidgetResizable(True)
-      #  scroll.setMinimumWidth(695)
-      #  scroll.setMinimumHeight(750)
 
         self.menubar.setNativeMenuBar(False)
         self.setWindowTitle('PhyloNetNEXGenerator')
@@ -177,10 +170,6 @@ class NetworkMLPage(QWizardPage):
         """
         if self.sender().objectName() == "nexus":
             if not self.nexus.isChecked():
-            #     pass
-            # else:
-            #     self.newick.setChecked(False)
-            #     self.geneTreesEditML.clear()
                 self.geneTreesEdit.clear()
                 self.inputFiles = []
                 self.geneTreeNames = []
@@ -189,11 +178,6 @@ class NetworkMLPage(QWizardPage):
                 self.newick.setChecked(False)
         elif self.sender().objectName() == "newick":
             if not self.newick.isChecked():
-            #     pass
-            # else:
-            #     self.nexus.setChecked(False)
-            #     self.newick.setChecked(True)
-            #     self.geneTreesEditML.clear()
                 self.generTreesEdit.clear()
                 self.inputFiles = []
                 self.geneTreeNames = []
@@ -210,7 +194,6 @@ class NetworkMLPage(QWizardPage):
         if (not self.newick.isChecked()) and (not self.nexus.isChecked()):
             QMessageBox.warning(self, "Warning", "Please select a file type.", QMessageBox.Ok)
         else:
-            #fname = QFileDialog.getOpenFileNames(self, 'Open file', '/', 'Nexus files (*.nexus *.nex);;Newick files (*.newick)')
             if self.nexus.isChecked():
                 fname = QFileDialog.getOpenFileNames(self, 'Open file', '/', 'Nexus files (*.nexus *.nex);;Newick files (*.newick)')
             elif self.newick.isChecked():
@@ -218,7 +201,6 @@ class NetworkMLPage(QWizardPage):
             self.fileType = QLineEdit(fname[1])
             self.registerField("fileType", self.fileType)
             if fname:
-                #extension = fname[1]
                 fileType = fname[1]
                 if self.nexus.isChecked():
                     if fileType != 'Nexus files (*.nexus *.nex)':
@@ -227,9 +209,6 @@ class NetworkMLPage(QWizardPage):
                         for onefname in fname[0]:
                             self.geneTreesEditML.append(onefname)
                             self.inputFiles.append(str(onefname))
-                # else:
-                #     if extension != 'Newick files (*.newick)':
-                #         QMessageBox.warning(self, "Warning", "Please upload only .newick files!", QMessageBox.Ok)
                 elif self.newick.isChecked():
                     if fileType != 'Newick Files (*.newick)':
                         QMessageBox.warning(self, "Warning", "Please upload only .newick files", QMessageBox.Ok)
@@ -259,9 +238,6 @@ class NetworkMLPage2(QWizardPage):
         """
         Initialize GUI.
         """
-      #  wid = QWidget()
-      #  scroll = QScrollArea()
-      #  self.setCentralWidget(scroll)
 
         # Menubar and action
         aboutAction = QAction('About', self)

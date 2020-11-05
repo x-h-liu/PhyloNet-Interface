@@ -403,9 +403,6 @@ class MCMCGTPage(QWizardPage):
         """
         if self.sender().objectName() == "nexus":
             if not self.nexus.isChecked():
-            #    pass
-           # else:
-            #    self.newick.setChecked(False)
                 self.geneTreesEdit.clear()
                 self.inputFiles = []
                 self.geneTreeNames = []
@@ -415,10 +412,6 @@ class MCMCGTPage(QWizardPage):
 
         elif self.sender().objectName() == "newick":
             if not self.newick.isChecked():
-            #    pass
-            #else:
-            #    self.nexus.setChecked(False)
-            #    self.newick.setChecked(True)
                 self.geneTreesEdit.clear()
                 self.inputFiles = []
                 self.geneTreeNames = []
@@ -433,23 +426,13 @@ class MCMCGTPage(QWizardPage):
         Execute when file selection button is clicked.
         """
         if (not self.newick.isChecked()) and (not self.nexus.isChecked()):
-            #QMessageBox.warning(self, "Warning", "Please select a file type.", QMessageBox.Ok)
             QMessageBox.warning(self, "Warning", "Please select a file type.", QMessageBox.Ok)
         else:
-            #fname = QFileDialog.getOpenFileNames(self, 'Open file', '/', 'Nexus files (*.nexus *.nex);;Newick files (*.newick)')
             if self.nexus.isChecked():
                  fname = QFileDialog.getOpenFileNames(self, 'Open file', '/', 'Nexus files (*.nexus *.nex);;Newick files (*.newick)')
             elif self.newick.isChecked():
                  fname = QFileDialog.getOpenFileNames(self, 'Open file', '/', 'Newick files (*.newick);;Nexus files (*.nexus *.nex)')
             if fname:
-                # if fname[1] == 'Nexus files (*.nexus *.nex)':
-                #     for onefname in fname[0]:
-                #         self.geneTreesEdit.append(str(onefname))
-                #         self.inputFiles.append(str(onefname))
-                # elif fname[1] == 'Newick files (*.newick)':
-                #     for onefname in fname[0]:
-                #         self.geneTreesEdit.append(str(onefname))
-                #         self.inputFiles.append(str(onefname))
                 fileType = fname[1]
                 if self.nexus.isChecked():
                     if fileType != 'Nexus files (*.nexus *.nex)':
@@ -526,7 +509,6 @@ class MCMCGTPage(QWizardPage):
         """
         Generate NEXUS file based on user input.
         """
-        #directory = QFileDialog.getSaveFileName(self, "Save File", "/", "Nexus Files (*.nexus)")
         directory = QFileDialog.getSaveFileName(self, "Save File", "/", "Nexus Files (*.nexus)")
 
         class emptyFileError(Exception):
