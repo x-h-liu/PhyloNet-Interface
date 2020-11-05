@@ -96,6 +96,7 @@ class Launcher(QtWidgets.QWizard):
         """
        # wid = QtWidgets.QWidget()
        # self.setCentralWidget(wid)
+
         self.setModal(1)
 
 
