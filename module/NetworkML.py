@@ -177,23 +177,30 @@ class NetworkMLPage(QWizardPage):
         """
         if self.sender().objectName() == "nexus":
             if not self.nexus.isChecked():
-                pass
-            else:
-                self.newick.setChecked(False)
-                self.geneTreesEditML.clear()
+            #     pass
+            # else:
+            #     self.newick.setChecked(False)
+            #     self.geneTreesEditML.clear()
+                self.geneTreesEdit.clear()
                 self.inputFiles = []
                 self.geneTreeNames = []
                 self.taxamap = {}
+            else: 
+                self.newick.setChecked(False)
         elif self.sender().objectName() == "newick":
             if not self.newick.isChecked():
-                pass
+            #     pass
+            # else:
+            #     self.nexus.setChecked(False)
+            #     self.newick.setChecked(True)
+            #     self.geneTreesEditML.clear()
+                self.generTreesEdit.clear()
+                self.inputFiles = []
+                self.geneTreeNames = []
+                self.taxamap = {}
             else:
                 self.nexus.setChecked(False)
                 self.newick.setChecked(True)
-                self.geneTreesEditML.clear()
-                self.inputFiles = []
-                self.geneTreeNames = []
-                self.taxamap = {}
 
     def selectFile(self):
         """
@@ -203,25 +210,35 @@ class NetworkMLPage(QWizardPage):
         if (not self.newick.isChecked()) and (not self.nexus.isChecked()):
             QMessageBox.warning(self, "Warning", "Please select a file type.", QMessageBox.Ok)
         else:
-            fname = QFileDialog.getOpenFileNames(self, 'Open file', '/', 'Nexus files (*.nexus *.nex);;Newick files (*.newick)')
+            #fname = QFileDialog.getOpenFileNames(self, 'Open file', '/', 'Nexus files (*.nexus *.nex);;Newick files (*.newick)')
+            if self.nexus.isChecked():
+                fname = QFileDialog.getOpenFileNames(self, 'Open file', '/', 'Nexus files (*.nexus *.nex);;Newick files (*.newick)')
+            elif self.newick.isChecked():
+                fname = QFileDialog.getOpenFileNames(self, 'Open file', '/', 'Newick files (*.newick);;Nexus files (*.nexus *.nex)')
             self.fileType = QLineEdit(fname[1])
             self.registerField("fileType", self.fileType)
             if fname:
-                extension = fname[1]
+                #extension = fname[1]
+                fileType = fname[1]
                 if self.nexus.isChecked():
-                    if extension != 'Nexus files (*.nexus *.nex)':
+                    if fileType != 'Nexus files (*.nexus *.nex)':
                         QMessageBox.warning(self, "Warning", "Please upload only .nexus files!", QMessageBox.Ok)
                     else:
                         for onefname in fname[0]:
                             self.geneTreesEditML.append(onefname)
                             self.inputFiles.append(str(onefname))
-                else:
-                    if extension != 'Newick files (*.newick)':
-                        QMessageBox.warning(self, "Warning", "Please upload only .newick files!", QMessageBox.Ok)
+                # else:
+                #     if extension != 'Newick files (*.newick)':
+                #         QMessageBox.warning(self, "Warning", "Please upload only .newick files!", QMessageBox.Ok)
+                elif self.newick.isChecked():
+                    if fileType != 'Newick Files (*.newick)':
+                        QMessageBox.warning(self, "Warning", "Please upload only .newick files", QMessageBox.Ok)
                     else:
                         for onefname in fname[0]:
-                            self.geneTreesEditML.append(onefname)
+                            self.geneTreesEdit.append(onefname)
                             self.inputFiles.append(str(onefname))
+                else:
+                    return
        
 class NetworkMLPage2(QWizardPage):
     def initializePage(self):
