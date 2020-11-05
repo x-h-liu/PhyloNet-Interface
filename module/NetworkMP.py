@@ -90,6 +90,12 @@ class NetworkMPPage(QWizardPage):
         # Mandatory parameter labels
         geneTreeFileLbl = QLabel("Gene tree files:")
         numReticulationsLbl = QLabel("Maximum number of reticulations to add:")
+        self.nexus = QCheckBox(".nexus")
+        self.nexus.setObjectName("nexus")
+        self.newick = QCheckBox(".newick")
+        self.newick.setObjectName("newick")
+        self.nexus.stateChanged.connect(self.format)
+        self.newick.stateChanged.connect(self.format)
 
         # Mandatory parameter inputs
         self.geneTreesEdit = QTextEdit()
@@ -106,6 +112,8 @@ class NetworkMPPage(QWizardPage):
         # Layouts
         # Layout of each parameter (label and input)
         fileFormatLayout = QVBoxLayout()
+        fileFormatLayout.addWidget(self.nexus)
+        fileFormatLayout.addWidget(self.newick)
         fileFormatLayout.addWidget(geneTreeFileLbl)
         geneTreeDataLayout = QHBoxLayout()
         geneTreeDataLayout.addWidget(self.geneTreesEdit)
@@ -166,19 +174,67 @@ class NetworkMPPage(QWizardPage):
         Store all the user uploaded gene tree files.
         Execute when file selection button is clicked.
         """
-        fname = QFileDialog.getOpenFileNames(self, 'Open file', '/', 'Nexus files (*.nexus *.nex);;Newick files (*.newick)')
-        self.fileType = QLineEdit(fname[1])
-        self.registerField("fileType", self.fileType)
-        if fname[1] == 'Nexus files (*.nexus *.nex)':
-            for onefname in fname[0]:
-                self.geneTreesEdit.append(str(onefname))
-                self.inputFiles.append(str(onefname))
-        elif fname[1] == 'Newick files (*.newick)':
-            for onefname in fname[0]:
-                self.geneTreesEdit.append(str(onefname))
-                self.inputFiles.append(str(onefname))
+        # fname = QFileDialog.getOpenFileNames(self, 'Open file', '/', 'Nexus files (*.nexus *.nex);;Newick files (*.newick)')
+        # self.fileType = QLineEdit(fname[1])
+        # self.registerField("fileType", self.fileType)
+        # if fname[1] == 'Nexus files (*.nexus *.nex)':
+        #     for onefname in fname[0]:
+        #         self.geneTreesEdit.append(str(onefname))
+        #         self.inputFiles.append(str(onefname))
+        # elif fname[1] == 'Newick files (*.newick)':
+        #     for onefname in fname[0]:
+        #         self.geneTreesEdit.append(str(onefname))
+        #         self.inputFiles.append(str(onefname))
+        if (not self.newick.isChecked()) and (not self.nexus.isChecked()):
+            QMessageBox.warning(self, "Warning", "Please select a file type.", QMessageBox.Ok)
         else:
-            return
+            if self.nexus.isChecked():
+                fname = QFileDialog.getOpenFileNames(self, 'Open file', '/', 'Nexus files (*.nexus *.nex);;Newick files (*.newick)')
+            elif self.newick.isChecked():
+                fname = QFileDialog.getOpenFileNames(self, 'Open file', '/', 'Newick files (*.newick);;Nexus files (*.nexus *.nex)') 
+
+            if fname:
+                fileType = fname[1]
+                if self.nexus.isChecked():
+                    if fileType != 'Nexus files (*.nexus *.nex)':
+                        QMessageBox.warning(self, "Warning", "Please upload only .nexus or .nex files", QMessageBox.Ok)
+                    else:
+                        for onefname in fname[0]:
+                            self.geneTreesEdit.append(onefname)
+                            self.inputFiles.append(str(onefname))
+
+                elif self.newick.isChecked():
+                    if fileType != 'Newick files (*.newick)':
+                        QMessageBox.warning(self, "Warning", "Please upload only .newick files", QMessageBox.Ok)
+                    else:
+                        for onefname in fname[0]:
+                            self.geneTreesEdit.append(onefname)
+                            self.inputFiles.append(str(onefname))
+                else:
+                    return
+    def format(self):
+         """
+         Process checkbox's stateChanged signal to implement mutual exclusion.
+         """
+         if self.sender().objectName() == "nexus":
+             if not self.nexus.isChecked():
+                 self.geneTreesEdit.clear()
+                 self.inputFiles = []
+                 self.geneTreeNames = []
+                 self.taxamap = {}
+             else:
+                 self.newick.setChecked(False)
+
+         elif self.sender().objectName() == "newick":
+             if not self.newick.isChecked():
+                 self.geneTreesEdit.clear()
+                 self.inputFiles = []
+                 self.geneTreeNames = []
+                 self.taxamap = {}
+
+             else:
+                 self.nexus.setChecked(False)
+                 self.newick.setChecked(True)
 
 class NetworkMPPage2(QWizardPage):
     def initializePage(self):
@@ -759,23 +815,30 @@ class NetworkMPPage3(QWizardPage):
         """
         if self.sender().objectName() == "nexus":
             if not self.nexus.isChecked():
-                pass
-            else:
-                self.newick.setChecked(False)
-                self.geneTreesEdit = ""
+            #     pass
+            # else:
+            #     self.newick.setChecked(False)
+            #     self.geneTreesEdit = ""
+                self.geneTreesEdit.clear()
                 self.inputFiles = []
                 self.geneTreeNames = []
                 self.taxamap = {}
+            else:
+                self.newick.setChecked(False)
         elif self.sender().objectName() == "newick":
             if not self.newick.isChecked():
-                pass
+            #     pass
+            # else:
+            #     self.nexus.setChecked(False)
+            #     self.newick.setChecked(True)
+            #     self.geneTreesEdit = ""
+                self.geneTreesEdit.clear()
+                self.inputFiles = []
+                self.geneTreeNames = []
+                self.taxamap = {}
             else:
                 self.nexus.setChecked(False)
                 self.newick.setChecked(True)
-                self.geneTreesEdit = ""
-                self.inputFiles = []
-                self.geneTreeNames = []
-                self.taxamap = {}
 
 class NetworkMPPage4(QWizardPage):
     
