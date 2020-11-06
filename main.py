@@ -155,9 +155,9 @@ class Main(QMainWindow):
 
 
 if __name__ == '__main__':
-    os.environ['QT_FONT_DPI'] = '192'
+    #os.environ['QT_FONT_DPI'] = '192'
     app = QtWidgets.QApplication(sys.argv)
-    app.setStyleSheet(style())
+    #app.setStyleSheet(style())
     ex = Main()
     ex.show()
     sys.exit(app.exec_())
