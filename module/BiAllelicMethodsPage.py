@@ -53,9 +53,14 @@ class BiAllelicMethodsPage(QWizardPage):
         questionLabel.setFont(questionFont)  # Font of the question label.
 
         # Drop-down menu of commands
-        self.methods = QComboBox(self)
-        self.methods.addItem("MCMC_BiMarkers (Bayesian)")
-        self.methods.addItem("MLE_BiMarkers (Pseudo likelihood)")
+        # self.methods = QComboBox(self)
+        # self.methods.addItem("MCMC_BiMarkers (Bayesian)")
+        # self.methods.addItem("MLE_BiMarkers (Pseudo likelihood)")
+        # Menu of commands
+        self.btn1 = QRadioButton("MCMC_BiMarkers (Bayesian)")
+        self.btn2 = QRadioButton("MLE_BiMarkers (Pseudo likelihood)")
+        self.methodgroup = QCheckBox("")
+        self.registerField("methodgroup*", self.methodgroup)
 
 
         # Launch button
@@ -96,7 +101,9 @@ class BiAllelicMethodsPage(QWizardPage):
         vbox.addLayout(top)
         vbox.addWidget(line)
         vbox.addWidget(questionLabel)
-        vbox.addWidget(self.methods)
+        #vbox.addWidget(self.methods)
+        vbox.addWidget(self.btn1)
+        vbox.addWidget(self.btn2)
         vbox.addWidget(hyperlink)
         vbox.addWidget(launchBtn)
         self.setLayout(vbox)
@@ -107,10 +114,34 @@ class BiAllelicMethodsPage(QWizardPage):
         self.setWindowTitle('PhyloNetNEXGenerator')
         self.setWindowIcon(QIcon(resource_path("logo.png")))
 
+    def onChecked(self):
+         """
+         Process checkbox's stateChanged signal to implement mutual exclusion.
+         """
+         self.methodgroup.setCheckState(True)
+
+
+    def btnState(self):
+        """
+         Originally created this method for the use of toggle.connect,
+         yet it is no longer needed. I kept this method in case someone may
+         want to use toggle.connect in the future
+         """
+        rbtn = self.sender()
+        btn = str(rbtn.text())
+        if rbtn.isChecked() == True:
+            return btn
+
     def aboutMessage(self):
-        msg = QMessageBox()
-        msg.setIcon(QMessageBox.Information)
-        msg.setText("PhyloNet is a tool designed mainly for analyzing, "
+        msg = QDialog()
+        msg.setWindowTitle("Phylonet") 
+        msg.setWindowIcon(QIcon("logo.png"))
+        flags = QtCore.Qt.WindowFlags(QtCore.Qt.CustomizeWindowHint | QtCore.Qt.WindowCloseButtonHint )
+        msg.setWindowFlags(flags)
+        msg.setObjectName("aboutMessage")
+
+        vbox = QVBoxLayout()
+        text = QLabel("PhyloNet is a tool designed mainly for analyzing, "
                     "reconstructing, and evaluating reticulate "
                     "(or non-treelike) evolutionary relationships, "
                     "generally known as phylogenetic networks. Various "
@@ -138,14 +169,20 @@ class BiAllelicMethodsPage(QWizardPage):
         QDesktopServices.openUrl(QtCore.QUrl(linkStr))
 
     def launch(self):
-        if str(self.methods.currentText()) == "MLE_BiMarkers (Pseudo likelihood)":
-            self.MLEBi = MLEBiMarkersThreading.MLEBiMarkersPage()
-            self.MLEBi.show()
-            self.close()
-        elif str(self.methods.currentText()) == "MCMC_BiMarkers (Bayesian)":
+        # if str(self.methods.currentText()) == "MLE_BiMarkers (Pseudo likelihood)":
+        #     self.MLEBi = MLEBiMarkersThreading.MLEBiMarkersPage()
+        #     self.MLEBi.show()
+        #     self.close()
+        # elif str(self.methods.currentText()) == "MCMC_BiMarkers (Bayesian)":
+        if self.btn1.isChecked() == True:
             self.MCMCBi = MCMCBiMarkersThreading.MCMCBiMarkersPage()
             self.MCMCBi.show()
-            self.close()
+            self.wizard.close()
+        elif self.btn2.isChecked() == True:
+            self.MLEBi = MLEBiMarkersThreading.MLEBiMarkersPage()
+            self.MLEBi.show()
+            #Closes the window so its cleaner
+            self.wizard().close()
 
 
 if __name__ == '__main__':
