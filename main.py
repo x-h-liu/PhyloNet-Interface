@@ -102,10 +102,22 @@ class SubMain(QMainWindow):
         # self.setWindowTitle('PhyloNetCompanion')
         # self.setWindowIcon(QIcon(resource_path("logo.png")))
 
+    def link(self, linkStr):
+        """
+        Open the website of PhyloNet if user clicks on the hyperlink.
+        """
+        QDesktopServices.openUrl(QtCore.QUrl(linkStr))
+
     def aboutMessage(self):
-        msg = QMessageBox()
-        msg.setIcon(QMessageBox.Information)
-        msg.setText("PhyloNet is a tool designed mainly for analyzing, "
+        msg = QDialog()
+        msg.setWindowTitle("Phylonet") 
+        msg.setWindowIcon(QIcon("logo.png"))
+        flags = QtCore.Qt.WindowFlags(QtCore.Qt.CustomizeWindowHint | QtCore.Qt.WindowCloseButtonHint )
+        msg.setWindowFlags(flags)
+        msg.setObjectName("aboutMessage")
+
+        vbox = QVBoxLayout()
+        text = QLabel("PhyloNet is a tool designed mainly for analyzing, "
                     "reconstructing, and evaluating reticulate "
                     "(or non-treelike) evolutionary relationships, "
                     "generally known as phylogenetic networks. Various "
@@ -122,6 +134,8 @@ class SubMain(QMainWindow):
         font.setPointSize(13)
         font.setFamily("Times New Roman")
         font.setBold(False)
+
+        
 
         msg.setFont(font)
         msg.exec_()
