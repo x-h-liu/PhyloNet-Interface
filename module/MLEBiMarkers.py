@@ -472,39 +472,51 @@ class MLEBiMarkersPage(QMainWindow):
         Once user uploads a file, read it in as a DNA character matrix.
         Execute when file selection button is clicked
         """
-        try:
-            fname = QFileDialog.getOpenFileName(self, 'Open file', '/')
-            if fname:
-                extension = os.path.splitext(str(fname))[1]
-                if str(self.dataFormatEdit.currentText()) == ".nexus":
-                    if extension != ".nexus":
-                        QMessageBox.warning(self, "Warning", "Please upload only .nexus files!", QMessageBox.Ok)
-                    else:
-                        # Bi-allelic marker data should be read in as Standard Character Matrix
-                        if str(self.dataTypeEdit.currentText()) == "bi-allelic markers data":
-                            self.data = dendropy.StandardCharacterMatrix.get(path=str(fname), schema="nexus",
-                                                                             preserve_underscores=True)
-                            self.sequenceFileEdit.setText(fname)
-                        # Other data are DNA Character Matrix
-                        else:
-                            self.data = dendropy.DnaCharacterMatrix.get(path=str(fname), schema="nexus",
-                                                                        preserve_underscores=True)
-                            self.sequenceFileEdit.setText(fname)
+        if str(self.dataFormatEdit.currentText()) == ".nexus":
+            fname = QFileDialog.getOpenFileNames(self, 'Open file', '/', 'Nexus files (*.nexus *.nex);;Fasta files (*.fasta)')
+        elif str(self.dataFormatEdit.currentText()) == ".fasta":
+            fname = QFileDialog.getOpenFileNames(self, 'Open file', '/', 'Fasta files (*.fasta);;Nexus files (*.nexus *.nex)')
+
+        if fname:
+            fileType = fname[1]
+            if str(self.dataFormatEdit.currentText()) == ".nexus":
+                if fileType != 'Nexus files (*.nexus *.nex)':
+                    QMessageBox.warning(self, "Warning", "Please upload only .nexus or .nex files", QMessageBox.Ok)
                 else:
-                    if extension != ".fasta":
-                        QMessageBox.warning(self, "Warning", "Please upload only .fasta files!", QMessageBox.Ok)
-                    else:
+                    for oneFile in fname[0]:
                         # Bi-allelic marker data should be read in as Standard Character Matrix
                         if str(self.dataTypeEdit.currentText()) == "bi-allelic markers data":
-                            self.data = dendropy.StandardCharacterMatrix.get(path=str(fname), schema="fasta")
-                            self.sequenceFileEdit.setText(fname)
-                        # Other data are DNA Character Matrix
+                            self.data = dendropy.StandardCharacterMatrix.get(path=str(oneFile), schema="nexus",
+                                                                               preserve_underscores=True)
+                            self.sequenceFileEdit.setText(oneFile)
+                            self.taxaList = []
+                            self.taxamap = {}
+                          # Other data are DNA Character Matrix
                         else:
-                            self.data = dendropy.DnaCharacterMatrix.get(path=str(fname), schema="fasta")
-                            self.sequenceFileEdit.setText(fname)
-        except Exception as e:
-            QMessageBox.warning(self, "Warning", str(e), QMessageBox.Ok)
-            return
+                            self.data = dendropy.DnaCharacterMatrix.get(path=str(oneFile), schema="nexus",
+                                                                          preserve_underscores=True)
+                            self.sequenceFileEdit.setText(oneFile)
+                            self.taxaList = []
+                            self.taxamap = {}
+
+            elif str(self.dataFormatEdit.currentText()) == ".fasta":
+                if fileType != 'Fasta files (*.fasta)':
+                    QMessageBox.warning(self, "Warning", "Please upload only .fasta files", QMessageBox.Ok)
+                else:
+                    for oneFile in fname[0]:
+                        if str(self.dataTypeEdit.currentText()) == "bi-allelic markers data":
+                            self.data = dendropy.StandardCharacterMatrix.get(path=str(oneFile), schema="fasta")
+                            self.sequenceFileEdit.setText(oneFile)
+                            self.taxaList = []
+                            self.taxamap = {}
+                          # Other data are DNA Character Matrix
+                        else:
+                            self.data = dendropy.DnaCharacterMatrix.get(path=str(oneFile), schema="fasta")
+                            self.sequenceFileEdit.setText(oneFile)
+                            self.taxaList = []
+                            self.taxamap = {}
+            else:
+                return
 
     def getTaxaList(self):
         """
