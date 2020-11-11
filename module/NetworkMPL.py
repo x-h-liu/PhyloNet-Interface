@@ -8,6 +8,7 @@ import datetime
 import subprocess
 import shutil
 
+from Validator import NumValidator
 from module import TaxamapDlg
 
 
@@ -116,6 +117,9 @@ class NetworkMPLPage(QWizardPage):
         fileSelctionBtn.setToolTip("All trees in one file are considered to be from one locus.")
 
         self.numReticulationsEdit = QLineEdit()
+        self.numReticulationsEditMPL.setValidator(NumValidator())
+        self.numReticulationsEditMPL.setToolTip("Please enter a non-negative integer")
+        self.registerField("numReticulationsEditMPL*", self.numReticulationsEditMPL)
 
         # Optional parameter labels
         self.thresholdLbl = QCheckBox("Gene trees bootstrap threshold:", self)
@@ -227,15 +231,24 @@ class NetworkMPLPage(QWizardPage):
 
         self.nNetExamEdit = QLineEdit()
         self.nNetExamEdit.setDisabled(True)
+        self.nNetExamEdit.setValidator(QDoubleValidator(0, float("inf"), 0, self))
         self.nNetExamEdit.setPlaceholderText("infinity")
+        self.nNetExamEdit.setToolTip("For infinity, leave the field unfilled")
+        self.registerField("nNetExamEditMPL", self.nNetExamEdit)
 
         self.maxDiaEdit = QLineEdit()
         self.maxDiaEdit.setDisabled(True)
+        self.maxDiaEdit.setValidator(QDoubleValidator(0, float("inf"), 0, self))
         self.maxDiaEdit.setPlaceholderText("infinity")
+        self.maxDiaEdit.setToolTip("For infinity, leave the field unfilled")
+        self.registerField("maxDiaEditMPL", self.maxDiaEdit)
 
         self.retDiaEdit = QLineEdit()
         self.retDiaEdit.setDisabled(True)
+        self.retDiaEdit.setValidator(QDoubleValidator(0, float("inf"), 0, self))
         self.retDiaEdit.setPlaceholderText("infinity")
+        self.retDiaEdit.setToolTip("For infinity, leave the field unfilled")
+        self.registerField("retDiaEditMPL", self.retDiaEdit)   
 
         self.maxFEdit = QLineEdit()
         self.maxFEdit.setDisabled(True)

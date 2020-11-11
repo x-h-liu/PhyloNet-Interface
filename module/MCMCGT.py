@@ -182,7 +182,10 @@ class MCMCGTPage(QWizardPage):
 
         self.maxRetEdit = QLineEdit()
         self.maxRetEdit.setDisabled(True)
+        self.maxRetEdit.setValidator(QDoubleValidator(0, float("inf"), 0, self))
         self.maxRetEdit.setPlaceholderText("infinity")
+        self.maxRetEdit.setToolTip("For infinity, leave the field unfilled")
+        self.registerField("maxRetEditMCGT", self.maxRetEdit)
 
         self.numProcEdit = QLineEdit()
         self.numProcEdit.setDisabled(True)

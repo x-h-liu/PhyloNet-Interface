@@ -8,6 +8,7 @@ import datetime
 import subprocess
 import shutil
 
+from Validator import NumValidator
 from module import TaxamapDlg
 
 
@@ -107,6 +108,8 @@ class NetworkMPPage(QWizardPage):
         fileSelctionBtn.clicked.connect(self.selectFile)
 
         self.numReticulationsEdit = QLineEdit()
+        self.numReticulationsEditMP.setValidator(NumValidator())
+        self.numReticulationsEditMP.setToolTip("Please enter a non-negative integer")
         self.registerField("numReticulationsEdit*", self.numReticulationsEdit)
 
         # Layouts
@@ -343,12 +346,16 @@ class NetworkMPPage2(QWizardPage):
 
         self.nNetExamEdit = QLineEdit()
         self.nNetExamEdit.setDisabled(True)
+        self.nNetExamEdit.setValidator(QDoubleValidator(0, float("inf"), 0, self))
         self.nNetExamEdit.setPlaceholderText("infinity")
+        self.nNetExamEdit.setToolTip("For infinity, leave the field unfilled")
         self.registerField("nNetExamEdit", self.nNetExamEdit)
 
         self.maxDiaEdit = QLineEdit()
         self.maxDiaEdit.setDisabled(True)
+        self.maxDiaEdit.setValidator(QDoubleValidator(0, float("inf"), 0, self))
         self.maxDiaEdit.setPlaceholderText("infinity")
+        self.maxDiaEdit.setToolTip("For infinity, leave the field unfilled")
         self.registerField("maxDiaEdit", self.maxDiaEdit)
 
         # Layouts

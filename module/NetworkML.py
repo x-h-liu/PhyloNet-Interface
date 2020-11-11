@@ -8,6 +8,7 @@ import datetime
 import subprocess
 import shutil
 
+from Validator import NumValidator
 from module import TaxamapDlg
 
 inputFiles = []
@@ -104,6 +105,8 @@ class NetworkMLPage(QWizardPage):
         fileSelctionBtn.setToolTip("All trees in one file are considered to be from one locus.")
 
         self.numReticulationsEditML = QLineEdit()
+        self.numReticulationsEditML.setValidator(NumValidator())
+        self.numReticulationsEditML.setToolTip("Please enter a non-negative integer")
         self.registerField("numReticulationsEditML*", self.numReticulationsEditML)
 
         # Layouts
@@ -403,15 +406,24 @@ class NetworkMLPage2(QWizardPage):
 
         self.nNetExamEdit = QLineEdit()
         self.nNetExamEdit.setDisabled(True)
+        self.nNetExamEdit.setValidator(QDoubleValidator(0, float("inf"), 0, self))
         self.nNetExamEdit.setPlaceholderText("infinity")
+        self.nNetExamEdit.setToolTip("For infinity, leave the field unfilled")
+        self.registerField("nNetExamEditML", self.nNetExamEdit)
 
         self.maxDiaEdit = QLineEdit()
         self.maxDiaEdit.setDisabled(True)
+        self.maxDiaEdit.setValidator(QDoubleValidator(0, float("inf"), 0, self))
         self.maxDiaEdit.setPlaceholderText("infinity")
+        self.maxDiaEdit.setToolTip("For infinity, leave the field unfilled")
+        self.registerField("maxDiaEditML", self.maxDiaEdit)
 
         self.retDiaEdit = QLineEdit()
         self.retDiaEdit.setDisabled(True)
+        self.retDiaEdit.setValidator(QDoubleValidator(0, float("inf"), 0, self))
         self.retDiaEdit.setPlaceholderText("infinity")
+        self.retDiaEdit.setToolTip("For infinity, leave the field unfilled")
+        self.registerField("retDiaEditML", self.retDiaEdit)
 
         self.maxFEdit = QLineEdit()
         self.maxFEdit.setDisabled(True)
