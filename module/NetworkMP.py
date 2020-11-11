@@ -107,7 +107,7 @@ class NetworkMPPage(QWizardPage):
         fileSelctionBtn.setText("Browse")
         fileSelctionBtn.clicked.connect(self.selectFile)
 
-        self.numReticulationsEdit = QLineEdit()
+        self.numReticulationsEditMP = QLineEdit()
         self.numReticulationsEditMP.setValidator(NumValidator())
         self.numReticulationsEditMP.setToolTip("Please enter a non-negative integer")
         self.registerField("numReticulationsEdit*", self.numReticulationsEdit)
