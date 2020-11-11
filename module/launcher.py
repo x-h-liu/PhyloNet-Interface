@@ -96,7 +96,7 @@ class Launcher(QtWidgets.QWizard):
         self.setWindowFlags(flags)
         self.setModal(1)
         #self.resize(1300, 1100)
-        self.setMinimumSize(1300, 1100)
+        #self.setMinimumSize(1300, 1100)
         bLayout = [QWizard.Stretch, QWizard.NextButton, QWizard.CustomButton1, QWizard.CustomButton2, QWizard.CancelButton, QWizard.BackButton]
         self.setButtonLayout(bLayout)
 
