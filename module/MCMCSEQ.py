@@ -467,7 +467,7 @@ class MCMCSEQPage(QWizardPage):
         launchBtn.clicked.connect(self.generate)
 
         # Layouts
-        # Layout of each parameter (label and input)
+        # Layout of each  parameter (label and input)
 
         sgtFileFormatLayout = QVBoxLayout()
         sgtFileFormatLayout.addWidget(self.sgtFileLbl)

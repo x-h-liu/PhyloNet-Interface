@@ -183,6 +183,46 @@ class MCMCBiMarkersPage(QWizardPage):
         self.chainLengthLbl.setObjectName("-cl")
         self.chainLengthLbl.stateChanged.connect(self.onChecked)
 
+        # Optional parameter labels
+        self.sgtFileLbl = QCheckBox("Starting gene trees for each locus:")
+        self.sgtFileLbl.setObjectName("-sgt")
+        self.sgtFileLbl.stateChanged.connect(self.onChecked)
+
+        self.burnInLengthLbl = QCheckBox(
+            "The number of iterations in burn-in period:", self)
+        self.burnInLengthLbl.setObjectName("-bl")
+        self.burnInLengthLbl.stateChanged.connect(self.onChecked)
+
+        self.burnInLengthEdit = QLineEdit()
+        self.burnInLengthEdit.setDisabled(True)
+        self.burnInLengthEdit.setPlaceholderText("2000000")
+
+        self.numProcLbl = QCheckBox(
+            "Number of threads running in parallel:", self)
+        self.numProcLbl.setObjectName("-pl")
+        self.numProcLbl.stateChanged.connect(self.onChecked)
+
+        self.popSizeLbl = QCheckBox(
+            "Fix the population sizes associated with all branches of the phylogenetic network " "to this given value:", self)
+        self.popSizeLbl.setObjectName("-fixps")
+        self.popSizeLbl.stateChanged.connect(self.onChecked)
+
+        self.varypsLbl = QCheckBox(
+            "Vary the population sizes across all branches.", self)
+
+        self.sPopLbl = QCheckBox("The starting population size:")
+        self.sPopLbl.setObjectName("-sps")
+        self.sPopLbl.stateChanged.connect(self.onChecked)
+
+        self.preLbl = QCheckBox("The number of iterations for pre burn-in:")
+        self.preLbl.setObjectName("-pre")
+        self.preLbl.stateChanged.connect(self.onChecked)
+
+        self.gtrLbl = QCheckBox(
+            "Set GTR (general time-reversible) as the substitution model:")
+        self.gtrLbl.setObjectName("-gtr")
+        self.gtrLbl.stateChanged.connect(self.onChecked)
+
         self.burnInLbl = QCheckBox(
             "The number of iterations in burn-in period:")
         self.burnInLbl.setObjectName("-bl")
@@ -220,6 +260,20 @@ class MCMCBiMarkersPage(QWizardPage):
         self.sampleFrequencyEdit = QLineEdit()
         self.sampleFrequencyEdit.setDisabled(True)
         self.sampleFrequencyEdit.setPlaceholderText("500")
+
+        self.numProcEdit = QLineEdit()
+        self.numProcEdit.setDisabled(True)
+
+        self.popSizeEdit = QLineEdit()
+        self.popSizeEdit.setDisabled(True)
+
+        self.sPopEdit = QLineEdit()
+        self.sPopEdit.setDisabled(True)
+        self.sPopEdit.setPlaceholderText("0.036")
+
+        self.preEdit = QLineEdit()
+        self.preEdit.setDisabled(True)
+        self.preEdit.setPlaceholderText("10")
 
         self.seedEdit = QLineEdit()
         self.seedEdit.setDisabled(True)
