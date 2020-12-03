@@ -16,6 +16,8 @@ from module import diploidList
 from module import paramList
 from functions import *
 
+#Error at [17,26]: missing EOF at '#NEXUS'
+
 
 def resource_path(relative_path):
     """
@@ -249,6 +251,10 @@ class MCMCBiMarkersPage(QWizardPage):
         self.tempListLbl.stateChanged.connect(self.onChecked)
 
         # Optional parameter inputs
+        self.sgtFileEdit = QLineEdit()
+        self.sgtFileEdit.setDisabled(True)
+        self.sgtFileEdit.setReadOnly(True)
+        
         self.chainLengthEdit = QLineEdit()
         self.chainLengthEdit.setDisabled(True)
         self.chainLengthEdit.setPlaceholderText("500000")

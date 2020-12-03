@@ -144,6 +144,18 @@ class MLEBiMarkersPage(QWizardPage):
         self.numReticulationsEdit.setValidator(NumValidator())
         self.numReticulationsEdit.setToolTip("Please enter a non-negative integer")
 
+        #changed till here
+
+        self.tempListLbl = QCheckBox(
+            "The list of temperatures for the Metropolis-coupled MCMC chains:", self)
+        self.tempListLbl.setObjectName("-mc3")
+        self.tempListLbl.stateChanged.connect(self.onChecked)
+
+        #changed till here
+        self.tempListEdit = QLineEdit()
+        self.tempListEdit.setDisabled(True)
+        self.tempListEdit.setPlaceholderText("(1.0)")
+
         # Layouts
         # Layout of each parameter (label and input)
         fileFormatLayout = QVBoxLayout()
@@ -157,6 +169,10 @@ class MLEBiMarkersPage(QWizardPage):
         numReticulationsLayout = QHBoxLayout()
         numReticulationsLayout.addWidget(numReticulationsLbl)
         numReticulationsLayout.addWidget(self.numReticulationsEdit)
+
+        tempListLayout = QHBoxLayout()
+        tempListLayout.addWidget(self.tempListLbl)
+        tempListLayout.addWidget(self.tempListEdit)
 
         # Main layout for tab one
         tabOneLayout = QVBoxLayout()
@@ -239,17 +255,26 @@ class MLEBiMarkersPage(QWizardPage):
         self.gtrLbl.setObjectName("-gtr")
         self.gtrLbl.stateChanged.connect(self.onChecked)
 
-        #changed till here
+        self.ddLbl = QCheckBox(
+            "Disable the prior on the diameters of hybridizations.", self)
 
-        self.tempListLbl = QCheckBox(
-            "The list of temperatures for the Metropolis-coupled MCMC chains:", self)
-        self.tempListLbl.setObjectName("-mc3")
-        self.tempListLbl.stateChanged.connect(self.onChecked)
+        self.eeLbl = QCheckBox("Enable the Exponential(10) prior on the divergence times of nodes in the phylogenetic "
+                               "network.", self)
+
+    
 
         # Optional parameter inputs
         self.numRunEdit = QLineEdit()
         self.numRunEdit.setDisabled(True)
         self.numRunEdit.setPlaceholderText("100")
+
+        self.chainLengthLbl = QCheckBox("The length of the MCMC chain:")
+        self.chainLengthLbl.setObjectName("-cl")
+        self.chainLengthLbl.stateChanged.connect(self.onChecked)
+
+        self.sampleFrequencyLbl = QCheckBox("The sample frequency:")
+        self.sampleFrequencyLbl.setObjectName("-sf")
+        self.sampleFrequencyLbl.stateChanged.connect(self.onChecked)
 
         self.maxExamEdit = QLineEdit()
         self.maxExamEdit.setDisabled(True)
@@ -346,7 +371,24 @@ class MLEBiMarkersPage(QWizardPage):
 
         self.espThetaLbl = QCheckBox("Estimate the mean value of prior of population mutation rates.")
 
+        self.seedLbl = QCheckBox("The random seed:")
+        self.seedLbl.setObjectName("-sd")
+        self.seedLbl.stateChanged.connect(self.onChecked)
+
+        self.ppLbl = QCheckBox(
+            "The Poisson parameter in the prior on the number of reticulation nodes:")
+        self.ppLbl.setObjectName("-pp")
+        self.ppLbl.stateChanged.connect(self.onChecked)
+
         # Optional parameter inputs
+        self.sgtFileEdit = QLineEdit()
+        self.sgtFileEdit.setDisabled(True)
+        self.sgtFileEdit.setReadOnly(True)
+        
+        self.chainLengthEdit = QLineEdit()
+        self.chainLengthEdit.setDisabled(True)
+        self.chainLengthEdit.setPlaceholderText("500000")
+
         self.maxRetEdit = QLineEdit()
         self.maxRetEdit.setDisabled(True)
         self.maxRetEdit.setPlaceholderText("4")
@@ -357,6 +399,10 @@ class MLEBiMarkersPage(QWizardPage):
 
         self.thetaEdit = QLineEdit()
         self.thetaEdit.setDisabled(True)
+
+        self.ppEdit = QLineEdit()
+        self.ppEdit.setDisabled(True)
+        self.ppEdit.setPlaceholderText("1.0")
 
         # Layouts
         # Layout of each parameter (label and input)      
@@ -433,6 +479,16 @@ class MLEBiMarkersPage(QWizardPage):
         self.dominantMarkerEdit.addItem("0")
         self.dominantMarkerEdit.addItem("1")
         self.dominantMarkerEdit.setDisabled(True)
+
+        self.sampleFrequencyEdit = QLineEdit()
+        self.sampleFrequencyEdit.setDisabled(True)
+        self.sampleFrequencyEdit.setPlaceholderText("500")
+
+        self.seedEdit = QLineEdit()
+        self.seedEdit.setDisabled(True)
+        self.seedEdit.setPlaceholderText("12345678")
+
+    
 
         # Launch button
         launchBtn = QPushButton("Generate", self)
@@ -1081,7 +1137,7 @@ class MLEBiMarkersPage(QWizardPage):
                 outputFile.write(";\n")
                 outputFile.write("END;")
 
-            # Validate the generated file.
+            # Validate the generated file
             self.validateFile(path)
             #clears inputs if they are validated      
             if self.isValidated:
