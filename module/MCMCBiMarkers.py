@@ -16,8 +16,6 @@ from module import diploidList
 from module import paramList
 from functions import *
 
-#Error at [17,26]: missing EOF at '#NEXUS'
-
 
 def resource_path(relative_path):
     """
@@ -127,6 +125,7 @@ class MCMCBiMarkersPage(QWizardPage):
         self.fasta = QCheckBox(".fasta")
         self.fasta.setObjectName("fasta")
         numReticulationsLbl = QLabel("Maximum number of reticulations to add:")
+        
         # Implement mutually exclusive check boxes
         self.nexus.stateChanged.connect(self.format)
         self.fasta.stateChanged.connect(self.format)
@@ -185,7 +184,6 @@ class MCMCBiMarkersPage(QWizardPage):
         self.chainLengthLbl.setObjectName("-cl")
         self.chainLengthLbl.stateChanged.connect(self.onChecked)
 
-        # Optional parameter labels
         self.sgtFileLbl = QCheckBox("Starting gene trees for each locus:")
         self.sgtFileLbl.setObjectName("-sgt")
         self.sgtFileLbl.stateChanged.connect(self.onChecked)
@@ -254,7 +252,7 @@ class MCMCBiMarkersPage(QWizardPage):
         self.sgtFileEdit = QLineEdit()
         self.sgtFileEdit.setDisabled(True)
         self.sgtFileEdit.setReadOnly(True)
-        
+
         self.chainLengthEdit = QLineEdit()
         self.chainLengthEdit.setDisabled(True)
         self.chainLengthEdit.setPlaceholderText("500000")
