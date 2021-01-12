@@ -138,6 +138,7 @@ class Main(QMainWindow):
         # Closes main window so its cleaner for user
         # self.window().setVisible(False)
 
+    #on hold, until post processing returns  
     def openPostProcess(self):
         self.outputSummarizer = PostProcessingModule.menu.MenuPage()
         self.outputSummarizer.show()
