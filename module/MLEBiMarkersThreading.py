@@ -405,7 +405,7 @@ class MLEBiMarkersPage(QMainWindow):
 
         menubar.setNativeMenuBar(False)
         self.setWindowTitle('PhyloNetNEXGenerator')
-        self.setWindowIcon(QIcon(resource_path("logo.png")))
+        self.setWindowIcon(QIcon(resource_path("imgs/logo.png")))
 
     def inverseMapping(self, map):
         """

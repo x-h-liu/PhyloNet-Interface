@@ -81,13 +81,9 @@ class TreeMethodsPage(QWizardPage):
         vbox.addWidget(self.methods5)
         vbox.addWidget(self.methods6)
 
-      #  vbox.addWidget(launchBtn)
         self.setLayout(vbox)
-
-        vbox.setContentsMargins(50, 10, 50, 10)
-
         self.setWindowTitle('PhyloNetNEXGenerator')
-        self.setWindowIcon(QIcon(resource_path("logo.png")))
+        self.setWindowIcon(QIcon(resource_path("imgs/logo.png")))
 
     def onChecked(self):
         """

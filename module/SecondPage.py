@@ -62,7 +62,7 @@ class SecondPage(QWizardPage):
         geneTreeBtn.clicked.connect(self.openTreePage)
 
         # Image and Title
-        pix = QPixmap(resource_path("logo.png"))
+        pix = QPixmap(resource_path("imgs/logo.png"))
         image = QLabel(self)
         image.setPixmap(pix)
         lbl = QLabel("PhyloNet")
@@ -101,7 +101,7 @@ class SecondPage(QWizardPage):
 
         self.menubar.setNativeMenuBar(False)
         self.setWindowTitle('PhyloNetNEXGenerator')
-        self.setWindowIcon(QIcon(resource_path("logo.png"))) """
+        self.setWindowIcon(QIcon(resource_path("imgs/logo.png"))) """
 
     def aboutMessage(self):
         msg = QMessageBox()

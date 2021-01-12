@@ -1068,7 +1068,7 @@ class NetworkMPLPage(QWizardPage):
     def successMessage(self):
         msg = QDialog()
         msg.setWindowTitle("Phylonet") 
-        msg.setWindowIcon(QIcon("logo.png"))
+        msg.setWindowIcon(QIcon("imgs/logo.png"))
         flags = QtCore.Qt.WindowFlags(QtCore.Qt.CustomizeWindowHint | QtCore.Qt.WindowCloseButtonHint )
         msg.setWindowFlags(flags)
         msg.setObjectName("successMessage")

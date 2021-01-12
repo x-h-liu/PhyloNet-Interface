@@ -34,7 +34,7 @@ class Main(QMainWindow):
         Initialize GUI.
         """
         self.setWindowTitle("Phylonet")
-        self.setWindowIcon(QIcon("logo.png"))
+        self.setWindowIcon(QIcon("imgs/logo.png"))
         flags = QtCore.Qt.WindowFlags(QtCore.Qt.CustomizeWindowHint | QtCore.Qt.WindowCloseButtonHint
                                       | QtCore.Qt.WindowMinimizeButtonHint)
         self.setWindowFlags(flags)
@@ -49,7 +49,6 @@ class Main(QMainWindow):
         infoButton.setIcon(ico)
         infoButton.setFixedSize(60, 60)
         infoButton.setIconSize(infoButton.size())
-        #infoButton.setStyleSheet("border: none;")
 
         # Buttons of two options
         generateBtn = QPushButton(
@@ -64,8 +63,7 @@ class Main(QMainWindow):
 
         # Question
         header = QLabel()
-        #header.setStyleSheet("margin-bottom: 50px;")
-        pix = QPixmap("header.png")
+        pix = QPixmap("imgs/header.png")
         pix = pix.scaledToWidth(500)
         header.setPixmap(pix)
 
@@ -92,7 +90,7 @@ class Main(QMainWindow):
 
         # menubar.setNativeMenuBar(False)
         # self.setWindowTitle('PhyloNetCompanion')
-        # self.setWindowIcon(QIcon(resource_path("logo.png")))
+        # self.setWindowIcon(QIcon(resource_path("imgs/logo.png")))
 
     def link(self, linkStr):
         """
@@ -103,7 +101,7 @@ class Main(QMainWindow):
     def aboutMessage(self):
         msg = QDialog()
         msg.setWindowTitle("Phylonet")
-        msg.setWindowIcon(QIcon("logo.png"))
+        msg.setWindowIcon(QIcon("imgs/logo.png"))
         flags = QtCore.Qt.WindowFlags(
             QtCore.Qt.CustomizeWindowHint | QtCore.Qt.WindowCloseButtonHint)
         msg.setWindowFlags(flags)
@@ -122,7 +120,7 @@ class Main(QMainWindow):
                       "implemented, and maintained by Rice's BioInformatics Group, "
                       "which is lead by Professor Luay Nakhleh (nakhleh@cs.rice.edu). ")
         text.setWordWrap(True)
-        #text.setStyleSheet("padding: 60px 100px 10px 100px;")
+        text.setStyleSheet("padding: 60px 100px 10px 100px;")
         text.setObjectName("infoButton")
 
         hyperlink = QLabel()
@@ -131,7 +129,7 @@ class Main(QMainWindow):
                           'http://bioinfo.cs.rice.edu</a>.')
         hyperlink.linkActivated.connect(self.link)
         hyperlink.setObjectName("infoButton")
-        #hyperlink.setStyleSheet("padding: 10px 100px 80px 100px;")
+        hyperlink.setStyleSheet("padding: 10px 100px 80px 100px;")
 
         buttonBox = QDialogButtonBox(QDialogButtonBox.Ok)
         buttonBox.clicked.connect(msg.accept)
@@ -155,7 +153,6 @@ class Main(QMainWindow):
 
 
 if __name__ == '__main__':
-    #os.environ['QT_FONT_DPI'] = '192'
     app = QtWidgets.QApplication(sys.argv)
     #app.setStyleSheet(style())
     ex = Main()

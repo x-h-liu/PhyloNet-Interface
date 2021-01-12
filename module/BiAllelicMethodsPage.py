@@ -64,14 +64,9 @@ class BiAllelicMethodsPage(QWizardPage):
         vbox.addWidget(hyperlink)
         vbox.addWidget(self.methods1)
         vbox.addWidget(self.methods2)
-
-      #  vbox.addWidget(launchBtn)
         self.setLayout(vbox)
-
-        vbox.setContentsMargins(50, 10, 50, 10)
-
         self.setWindowTitle('PhyloNetNEXGenerator')
-        self.setWindowIcon(QIcon(resource_path("logo.png")))
+        self.setWindowIcon(QIcon(resource_path("imgs/logo.png")))
 
     def onChecked(self):
         """

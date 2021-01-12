@@ -45,32 +45,28 @@ class TaxamapDlg(QDialog):
             self.table.setItem(i, 0, QTableWidgetItem(self.namespace[i].label))
             self.table.setItem(i, 1, QTableWidgetItem(self.currentMap[self.namespace[i].label]))
 
-        #Enable maximize and minimize window
-        flags = QtCore.Qt.WindowFlags(QtCore.Qt.CustomizeWindowHint | QtCore.Qt.WindowCloseButtonHint 
-                    | QtCore.Qt.WindowMaximizeButtonHint | QtCore.Qt.WindowMinimizeButtonHint)
-        self.setWindowFlags(flags)
-
         # Main layout
         topLevelLayout = QVBoxLayout()
         topLevelLayout.addWidget(self.table)
 
         # Buttons
-        guess = QPushButton("Guess")
-        cancel = QPushButton("Cancel")
-        set = QPushButton("Set")
-        set.setDefault(True)
-        guess.clicked.connect(self.guess)
-        set.clicked.connect(self.accept)
-        cancel.clicked.connect(self.reject)
+        guessBtn = QPushButton("Guess")
+        cancelBtn = QPushButton("Cancel")
+        setBtn = QPushButton("Set")
+        setBtn.setDefault(True)
+        guessBtn.clicked.connect(self.guess)
+        setBtn.clicked.connect(self.accept)
+        cancelBtn.clicked.connect(self.reject)
 
         btnLayout = QHBoxLayout()
-        btnLayout.addWidget(guess)
-        btnLayout.addWidget(cancel)
-        btnLayout.addWidget(set)
+        btnLayout.addWidget(guessBtn)
+        btnLayout.addWidget(cancelBtn)
+        btnLayout.addWidget(setBtn)
 
         topLevelLayout.addLayout(btnLayout)
 
         self.setLayout(topLevelLayout)
+        self.setMinimumSize(800, 800)
 
     def guess(self):
         """

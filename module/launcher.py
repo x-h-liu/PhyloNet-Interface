@@ -88,15 +88,12 @@ class Launcher(QtWidgets.QWizard):
         """
         #set window title and label
         self.setWindowTitle("Phylonet") 
-        self.setWindowIcon(QIcon("module/logo.png"))
+        self.setWindowIcon(QIcon("imgs/logo.png"))
         #set maximize and minimize options
         flags = QtCore.Qt.WindowFlags(QtCore.Qt.CustomizeWindowHint | QtCore.Qt.WindowCloseButtonHint 
                     | QtCore.Qt.WindowMaximizeButtonHint | QtCore.Qt.WindowMinimizeButtonHint)
-        #flags = QtCore.Qt.FramelessWindowHint
         self.setWindowFlags(flags)
         self.setModal(1)
-        #self.resize(1300, 1100)
-        #self.setMinimumSize(1300, 1100)
         bLayout = [QWizard.Stretch, QWizard.NextButton, QWizard.CustomButton1, QWizard.CustomButton2, QWizard.CancelButton, QWizard.BackButton]
         self.setButtonLayout(bLayout)
 
@@ -183,9 +180,9 @@ class IntroPage(QtWidgets.QWizardPage):
         #info button gotta go
         #vbox.addWidget(getInfoButton(self))
         vbox.addWidget(questionLabel)
-        vbox.addWidget(self.inputOption1, alignment=QtCore.Qt.AlignCenter)
-        vbox.addWidget(self.inputOption2, alignment=QtCore.Qt.AlignCenter)
-        vbox.addWidget(self.inputOption3, alignment=QtCore.Qt.AlignCenter)
+        vbox.addWidget(self.inputOption1)
+        vbox.addWidget(self.inputOption2)
+        vbox.addWidget(self.inputOption3)
 
         self.setLayout(vbox)
 
