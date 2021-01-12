@@ -827,7 +827,7 @@ class NetworkMPPage(QWizardPage):
             if self.isValidated:
                 self.clear()
                 self.generated.emit(True)
-                self.successMessage()
+                successMessage(self)
 
         except emptyFileError:
             QMessageBox.warning(self, "Warning", "Please select a file type and upload data!", QMessageBox.Ok)
@@ -873,30 +873,6 @@ class NetworkMPPage(QWizardPage):
         self.numProcLbl.setChecked(False)
         self.numProcEdit.clear()
         self.diLbl.setChecked(False)     
-
-    def successMessage(self):
-        msg = QDialog()
-        msg.setWindowTitle("Phylonet") 
-        msg.setWindowIcon(QIcon("imgs/logo.png"))
-        flags = QtCore.Qt.WindowFlags(QtCore.Qt.CustomizeWindowHint | QtCore.Qt.WindowCloseButtonHint )
-        msg.setWindowFlags(flags)
-        msg.setObjectName("successMessage")
-
-        vbox = QVBoxLayout()
-
-        ico = QLabel()
-        complete = QPixmap("module/complete.svg")
-        ico.setPixmap(complete)
-        buttonBox = QDialogButtonBox(QDialogButtonBox.Ok)
-        buttonBox.clicked.connect(msg.accept)
-
-        vbox.addWidget(ico, alignment=QtCore.Qt.AlignCenter)
-        vbox.addWidget(buttonBox)
-        vbox.setSpacing(0)
- 
-        msg.setLayout(vbox)
-        msg.setModal(1)
-        msg.exec_()
 
     def validateFile(self, filePath):
         """

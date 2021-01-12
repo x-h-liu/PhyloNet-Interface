@@ -42,13 +42,6 @@ class Main(QMainWindow):
         wid = QWidget()
         self.setCentralWidget(wid)
         self.setContentsMargins(50, 0, 10, 50)
-        ico = QIcon("info.svg")
-
-        infoButton = QPushButton(self)
-        infoButton.clicked.connect(self.aboutMessage)
-        infoButton.setIcon(ico)
-        infoButton.setFixedSize(60, 60)
-        infoButton.setIconSize(infoButton.size())
 
         # Buttons of two options
         generateBtn = QPushButton(
@@ -83,7 +76,7 @@ class Main(QMainWindow):
 
         # houses all widgets
         vbox = QVBoxLayout()
-        vbox.addWidget(infoButton)
+        vbox.addWidget(getInfoButton(self))
         vbox.addLayout(mainLayout)
         vbox.addWidget(version, alignment=QtCore.Qt.AlignCenter)
         wid.setLayout(vbox)
