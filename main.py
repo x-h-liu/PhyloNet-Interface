@@ -2,7 +2,7 @@ import os
 import sys
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
-from PyQt5 import QtWidgets, QtCore, QtLocation
+from PyQt5 import QtGui,QtWidgets, QtCore, QtLocation
 from PyQt5.QtGui import QIcon, QPixmap
 
 import module.launcher
@@ -10,18 +10,6 @@ import PostProcessingModule.menu
 
 from styling import *
 from functions import *
-
-
-def resource_path(relative_path):
-    """
-    Refer to the location of a file at run-time.
-    This function is from
-    https://www.reddit.com/r/learnpython/comments/4kjie3/how_to_include_gui_images_with_pyinstaller/
-    For more information, visit https://pythonhosted.org/PyInstaller/runtime-information.html#run-time-information
-    """
-    if hasattr(sys, '_MEIPASS'):
-        return os.path.join(sys._MEIPASS, relative_path)
-    return os.path.join(os.path.abspath("."), relative_path)
 
 
 class Main(QMainWindow):
@@ -149,6 +137,13 @@ class Main(QMainWindow):
 if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)
     #app.setStyleSheet(style())
+    app.setWindowIcon(QtGui.QIcon('imgs/logo.ico'))
+    app.setStyle(QStyleFactory.create('Fusion'))
+
+    font = QFont("Arial", 10, 1, False)
+    font.setStyleHint(QFont.SansSerif)
+    app.setFont(font)
+    
     ex = Main()
     ex.show()
     sys.exit(app.exec_())

@@ -13,7 +13,6 @@ import shutil
 
 from Validator import NumValidator
 from module import TaxamapDlg
-from module import diploidList
 from module import paramList
 from functions import *
 
@@ -61,15 +60,11 @@ class MCMCBiMarkersPage(QWizardPage):
         super(MCMCBiMarkersPage, self).__init__()
 
         self.inputFiles = []
-        self.loci = {}
         self.nchar = 0
         self.taxa_names = set([])
 
         self.taxamap = {}
-        self.sgtFiles = []
-        self.ListOfDiploid = []
-        self.GTR = {"A": "0.25", "C": "0.25", "G": "0.25", "T": "0.25", "AC": "1", "AG": "1", "AT": "1", "CG": "1",
-       "CT": "1", "GT": "1"}
+
         self.TABS = 4
 
         self.isValidated = False
@@ -105,7 +100,7 @@ class MCMCBiMarkersPage(QWizardPage):
         
         #tab sub header
         instructionLabel = QLabel()
-        instructionLabel.setText("Input data: Please Upload Gene tree files:\n(one file per locus)")
+        instructionLabel.setText("Input data: Please Upload Sequence File")
         instructionLabel.setObjectName("instructionLabel")  
 
         # Mandatory parameter labels
@@ -134,8 +129,8 @@ class MCMCBiMarkersPage(QWizardPage):
         self.numReticulationsEdit.setValidator(NumValidator())
         self.numReticulationsEdit.setToolTip("Please enter a non-negative integer")
 
-        # Layouts
-        # Layout of each parameter (label and input)
+        #Initialize Layouts each parameter
+
         fileFormatLayout = QVBoxLayout()
         fileFormatLayout.addWidget(instructionLabel)
         fileFormatLayout.addWidget(self.nexus)
@@ -159,6 +154,7 @@ class MCMCBiMarkersPage(QWizardPage):
         #Add tab One
         self.tabWidget.addTab(tabOne, 'Mandatory')
 
+        
         #create tab two
         tabTwo = QWidget(self)
         #tabTwo.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)
@@ -173,49 +169,10 @@ class MCMCBiMarkersPage(QWizardPage):
         self.chainLengthLbl.setObjectName("-cl")
         self.chainLengthLbl.stateChanged.connect(self.onChecked)
 
-        self.sgtFileLbl = QCheckBox("Starting gene trees for each locus:")
-        self.sgtFileLbl.setObjectName("-sgt")
-        self.sgtFileLbl.stateChanged.connect(self.onChecked)
-
         self.burnInLengthLbl = QCheckBox(
             "The number of iterations in burn-in period:", self)
         self.burnInLengthLbl.setObjectName("-bl")
         self.burnInLengthLbl.stateChanged.connect(self.onChecked)
-
-        self.burnInLengthEdit = QLineEdit()
-        self.burnInLengthEdit.setDisabled(True)
-        self.burnInLengthEdit.setPlaceholderText("2000000")
-
-        self.numProcLbl = QCheckBox(
-            "Number of threads running in parallel:", self)
-        self.numProcLbl.setObjectName("-pl")
-        self.numProcLbl.stateChanged.connect(self.onChecked)
-
-        self.popSizeLbl = QCheckBox(
-            "Fix the population sizes associated with all branches of the phylogenetic network " "to this given value:", self)
-        self.popSizeLbl.setObjectName("-fixps")
-        self.popSizeLbl.stateChanged.connect(self.onChecked)
-
-        self.varypsLbl = QCheckBox(
-            "Vary the population sizes across all branches.", self)
-
-        self.sPopLbl = QCheckBox("The starting population size:")
-        self.sPopLbl.setObjectName("-sps")
-        self.sPopLbl.stateChanged.connect(self.onChecked)
-
-        self.preLbl = QCheckBox("The number of iterations for pre burn-in:")
-        self.preLbl.setObjectName("-pre")
-        self.preLbl.stateChanged.connect(self.onChecked)
-
-        self.gtrLbl = QCheckBox(
-            "Set GTR (general time-reversible) as the substitution model:")
-        self.gtrLbl.setObjectName("-gtr")
-        self.gtrLbl.stateChanged.connect(self.onChecked)
-
-        self.burnInLbl = QCheckBox(
-            "The number of iterations in burn-in period:")
-        self.burnInLbl.setObjectName("-bl")
-        self.burnInLbl.stateChanged.connect(self.onChecked)
 
         self.sampleFrequencyLbl = QCheckBox("The sample frequency:")
         self.sampleFrequencyLbl.setObjectName("-sf")
@@ -230,18 +187,12 @@ class MCMCBiMarkersPage(QWizardPage):
         self.parThreadLbl.setObjectName("-pl")
         self.parThreadLbl.stateChanged.connect(self.onChecked)
 
-        #changed till here
-
         self.tempListLbl = QCheckBox(
             "The list of temperatures for the Metropolis-coupled MCMC chains:", self)
         self.tempListLbl.setObjectName("-mc3")
         self.tempListLbl.stateChanged.connect(self.onChecked)
 
         # Optional parameter inputs
-        self.sgtFileEdit = QLineEdit()
-        self.sgtFileEdit.setDisabled(True)
-        self.sgtFileEdit.setReadOnly(True)
-
         self.chainLengthEdit = QLineEdit()
         self.chainLengthEdit.setDisabled(True)
         self.chainLengthEdit.setPlaceholderText("500000")
@@ -254,20 +205,6 @@ class MCMCBiMarkersPage(QWizardPage):
         self.sampleFrequencyEdit.setDisabled(True)
         self.sampleFrequencyEdit.setPlaceholderText("500")
 
-        self.numProcEdit = QLineEdit()
-        self.numProcEdit.setDisabled(True)
-
-        self.popSizeEdit = QLineEdit()
-        self.popSizeEdit.setDisabled(True)
-
-        self.sPopEdit = QLineEdit()
-        self.sPopEdit.setDisabled(True)
-        self.sPopEdit.setPlaceholderText("0.036")
-
-        self.preEdit = QLineEdit()
-        self.preEdit.setDisabled(True)
-        self.preEdit.setPlaceholderText("10")
-
         self.seedEdit = QLineEdit()
         self.seedEdit.setDisabled(True)
         self.seedEdit.setPlaceholderText("12345678")
@@ -275,20 +212,19 @@ class MCMCBiMarkersPage(QWizardPage):
         self.parThreadEdit = QLineEdit()
         self.parThreadEdit.setDisabled(True)
 
-        #changed till here
         self.tempListEdit = QLineEdit()
         self.tempListEdit.setDisabled(True)
         self.tempListEdit.setPlaceholderText("(1.0)")
 
-        # Layouts
-        # Layout of each parameter (label and input)
+        #Initialize Layouts each parameter 
+
         chainLengthLayout = QHBoxLayout()
         chainLengthLayout.addWidget(self.chainLengthLbl)
         chainLengthLayout.addStretch(1)
         chainLengthLayout.addWidget(self.chainLengthEdit)
 
         burnInLayout = QHBoxLayout()
-        burnInLayout.addWidget(self.burnInLbl)
+        burnInLayout.addWidget(self.burnInLengthLbl)
         burnInLayout.addStretch(1)
         burnInLayout.addWidget(self.burnInEdit)
 
@@ -324,14 +260,13 @@ class MCMCBiMarkersPage(QWizardPage):
 
         #add tab two
         self.tabWidget.addTab(tabTwo, 'Parameters')
-
+        
         #create tab three 
         tabThree = QWidget(self)
-        #tabThree.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)
 
         optionalLabelA = QLabel()
         optionalLabelA.setObjectName("instructionLabel")
-        optionalLabelA.setText("Inference and Prior Setting")
+        optionalLabelA.setText("Inference Settings")
         optionalLabelA.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)
 
         # Optional parameter labels
@@ -356,17 +291,6 @@ class MCMCBiMarkersPage(QWizardPage):
         self.espThetaLbl = QCheckBox(
             "Estimate the mean value of prior of population mutation rates.")
 
-        self.ppLbl = QCheckBox(
-            "The Poisson parameter in the prior on the number of reticulation nodes:")
-        self.ppLbl.setObjectName("-pp")
-        self.ppLbl.stateChanged.connect(self.onChecked)
-
-        self.ddLbl = QCheckBox(
-            "Disable the prior on the diameters of hybridizations.", self)
-
-        self.eeLbl = QCheckBox("Enable the Exponential(10) prior on the divergence times of nodes in the phylogenetic "
-                               "network.", self)
-
         # Optional parameter inputs
         self.maxRetEdit = QLineEdit()
         self.maxRetEdit.setDisabled(True)
@@ -380,15 +304,7 @@ class MCMCBiMarkersPage(QWizardPage):
         self.thetaEdit = QLineEdit()
         self.thetaEdit.setDisabled(True)
 
-        self.ppEdit = QLineEdit()
-        self.ppEdit.setDisabled(True)
-        self.ppEdit.setPlaceholderText("1.0")
-
-        self.eeEdit = QLineEdit()
-        self.eeEdit.setDisabled(True)
-
-        # Layouts
-        # Layout of each parameter (label and input)      
+        #Initialize Layouts each parameter
 
         maxRetLayout = QHBoxLayout()
         maxRetLayout.addWidget(self.maxRetLbl)
@@ -411,6 +327,68 @@ class MCMCBiMarkersPage(QWizardPage):
         espThetaLayout = QHBoxLayout()
         espThetaLayout.addWidget(self.espThetaLbl)
 
+        # Main Layout tab three
+
+        tabThreeLayout = QVBoxLayout()
+        tabThreeLayout.addWidget(optionalLabelA)
+        tabThreeLayout.addLayout(maxRetLayout)
+        tabThreeLayout.addLayout(taxamapLayout)
+        tabThreeLayout.addLayout(thetaLayout)
+        tabThreeLayout.addLayout(varyThetaLayout)
+        tabThreeLayout.addLayout(espThetaLayout)
+
+        tabThree.setLayout(tabThreeLayout)          
+
+        #add tabthree
+        self.tabWidget.addTab(tabThree, 'Parameters')
+
+        #create tab four 
+        tabFour = QWidget(self)
+
+        optionalLabelB = QLabel()
+        optionalLabelB.setObjectName("instructionLabel")
+        optionalLabelB.setText("Prior and Starting State Settings")
+        optionalLabelB.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)
+
+        # Optional parameter labels
+        self.ppLbl = QCheckBox(
+            "The Poisson parameter in the prior on the number of reticulation nodes:")
+        self.ppLbl.setObjectName("-pp")
+        self.ppLbl.stateChanged.connect(self.onChecked)
+
+        self.ddLbl = QCheckBox(
+            "Disable the prior on the diameters of hybridizations.", self)
+
+        self.eeLbl = QCheckBox("The Exponential parameter in the prior on the divergence times of nodes in the "
+                               "phylogenetic network:", self)
+        self.eeLbl.setObjectName("-ee")
+        self.eeLbl.stateChanged.connect(self.onChecked)
+
+        self.sNetLbl = QCheckBox("Specify the starting network:")
+        self.sNetLbl.setObjectName("-snet")
+        self.sNetLbl.stateChanged.connect(self.onChecked)
+
+        self.startingThetaPriorLbl = QCheckBox(
+            "Specify the mean value of prior of population mutation rate:")
+        self.startingThetaPriorLbl.setObjectName("-ptheta")
+        self.startingThetaPriorLbl.stateChanged.connect(self.onChecked)
+        # Optional parameter inputs
+        self.ppEdit = QLineEdit()
+        self.ppEdit.setDisabled(True)
+        self.ppEdit.setPlaceholderText("1.0")
+
+        self.eeEdit = QLineEdit()
+        self.eeEdit.setDisabled(True)
+
+        self.sNetEdit = QLineEdit()
+        self.sNetEdit.setDisabled(True)
+
+        self.startingThetaPriorEdit = QLineEdit()
+        self.startingThetaPriorEdit.setDisabled(True)
+        self.startingThetaPriorEdit.setPlaceholderText("0.036")
+
+        #Initialize Layouts each parameter
+
         ppLayout = QHBoxLayout()
         ppLayout.addWidget(self.ppLbl)
         ppLayout.addStretch(1)
@@ -424,42 +402,40 @@ class MCMCBiMarkersPage(QWizardPage):
         eeLayout.addStretch(1)
         eeLayout.addWidget(self.eeEdit)
 
-        # Main Layout tab three
+        sNetLayout = QHBoxLayout()
+        sNetLayout.addWidget(self.sNetLbl)
+        sNetLayout.addWidget(self.sNetEdit)
 
-        tabThreeLayout = QVBoxLayout()
-        tabThreeLayout.addWidget(optionalLabelA)
-        #tabThreeLayout.addLayout(sNetLayout)
-        tabThreeLayout.addLayout(maxRetLayout)
-        tabThreeLayout.addLayout(taxamapLayout)
-        tabThreeLayout.addLayout(varyThetaLayout)
-        tabThreeLayout.addLayout(espThetaLayout)
-        tabThreeLayout.addLayout(ppLayout)
-        tabThreeLayout.addLayout(ddLayout)
-        tabThreeLayout.addLayout(eeLayout)
+        startingThetaPriorLayout = QHBoxLayout()
+        startingThetaPriorLayout.addWidget(self.startingThetaPriorLbl)
+        startingThetaPriorLayout.addStretch(1)
+        startingThetaPriorLayout.addWidget(self.startingThetaPriorEdit)
 
-        tabThree.setLayout(tabThreeLayout)          
 
-        #add tabthree
-        self.tabWidget.addTab(tabThree, 'Parameters')
+        # Main Layout tab four
 
-        #create tab four 
-        tabFour = QWidget(self)
+        tabFourLayout = QVBoxLayout()
+        tabFourLayout.addWidget(optionalLabelB)
+        tabFourLayout.addLayout(ppLayout)
+        tabFourLayout.addLayout(ddLayout)
+        tabFourLayout.addLayout(eeLayout)
+        tabFourLayout.addLayout(sNetLayout)
+        tabFourLayout.addLayout(startingThetaPriorLayout)
 
-        optionalLabelB = QLabel()
-        optionalLabelB.setObjectName("instructionLabel")
-        optionalLabelB.setText("Starting State and Data Related Settings")
-        optionalLabelB.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)
+        tabFour.setLayout(tabFourLayout)          
+
+        #add tabFour
+        self.tabWidget.addTab(tabFour, 'Parameters')
+        
+        #create tab five 
+        tabFive = QWidget(self)
+
+        optionalLabelC = QLabel()
+        optionalLabelC.setObjectName("instructionLabel")
+        optionalLabelC.setText("Data Related Settings")
+        optionalLabelC.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)
 
         # Optional parameter labels
-        self.sNetLbl = QCheckBox("Specify the starting network:")
-        self.sNetLbl.setObjectName("-snet")
-        self.sNetLbl.stateChanged.connect(self.onChecked)
-
-        self.startingThetaPriorLbl = QCheckBox(
-            "Specify the mean value of prior of population mutation rate:")
-        self.startingThetaPriorLbl.setObjectName("-ptheta")
-        self.startingThetaPriorLbl.stateChanged.connect(self.onChecked)
-
         self.diploidLbl = QCheckBox("Sequence sampled from diploids.")
 
         self.dominantMarkerLbl = QCheckBox(
@@ -470,14 +446,6 @@ class MCMCBiMarkersPage(QWizardPage):
         self.opLbl = QCheckBox("Ignore all monomorphic sites.")
 
         # Optional parameter inputs
-
-        self.sNetEdit = QLineEdit()
-        self.sNetEdit.setDisabled(True)
-
-        self.startingThetaPriorEdit = QLineEdit()
-        self.startingThetaPriorEdit.setDisabled(True)
-        self.startingThetaPriorEdit.setPlaceholderText("0.036")
-
         self.dominantMarkerEdit = QComboBox(self)
         self.dominantMarkerEdit.addItem("0")
         self.dominantMarkerEdit.addItem("1")
@@ -487,18 +455,7 @@ class MCMCBiMarkersPage(QWizardPage):
         launchBtn = QPushButton("Generate", self)
         launchBtn.clicked.connect(self.generate)
 
-        # Layouts
-        # Layout of each parameter (label and input)
-
-        sNetLayout = QHBoxLayout()
-        sNetLayout.addWidget(self.sNetLbl)
-        sNetLayout.addWidget(self.sNetEdit)
-
-        startingThetaPriorLayout = QHBoxLayout()
-        startingThetaPriorLayout.addWidget(self.startingThetaPriorLbl)
-        startingThetaPriorLayout.addStretch(1)
-        startingThetaPriorLayout.addWidget(self.startingThetaPriorEdit)
-
+        #Initialize Layouts each parameter
         diploidLayout = QHBoxLayout()
         diploidLayout.addWidget(self.diploidLbl)
 
@@ -514,21 +471,20 @@ class MCMCBiMarkersPage(QWizardPage):
         btnLayout.addStretch(1)
         btnLayout.addWidget(launchBtn)
 
-        # Main Layout tab four
+        # Main Layout tab five
 
-        tabFourLayout = QVBoxLayout()
-        tabFourLayout.addWidget(optionalLabelB)
-        tabFourLayout.addLayout(startingThetaPriorLayout)
-        tabFourLayout.addLayout(diploidLayout)
-        tabFourLayout.addLayout(dominantMarkerLayout)
-        tabFourLayout.addLayout(opLayout)
-        tabFourLayout.addLayout(btnLayout)
+        tabFiveLayout = QVBoxLayout()
+        tabFiveLayout.addWidget(optionalLabelC)
+        tabFiveLayout.addLayout(diploidLayout)
+        tabFiveLayout.addLayout(dominantMarkerLayout)
+        tabFiveLayout.addLayout(opLayout)
+        tabFiveLayout.addLayout(btnLayout)
 
-        tabFour.setLayout(tabFourLayout)          
+        tabFive.setLayout(tabFiveLayout)          
 
-        #add tabFour
-        self.tabWidget.addTab(tabFour, 'Generate')
-
+        #add tabFive
+        self.tabWidget.addTab(tabFive, 'Generate')
+        
         #disable tab bar, initially   
         self.tabWidget.tabBar().setDisabled(True)
         self.tabWidget.tabBar().setToolTip("This a mandatory input. Complete it to enable the tab bar")
@@ -581,7 +537,6 @@ class MCMCBiMarkersPage(QWizardPage):
             if not self.nexus.isChecked():
                 self.sequenceFileEdit.clear()
                 self.inputFiles = []
-                self.loci = {}
                 self.taxamap = {}
             else:
                 self.fasta.setChecked(False)
@@ -589,7 +544,6 @@ class MCMCBiMarkersPage(QWizardPage):
             if not self.fasta.isChecked():
                 self.sequenceFileEdit.clear()
                 self.inputFiles = []
-                self.loci = {}
                 self.taxamap = {}
             else:
                 self.nexus.setChecked(False)
@@ -629,8 +583,7 @@ class MCMCBiMarkersPage(QWizardPage):
                                 break
                             for taxon in dna:
                                 self.taxa_names.add(taxon.label)
-                            # Store data from this file in loci dictionary
-                            self.loci[os.path.splitext(os.path.basename(str(onefname)))[0]] = [seqLen, dna]
+                            # Store data from this file
                             self.sequenceFileEdit.append(onefname)
                             self.inputFiles.append(str(onefname))
 
@@ -651,8 +604,7 @@ class MCMCBiMarkersPage(QWizardPage):
                             # Store all taxa encountered so far in a global set.
                             for taxon in dna:
                                 self.taxa_names.add(taxon.label)
-                            # Store data from this file in loci dictionary
-                            self.loci[os.path.splitext(os.path.basename(str(onefname)))[0]] = [seqLen, dna]
+                            # Store data from this file
                             self.sequenceFileEdit.append(onefname)
                             self.inputFiles.append(str(onefname))
                 else:
@@ -661,7 +613,7 @@ class MCMCBiMarkersPage(QWizardPage):
     def onChecked(self):
         """
         When user clicks the checkbox for an optional command,
-        enable or disable the corresponding text edit.
+        enable or disable the corresponding input widget.
         """
         if self.sender().objectName() == "-cl":
             if self.chainLengthEdit.isEnabled():
@@ -669,10 +621,10 @@ class MCMCBiMarkersPage(QWizardPage):
             else:
                 self.chainLengthEdit.setDisabled(False)
         elif self.sender().objectName() == "-bl":
-            if self.burnInLengthEdit.isEnabled():
-                self.burnInLengthEdit.setDisabled(True)
+            if self.burnInEdit.isEnabled():
+                self.burnInEdit.setDisabled(True)
             else:
-                self.burnInLengthEdit.setDisabled(False)
+                self.burnInEdit.setDisabled(False)
         elif self.sender().objectName() == "-sf":
             if self.sampleFrequencyEdit.isEnabled():
                 self.sampleFrequencyEdit.setDisabled(True)
@@ -684,10 +636,10 @@ class MCMCBiMarkersPage(QWizardPage):
             else:
                 self.seedEdit.setDisabled(False)
         elif self.sender().objectName() == "-pl":
-            if self.numProcEdit.isEnabled():
-                self.numProcEdit.setDisabled(True)
+            if self.parThreadEdit.isEnabled():
+                self.parThreadEdit.setDisabled(True)
             else:
-                self.numProcEdit.setDisabled(False)
+                self.parThreadEdit.setDisabled(False)
         elif self.sender().objectName() == "-mc3":
             if self.tempListEdit.isEnabled():
                 self.tempListEdit.setDisabled(True)
@@ -703,48 +655,36 @@ class MCMCBiMarkersPage(QWizardPage):
                 self.taxamapEdit.setDisabled(True)
             else:
                 self.taxamapEdit.setDisabled(False)
-        elif self.sender().objectName() == "-fixps":
-            if self.popSizeEdit.isEnabled():
-                self.popSizeEdit.setDisabled(True)
+        elif self.sender().objectName() == "-fixtheta":
+            if self.thetaEdit.isEnabled():
+                self.thetaEdit.setDisabled(True)
             else:
-                self.popSizeEdit.setDisabled(False)
+                self.thetaEdit.setDisabled(False)
         elif self.sender().objectName() == "-pp":
             if self.ppEdit.isEnabled():
                 self.ppEdit.setDisabled(True)
             else:
-                self.ppEdit.setDisabled(False)   
-        elif self.sender().objectName() == "-sgt":
-            if self.sgtFileEdit.isEnabled():
-                self.sgtFileEdit.setDisabled(True)
-                self.sgtFileSelctionBtn.setDisabled(True)
+                self.ppEdit.setDisabled(False)
+        elif self.sender().objectName() == "-ee":
+            if self.eeEdit.isEnabled():
+                self.eeEdit.setDisabled(True)
             else:
-                self.sgtFileEdit.setDisabled(False)
-                self.sgtFileSelctionBtn.setDisabled(False)
+                self.eeEdit.setDisabled(False)
         elif self.sender().objectName() == "-snet":
             if self.sNetEdit.isEnabled():
                 self.sNetEdit.setDisabled(True)
             else:
                 self.sNetEdit.setDisabled(False)
-        elif self.sender().objectName() == "-sps":
-            if self.sPopEdit.isEnabled():
-                self.sPopEdit.setDisabled(True)
+        elif self.sender().objectName() == "-ptheta":
+            if self.startingThetaPriorEdit.isEnabled():
+                self.startingThetaPriorEdit.setDisabled(True)
             else:
-                self.sPopEdit.setDisabled(False)
-        elif self.sender().objectName() == "-pre":
-            if self.preEdit.isEnabled():
-                self.preEdit.setDisabled(True)
+                self.startingThetaPriorEdit.setDisabled(False)
+        elif self.sender().objectName() == "-dominant":
+            if self.dominantMarkerEdit.isEnabled():
+                self.dominantMarkerEdit.setDisabled(True)
             else:
-                self.preEdit.setDisabled(False)
-        elif self.sender().objectName() == "-gtr":
-            if self.gtrEdit.isEnabled():
-                self.gtrEdit.setDisabled(True)
-            else:
-                self.gtrEdit.setDisabled(False)
-        elif self.sender().objectName() == "-diploid":
-            if self.diploidEdit.isEnabled():
-                self.diploidEdit.setDisabled(True)
-            else:
-                self.diploidEdit.setDisabled(False)     
+                self.dominantMarkerEdit.setDisabled(False)
         else:
             pass
 
@@ -788,83 +728,6 @@ class MCMCBiMarkersPage(QWizardPage):
             QMessageBox.warning(self, "Warning", str(e), QMessageBox.Ok)
             return
 
-    def sgtFormat(self):
-        """
-        Process checkbox's stateChanged signal to implement mutual exclusion.
-        Only one of .nexus and .newick can be selected.
-        """
-        if self.sender().objectName() == "sgtNexus":
-            if not self.sgtNexus.isChecked():
-                pass
-            else:
-                self.sgtNewick.setChecked(False)
-                # Clear stored starting gene tree files.
-                self.sgtFileEdit.clear()
-                self.sgtFiles = []
-        elif self.sender().objectName() == "sgtNewick":
-            if not self.sgtNewick.isChecked():
-                pass
-            else:
-                self.sgtNexus.setChecked(False)
-                # Clear stored starting gene tree files.
-                self.sgtFileEdit.clear()
-                self.sgtFiles = []
-
-    def selectSgtFile(self):
-        """
-        Store all the user uploaded starting gene tree file names. Reading happens in the "generate" function.
-        Files should be uploaded in the same order as loci.
-        Each file should contain only one gene tree (Or multiple gene trees, as long as gene trees themselves
-        are in the same order as loci).
-        Execute when starting gene tree file selection button is clicked.
-        """
-        fname = QFileDialog.getOpenFileName(
-            self, 'Open file', '/', 'Nexus files (*.nexus *.nex);; Newick files (*.newick)')
-        if fname[1] == 'Nexus files (*.nexus *.nex)':
-            # Store the file name in a global list.
-            self.sgtFileEdit.insert(fname[0])
-            self.sgtFiles.append(str(fname[0]))
-        elif fname[1] == 'Newick files (*.newick)':
-            # Store the file name in a global list.
-            self.sgtFileEdit.insert(fname[0])
-            self.sgtFiles.append(str(fname[0]))
-        else:
-            return
-
-    def getGTR(self):
-        """
-        Set general time-reversible as the substitution model.
-        Open up a dialog for user to input ten parameters. Get result from the dialog and store as
-        a global variable. Default parameters is JC69 model.
-        """
-        dialog = paramList.ParamListDlg(self.GTR, self)
-        if dialog.exec_():
-            self.GTR = dialog.getParamList()
-
-    def getDiploid(self):
-        """
-        Set diploid species list.
-        Open up a dialog for user to select diploid species. Get result from the dialog and store as
-        a global variable.
-        """
-        class emptyFileError(Exception):
-            pass
-
-        try:
-            if len(self.inputFiles) == 0:
-                raise emptyFileError
-
-            # Create a taxon_namespace object based on current taxa names set.
-            taxa = dendropy.TaxonNamespace()
-            for taxon in list(self.taxa_names):
-                taxa.add_taxon(dendropy.Taxon(taxon))
-
-            dialog = diploidList.DiploidListDlg(taxa, self.ListOfDiploid, self)
-
-            if dialog.exec_():
-                # If executed, update diploid species list.
-                self.ListOfDiploid = dialog.getDiploidSpeciesList()
-
         except emptyFileError:
             QMessageBox.warning(
                 self, "Warning", "Please select a file type and upload data!", QMessageBox.Ok)
@@ -890,72 +753,20 @@ class MCMCBiMarkersPage(QWizardPage):
             if directory[0] == "":
                 raise emptyDesinationError
 
-            # If user specifies starting gene trees, read gene tree files and write them to output NEXUS first.
-            if self.sgtFileLbl.isChecked() and (self.sgtNexus.isChecked() or self.sgtNewick.isChecked()):
-                if self.sgtNexus.isChecked():
-                    schema = "nexus"
-                else:
-                    schema = "newick"
-
-                # a TreeList that stores all the uploaded gene trees
-                data = dendropy.TreeList()
-                # All uploaded gene tree names
-                geneTreeNames = []
-                # read each uploaded file
-                for file in self.sgtFiles:
-                    fileName = os.path.splitext(os.path.basename(file))[0]
-                    currentFile = dendropy.TreeList()
-                    # read in gene trees
-                    currentFile.read(path=file, schema=schema,
-                                     preserve_underscores=True)
-                    if len(currentFile) == 0:
-                        raise Exception("No tree data found in gene tree file")
-                    counter = 0
-                    for tree in currentFile:
-                        # rename gene trees
-                        tree.label = fileName + str(counter)
-                        geneTreeNames.append(tree.label)
-                        counter += 1
-                    data.extend(currentFile)
-
-                # Write out TREES block.
-                path = str(directory[0])
-                data.write(path=path, schema="nexus",
-                           suppress_taxa_blocks=True, unquoted_underscores=True)
-            else:
-                # If not, just create a file to write.
-                path = str(directory[0])
+            path = str(directory[0])
             with open(path, "a") as outputFile:
-                # Write #NEXUS or not depends on the existence of TREES block.
-                if self.sgtFileLbl.isChecked() and (self.sgtNexus.isChecked() or self.sgtNewick.isChecked()):
-                    outputFile.write("\n")
-                else:
-                    outputFile.write("#NEXUS\n")
-                # Write headers of DATA block
+                outputFile.write("#NEXUS\n")
                 outputFile.write("Begin data;\n")
-                outputFile.write("Dimensions ntax=")
-                outputFile.write(str(len(self.taxa_names)))
+                #the 2000 is a place holder, this function has many missing parts
+                outputFile.write("Dimensions ntax= 2000")
+
                 outputFile.write(" nchar=")
                 outputFile.write(str(self.nchar))
                 outputFile.write(";\n")
                 outputFile.write(
-                    'Format datatype=dna symbols="ACGTMRWSYK" missing=? gap=-;\n')
+                    'Format datatype=dna symbols="012" missing=? gap=-;\n')
                 outputFile.write("Matrix\n")
-
-                # Write loci.
-                for locus in self.loci:
-                    outputFile.write("[")
-                    outputFile.write(locus)
-                    outputFile.write(", ")
-                    outputFile.write(str(self.loci[locus][0]))
-                    outputFile.write("]\n")
-
-                    for taxon, seq in self.loci[locus][1].items():
-                        outputFile.write(taxon.label)
-                        outputFile.write(" ")
-                        outputFile.write(seq.symbols_as_string())
-                        outputFile.write("\n")
-                outputFile.write(";END;\n")
+                outputFile.write(";End;\n\n")
 
                 # Write PHYLONET block.
                 outputFile.write("BEGIN PHYLONET;\n")
@@ -990,12 +801,12 @@ class MCMCBiMarkersPage(QWizardPage):
                         outputFile.write(" -sd ")
                         outputFile.write(str(self.seedEdit.text()))
 
-                if self.numProcLbl.isChecked():
-                    if self.numProcEdit.text() == "":
+                if self.parThreadLbl.isChecked():
+                    if self.parThreadEdit.text() == "":
                         pass
                     else:
                         outputFile.write(" -pl ")
-                        outputFile.write(str(self.numProcEdit.text()))
+                        outputFile.write(str(self.parThreadEdit.text()))
 
                 if self.tempListLbl.isChecked():
                     if self.tempListEdit.text() == "":
@@ -1039,16 +850,19 @@ class MCMCBiMarkersPage(QWizardPage):
                                 outputFile.write(taxon)
                         outputFile.write(">")
 
-                if self.popSizeLbl.isChecked():
-                    if self.popSizeEdit.text() == "":
+                if self.thetaLbl.isChecked():
+                    if self.thetaEdit.text() == "" :
                         pass
                     else:
-                        outputFile.write(" -fixps ")
-                        outputFile.write(str(self.popSizeEdit.text()))
+                        outputFile.write(" -fixtheta ")
+                        outputFile.write(str(self.thetaEdit.text()))
 
-                if self.varypsLbl.isChecked():
-                    outputFile.write(" -varyps")
+                if self.varyThetaLbl.isChecked():
+                    outputFile.write(" -varytheta ")
 
+                if self.espThetaLbl.isChecked():
+                    outputFile.write(" -esptheta ")
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      
                 if self.ppLbl.isChecked():
                     if self.ppEdit.text() == "":
                         pass
@@ -1060,17 +874,7 @@ class MCMCBiMarkersPage(QWizardPage):
                     outputFile.write(" -dd")
 
                 if self.eeLbl.isChecked():
-                    outputFile.write(" -ee")
-
-                if self.sgtFileLbl.isChecked() and (self.sgtNexus.isChecked() or self.sgtNewick.isChecked()):
-                    # Write out all the gene tree names.
-                    outputFile.write(" -sgt (")
-                    outputFile.write(geneTreeNames[0])
-                    for genetree in geneTreeNames[1:]:
-                        outputFile.write(",")
-                        outputFile.write(genetree)
-                    outputFile.write(")")
-
+                    outputFile.write(" -ee")                                                                           
                 if self.sNetLbl.isChecked():
                     if self.sNetEdit.text() == "":
                         pass
@@ -1078,57 +882,26 @@ class MCMCBiMarkersPage(QWizardPage):
                         outputFile.write(" -snet ")
                         outputFile.write(str(self.sNetEdit.text()))
 
-                if self.sPopLbl.isChecked():
-                    if self.sPopEdit.text() == "":
+                if self.startingThetaPriorLbl.isChecked():
+                    if self.startingThetaPriorEdit.text() == "":
                         pass
                     else:
-                        outputFile.write(" -sps ")
-                        outputFile.write(str(self.sPopEdit.text()))
-
-                if self.preLbl.isChecked():
-                    if self.preEdit.text() == "":
-                        pass
-                    else:
-                        outputFile.write(" -pre ")
-                        outputFile.write(str(self.preEdit.text()))
-
-                if self.gtrLbl.isChecked():
-                    outputFile.write(" -gtr (")
-                    outputFile.write(self.GTR["A"])
-                    outputFile.write(",")
-                    outputFile.write(self.GTR["C"])
-                    outputFile.write(",")
-                    outputFile.write(self.GTR["G"])
-                    outputFile.write(",")
-                    outputFile.write(self.GTR["T"])
-                    outputFile.write(",")
-                    outputFile.write(self.GTR["AC"])
-                    outputFile.write(",")
-                    outputFile.write(self.GTR["AG"])
-                    outputFile.write(",")
-                    outputFile.write(self.GTR["AT"])
-                    outputFile.write(",")
-                    outputFile.write(self.GTR["CG"])
-                    outputFile.write(",")
-                    outputFile.write(self.GTR["CT"])
-                    outputFile.write(",")
-                    outputFile.write(self.GTR["GT"])
-                    outputFile.write(")")
+                        outputFile.write(" -ptheta ")
+                        outputFile.write(str(self.startingThetaPriorEdit.text()))
 
                 if self.diploidLbl.isChecked():
-                    if len(self.ListOfDiploid) == 0:
-                        pass
-                    else:
-                        outputFile.write(" -diploid (")
-                        outputFile.write(self.ListOfDiploid[0])
-                        for species in self.ListOfDiploid[1:]:
-                            outputFile.write(",")
-                            outputFile.write(species)
-                        outputFile.write(")")
+                    outputFile.write(" -diploid")
+
+                if self.dominantMarkerLbl.isChecked():
+                    outputFile.write(" -dominant ")
+                    outputFile.write(str(self.dominantMarkerEdit.currentText()))
+
+                if self.opLbl.isChecked():
+                    outputFile.write(" -op")
 
                 outputFile.write(";\n")
                 outputFile.write("END;")
-
+            
             # Validate the generated file.
             self.isValidated = validateFile(self, path)
             #clears inputs if they are validated      
@@ -1151,22 +924,19 @@ class MCMCBiMarkersPage(QWizardPage):
 
     def clear(self):
         """
-        CLear page's field
+        Clear page's field
         """
         self.inputFiles = []
-        self.loci = {}
         self.nchar = 0
         self.taxa_names = set([])
 
         self.taxamap = {}
-        self.sgtFiles = []
-        self.ListOfDiploid = []
 
         self.nexus.setChecked(False)
         self.fasta.setChecked(False)
         self.sequenceFileEdit.clear()
         self.numReticulationsEdit.clear()
-
+        
         self.chainLengthLbl.setChecked(False)
         self.chainLengthEdit.clear()
         self.burnInLengthLbl.setChecked(False)
@@ -1175,32 +945,33 @@ class MCMCBiMarkersPage(QWizardPage):
         self.sampleFrequencyEdit.clear()
         self.seedLbl.setChecked(False)
         self.seedEdit.clear()
-        self.numProcLbl.setChecked(False)
-        self.numProcEdit.clear()
+        self.parThreadLbl.setChecked(False)
+        self.parThreadEdit.clear()
         self.tempListLbl.setChecked(False)
         self.tempListEdit.clear()
 
         self.maxRetLbl.setChecked(False)
         self.maxRetEdit.clear()
         self.taxamapLbl.setChecked(False)
-        self.popSizeLbl.setChecked(False)
-        self.popSizeEdit.clear()
-        self.varypsLbl.setChecked(False)
+        self.thetaLbl.setChecked(False)
+        self.thetaEdit.clear()
         self.ppLbl.setChecked(False)
         self.ppEdit.clear()
-        self.ddLbl.setChecked(False)
-        self.eeLbl.setChecked(False)
 
-        self.sgtFileLbl.setChecked(False)
-        self.sgtFileEdit.clear()
+        #self.ddLbl.setChecked(False)
+        self.eeLbl.setChecked(False)
         self.sNetLbl.setChecked(False)
         self.sNetEdit.clear()
-        self.sPopLbl.setChecked(False)
-        self.sPopEdit.clear()
-        self.preLbl.setChecked(False)
-        self.preEdit.clear()
-        self.gtrLbl.setChecked(False)
-        self.diploidLbl.setChecked(False) 
+
+        self.startingThetaPriorLbl.setChecked(False)
+        self.startingThetaPriorEdit.clear()
+        #self.diploidLbl.setChecked(False)
+
+        self.dominantMarkerLbl.setChecked(False)
+        self.dominantMarkerEdit.clear()
+
+        #self.opLbl.setChecked(False) 
+
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)

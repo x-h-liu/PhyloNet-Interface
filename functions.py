@@ -12,11 +12,18 @@ def titleHeader(commandName):
     """
     Creates header label for phylonet command name
     """
-    titleLabel = QLabel()
+    titleLabel = QLabel(commandName)
     titleLabel.setObjectName("titleLabel")
-    titleLabel.setText(commandName)
 
     return titleLabel
+def instructionLabel(name):
+    """
+    Creates a label denoting the type of instruction on a page
+    """
+    instructionLbl = QLabel(name)
+    instructionLbl.setObjectName("instructionLabel")
+
+    return instructionLbl
 
 def getInfoButton(self):
     """
