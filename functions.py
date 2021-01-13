@@ -25,7 +25,7 @@ def instructionLabel(name):
 
     return instructionLbl
 
-def getInfoButton(self):
+def getInfoButton(self, dpi):
     """
     Returns a button, which when clicked introduces PhyloNet
     """
@@ -34,7 +34,16 @@ def getInfoButton(self):
     infoButton = QPushButton(self)
     infoButton.setIcon(ico)
     infoButton.setObjectName("infoButton")
-    infoButton.setFixedSize(60,60)
+
+    # Set DPI dependent styles
+    # awkward but necessary since PYQT5 offers no smooth scaling option
+    if dpi <150:
+        infoButton.setFixedSize(40,40)
+    elif dpi < 200:
+        infoButton.setFixedSize(52,52)
+    else:
+        infoButton.setFixedSize(64,64)
+
     infoButton.setIconSize(infoButton.size())
 
     #connect button to message that introduces PhyloNet    
