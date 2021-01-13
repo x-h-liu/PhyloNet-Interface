@@ -44,8 +44,7 @@ class Main(QMainWindow):
 
         # Question
         header = QLabel()
-        pix = QPixmap("imgs/header.png")
-        pix = pix.scaledToWidth(500)
+        pix = QIcon("imgs/header.svg").pixmap(QtCore.QSize(500,87))
         header.setPixmap(pix)
 
         questionLabel = QLabel("What would you like to do?")
