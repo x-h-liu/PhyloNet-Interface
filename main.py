@@ -34,10 +34,15 @@ class Main(QMainWindow):
         generateBtn = QPushButton(
             "Generate input NEXUS file for PhyloNet", self)
         generateBtn.setObjectName("inputBtn")
+        generateBtn.clicked.connect(self.openModule)
+
         # Question
         header = QLabel()
         pix = QIcon("imgs/header.svg").pixmap(QtCore.QSize(500,87))
         header.setPixmap(pix)
+
+        questionLabel = QLabel("What would you like to do?")
+        questionLabel.setObjectName("introQuestion")
 
         version = QLabel("Version 1.0")
         version.setObjectName("version")
@@ -110,7 +115,8 @@ class Main(QMainWindow):
         self.nexGenerator = module.launcher.Launcher()
         self.nexGenerator.show()
         # Closes main window so its cleaner for user
-        # self.window().setVisible(False)
+        self.window().setVisible(False)
+
 
 if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)
