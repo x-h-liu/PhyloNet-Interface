@@ -65,7 +65,7 @@ class MCMCBiMarkersPage(QWizardPage):
 
         self.taxamap = {}
 
-        self.TABS = 4
+        self.TABS = 5
 
         self.isValidated = False
         self.initUI()
@@ -955,6 +955,8 @@ class MCMCBiMarkersPage(QWizardPage):
         self.taxamapLbl.setChecked(False)
         self.thetaLbl.setChecked(False)
         self.thetaEdit.clear()
+        #self.varyThetaLbl.setChecked(False)
+        #self.espThetaLbl.setChecked(False)
         self.ppLbl.setChecked(False)
         self.ppEdit.clear()
 
