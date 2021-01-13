@@ -6,7 +6,6 @@ from PyQt5 import QtGui,QtWidgets, QtCore, QtLocation
 from PyQt5.QtGui import QIcon, QPixmap
 
 import module.launcher
-import PostProcessingModule.menu
 
 from styling import *
 from functions import *
@@ -35,20 +34,10 @@ class Main(QMainWindow):
         generateBtn = QPushButton(
             "Generate input NEXUS file for PhyloNet", self)
         generateBtn.setObjectName("inputBtn")
-        postProcessBtn = QPushButton(
-            "Display results of PhyloNet commands", self)
-        postProcessBtn.setObjectName("outputBtn")
-
-        generateBtn.clicked.connect(self.openModule)
-        postProcessBtn.clicked.connect(self.openPostProcess)
-
         # Question
         header = QLabel()
         pix = QIcon("imgs/header.svg").pixmap(QtCore.QSize(500,87))
         header.setPixmap(pix)
-
-        questionLabel = QLabel("What would you like to do?")
-        questionLabel.setObjectName("introQuestion")
 
         version = QLabel("Version 1.0")
         version.setObjectName("version")
@@ -56,9 +45,7 @@ class Main(QMainWindow):
         # main layout
         mainLayout = QVBoxLayout()
         mainLayout.addWidget(header, alignment=QtCore.Qt.AlignCenter)
-        mainLayout.addWidget(questionLabel, alignment=QtCore.Qt.AlignCenter)
         mainLayout.addWidget(generateBtn, alignment=QtCore.Qt.AlignCenter)
-        mainLayout.addWidget(postProcessBtn, alignment=QtCore.Qt.AlignCenter)
         mainLayout.setContentsMargins(250, 20, 250, 10)
 
         # houses all widgets
@@ -124,14 +111,6 @@ class Main(QMainWindow):
         self.nexGenerator.show()
         # Closes main window so its cleaner for user
         # self.window().setVisible(False)
-
-    #on hold, until post processing returns  
-    def openPostProcess(self):
-        self.outputSummarizer = PostProcessingModule.menu.MenuPage()
-        self.outputSummarizer.show()
-        # same as above
-        # self.window().setVisible(False)
-
 
 if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)

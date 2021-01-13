@@ -16,7 +16,6 @@ from module import MCMCGT
 from module import MCMCBiMarkers
 from module import MLEBiMarkers
 
-import PostProcessingModule.menu
 
 from functions import *
 from main import *

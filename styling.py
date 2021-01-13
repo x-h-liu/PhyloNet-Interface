@@ -96,9 +96,9 @@ def style():
             border-color: transparent;
         }
         QPushButton#inputBtn{
-            background-color:#aaeeff;
+            background-color:#00ccff;
         }
-               QPushButton#outputBtn{
+        QPushButton#outputBtn{
             background-color: #00ccff;
         }
         QPushButton#inputBtn:hover, QPushButton#outputBtn:hover{
