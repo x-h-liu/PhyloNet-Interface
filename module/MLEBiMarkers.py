@@ -497,59 +497,67 @@ class MLEBiMarkersPage(QWizardPage):
         containing the length of sequences in each file and the dna character matrix.
         Execute when file selection button is clicked.
         """
-        if (not self.fasta.isChecked()) and (not self.nexus.isChecked()):
-            QMessageBox.warning(self, "Warning", "Please select a file type.", QMessageBox.Ok)
-        else:
-            if self.nexus.isChecked():
-                fname = QFileDialog.getOpenFileNames(self, 'Open file', '/', 'Nexus files (*.nexus *.nex)')
-            elif self.fasta.isChecked():
-                fname = QFileDialog.getOpenFileNames(self, 'Open file', '/', 'Fasta files (*.fasta)')
-            #if a file has been inputted, proceed
-            if len(fname[0]) > 0:
-                fileType = fname[1]
+        try:
+            if (not self.fasta.isChecked()) and (not self.nexus.isChecked()):
+                QMessageBox.warning(self, "Warning", "Please select a file type.", QMessageBox.Ok)
+            else:
                 if self.nexus.isChecked():
-                    if fileType != 'Nexus files (*.nexus *.nex)':
-                        QMessageBox.warning(self, "Warning", "Please upload only .nexus or .nex files", QMessageBox.Ok)
-                    else:
-                        for onefname in fname[0]:
-                            # Read in sequences from one file.
-                            dna = dendropy.DnaCharacterMatrix.get(path=str(onefname), schema="nexus"
-                                                                      , preserve_underscores=True)
-                            # Get the length of sequences in this file, and accumulate lengths of sequences in
-                            # all input files
-                            self.nchar = 0
-                            for seq in dna.values():
-                                seqLen = len(seq)
-                                self.nchar += seqLen
-                                break
-                            for taxon in dna:
-                                self.taxa_names.add(taxon.label)
-                            # Store data from this file
-                            self.sequenceFileEdit.append(onefname)
-                            self.inputFiles.append(str(onefname))
-
+                    fname = QFileDialog.getOpenFileNames(self, 'Open file', '/', 'Nexus files (*.nexus *.nex)')
                 elif self.fasta.isChecked():
-                    if fileType != 'Fasta files (*.fasta)':
-                        QMessageBox.warning(self, "Warning", "Please upload only .fasta files", QMessageBox.Ok)
+                    fname = QFileDialog.getOpenFileNames(self, 'Open file', '/', 'Fasta files (*.fasta)')
+                #if a file has been inputted, proceed
+                if len(fname[0]) > 0:
+                    fileType = fname[1]
+                    if self.nexus.isChecked():
+                        if fileType != 'Nexus files (*.nexus *.nex)':
+                            QMessageBox.warning(self, "Warning", "Please upload only .nexus or .nex files", QMessageBox.Ok)
+                        else:
+                            for onefname in fname[0]:
+                                # Read in sequences from one file.
+                                dna = dendropy.DnaCharacterMatrix.get(path=str(onefname), schema="nexus"
+                                                                        , preserve_underscores=True)
+                                # Get the length of sequences in this file, and accumulate lengths of sequences in
+                                # all input files
+                                self.nchar = 0
+                                for seq in dna.values():
+                                    seqLen = len(seq)
+                                    self.nchar += seqLen
+                                    break
+                                for taxon in dna:
+                                    self.taxa_names.add(taxon.label)
+                                # Store data from this file
+                                self.sequenceFileEdit.append(onefname)
+                                self.inputFiles.append(str(onefname))
+
+                    elif self.fasta.isChecked():
+                        if fileType != 'Fasta files (*.fasta)':
+                            QMessageBox.warning(self, "Warning", "Please upload only .fasta files", QMessageBox.Ok)
+                        else:
+                            for onefname in fname[0]:
+                                # Read in sequences from one file.
+                                dna = dendropy.DnaCharacterMatrix.get(path=str(onefname), schema="fasta")
+                                # Get the length of sequences in this file, and accumulate lengths of sequences in
+                                # all input files
+                                self.nchar = 0
+                                for seq in dna.values():
+                                    seqLen = len(seq)
+                                    self.nchar += seqLen
+                                    break
+                                # Store all taxa encountered so far in a global set.
+                                for taxon in dna:
+                                    self.taxa_names.add(taxon.label)
+                                # Store data from this file
+                                self.sequenceFileEdit.append(onefname)
+                                self.inputFiles.append(str(onefname))
                     else:
-                        for onefname in fname[0]:
-                            # Read in sequences from one file.
-                            dna = dendropy.DnaCharacterMatrix.get(path=str(onefname), schema="fasta")
-                            # Get the length of sequences in this file, and accumulate lengths of sequences in
-                            # all input files
-                            self.nchar = 0
-                            for seq in dna.values():
-                                seqLen = len(seq)
-                                self.nchar += seqLen
-                                break
-                            # Store all taxa encountered so far in a global set.
-                            for taxon in dna:
-                                self.taxa_names.add(taxon.label)
-                            # Store data from this file
-                            self.sequenceFileEdit.append(onefname)
-                            self.inputFiles.append(str(onefname))
-                else:
-                    return
+                        return
+        except ValueError as e:
+            msg = str(e) + ". \nPlease enter a file with such data."
+            QMessageBox.warning(self, "Warning", msg, QMessageBox.Ok)
+            return
+        except Exception as e:
+            QMessageBox.warning(self, "Warning", str(e), QMessageBox.Ok)
+            return
 
     def onChecked(self):
         """
