@@ -916,90 +916,90 @@ class MCMCSEQPage(QWizardPage):
                 # If not, just create a file to write.
                 path = str(directory[0])
             with open(path, "a") as outputFile:
+                outputStr = ""
                 # Write #NEXUS or not depends on the existence of TREES block.
                 if self.sgtFileLbl.isChecked() and (self.sgtNexus.isChecked() or self.sgtNewick.isChecked()):
-                    outputFile.write("\n")
+                    outputStr += "\n"
                 else:
-                    outputFile.write("#NEXUS\n")
+                    outputStr += "#NEXUS\n"
                 # Write headers of DATA block
-                outputFile.write("Begin data;\n")
-                outputFile.write("Dimensions ntax=")
-                outputFile.write(str(len(self.taxa_names)))
-                outputFile.write(" nchar=")
-                outputFile.write(str(self.nchar))
-                outputFile.write(";\n")
-                outputFile.write(
-                    'Format datatype=dna symbols="ACGTMRWSYK" missing=? gap=-;\n')
-                outputFile.write("Matrix\n")
+                outputStr += "Begin data;\n"
+                outputStr += "Dimensions ntax="
+                outputStr += str(len(self.taxa_names))
+                outputStr += " nchar="
+                outputStr += str(self.nchar)
+                outputStr += ";\n"
+                outputStr += 'Format datatype=dna symbols="ACGTMRWSYK" missing=? gap=-;\n'
+                outputStr += "Matrix\n"
 
                 # Write loci.
                 for locus in self.loci:
-                    outputFile.write("[")
-                    outputFile.write(locus)
-                    outputFile.write(", ")
-                    outputFile.write(str(self.loci[locus][0]))
-                    outputFile.write("]\n")
+                    outputStr += "["
+                    outputStr += locus
+                    outputStr += ", "
+                    outputStr += str(self.loci[locus][0])
+                    outputStr += "]\n"
 
                     for taxon, seq in self.loci[locus][1].items():
-                        outputFile.write(taxon.label)
-                        outputFile.write(" ")
-                        outputFile.write(seq.symbols_as_string())
-                        outputFile.write("\n")
-                outputFile.write(";END;\n")
+                        outputStr += taxon.label
+                        outputStr += " "
+                        outputStr += seq.symbols_as_string()
+                        outputStr += "\n"
+                outputStr += ";END;\n"
 
                 # Write PHYLONET block.
-                outputFile.write("BEGIN PHYLONET;\n")
-                outputFile.write("MCMC_SEQ")
+                outputStr += "BEGIN PHYLONET;\n"
+                outputStr += "MCMC_SEQ"
 
                 # Write optional commands based on user selection.
                 if self.chainLengthLbl.isChecked():
                     if self.chainLengthEdit.text() == "":
                         pass
                     else:
-                        outputFile.write(" -cl ")
-                        outputFile.write(str(self.chainLengthEdit.text()))
+                        outputStr += " -cl "
+                        outputStr += str(self.chainLengthEdit.text())
 
                 if self.burnInLengthLbl.isChecked():
                     if self.burnInLengthEdit.text() == "":
                         pass
                     else:
-                        outputFile.write(" -bl ")
-                        outputFile.write(str(self.burnInLengthEdit.text()))
+                        outputStr += " -bl "
+                        outputStr += str(self.burnInLengthEdit.text())
 
                 if self.sampleFrequencyLbl.isChecked():
                     if self.sampleFrequencyEdit.text() == "":
                         pass
                     else:
-                        outputFile.write(" -sf ")
-                        outputFile.write(str(self.sampleFrequencyEdit.text()))
+                        outputStr += " -sf "
+                        outputStr += str(self.sampleFrequencyEdit.text())
 
                 if self.seedLbl.isChecked():
                     if self.seedEdit.text() == "":
                         pass
                     else:
-                        outputFile.write(" -sd ")
-                        outputFile.write(str(self.seedEdit.text()))
+                        outputStr += " -sd "
+                        outputStr += str(self.seedEdit.text())
 
                 if self.numProcLbl.isChecked():
                     if self.numProcEdit.text() == "":
                         pass
                     else:
-                        outputFile.write(" -pl ")
-                        outputFile.write(str(self.numProcEdit.text()))
+                        outputStr += " -pl "
+                        outputStr += str(self.numProcEdit.text())
 
                 if self.tempListLbl.isChecked():
                     if self.tempListEdit.text() == "":
                         pass
                     else:
-                        outputFile.write(" -mc3 ")
-                        outputFile.write(str(self.tempListEdit.text()))
+                        outputStr += " -mc3 "
+                        outputStr += str(self.tempListEdit.text())
 
                 if self.maxRetLbl.isChecked():
                     if self.maxRetEdit.text() == "":
                         pass
                     else:
-                        outputFile.write(" -mr ")
-                        outputFile.write(str(self.maxRetEdit.text()))
+                        outputStr += " -mr "
+                        outputStr += str(self.maxRetEdit.text())
 
                 if self.taxamapLbl.isChecked():
                     if len(self.taxamap) == 0:
@@ -1008,116 +1008,117 @@ class MCMCSEQPage(QWizardPage):
                         # Get a mapping from species to taxon.
                         speciesToTaxonMap = self.__inverseMapping(self.taxamap)
                         # Write taxa map.
-                        outputFile.write(" -tm <")
+                        outputStr += " -tm <"
                         for firstSpecies in speciesToTaxonMap:
-                            outputFile.write(firstSpecies)
-                            outputFile.write(":")
-                            outputFile.write(
-                                speciesToTaxonMap[firstSpecies][0])
+                            outputStr += firstSpecies
+                            outputStr += ":"
+                            outputStr += speciesToTaxonMap[firstSpecies][0]
                             for taxon in speciesToTaxonMap[firstSpecies][1:]:
-                                outputFile.write(",")
-                                outputFile.write(taxon)
+                                outputStr += ","
+                                outputStr += taxon
                             speciesToTaxonMap.pop(firstSpecies)
                             break
                         for species in speciesToTaxonMap:
-                            outputFile.write("; ")
-                            outputFile.write(species)
-                            outputFile.write(":")
-                            outputFile.write(speciesToTaxonMap[species][0])
+                            outputStr += "; "
+                            outputStr += species
+                            outputStr += ":"
+                            outputStr += speciesToTaxonMap[species][0]
                             for taxon in speciesToTaxonMap[species][1:]:
-                                outputFile.write(",")
-                                outputFile.write(taxon)
-                        outputFile.write(">")
+                                outputStr += ","
+                                outputStr += taxon
+                        outputStr += ">"
 
                 if self.popSizeLbl.isChecked():
                     if self.popSizeEdit.text() == "":
                         pass
                     else:
-                        outputFile.write(" -fixps ")
-                        outputFile.write(str(self.popSizeEdit.text()))
+                        outputStr += " -fixps "
+                        outputStr += str(self.popSizeEdit.text())
 
                 if self.varypsLbl.isChecked():
-                    outputFile.write(" -varyps")
+                    outputStr += " -varyps"
 
                 if self.ppLbl.isChecked():
                     if self.ppEdit.text() == "":
                         pass
                     else:
-                        outputFile.write(" -pp ")
-                        outputFile.write(str(self.ppEdit.text()))
+                        outputStr += " -pp "
+                        outputStr += str(self.ppEdit.text())
 
                 if self.ddLbl.isChecked():
-                    outputFile.write(" -dd")
+                    outputStr += " -dd"
 
                 if self.eeLbl.isChecked():
-                    outputFile.write(" -ee")
+                    outputStr += " -ee"
 
                 if self.sgtFileLbl.isChecked() and (self.sgtNexus.isChecked() or self.sgtNewick.isChecked()):
                     # Write out all the gene tree names.
-                    outputFile.write(" -sgt (")
-                    outputFile.write(geneTreeNames[0])
+                    outputStr += " -sgt ("
+                    outputStr += geneTreeNames[0]
                     for genetree in geneTreeNames[1:]:
-                        outputFile.write(",")
-                        outputFile.write(genetree)
-                    outputFile.write(")")
+                        outputStr += ","
+                        outputStr += genetree
+                    outputStr += ")"
 
                 if self.sNetLbl.isChecked():
                     if self.sNetEdit.text() == "":
                         pass
                     else:
-                        outputFile.write(" -snet ")
-                        outputFile.write(str(self.sNetEdit.text()))
+                        outputStr += " -snet "
+                        outputStr += str(self.sNetEdit.text())
 
                 if self.sPopLbl.isChecked():
                     if self.sPopEdit.text() == "":
                         pass
                     else:
-                        outputFile.write(" -sps ")
-                        outputFile.write(str(self.sPopEdit.text()))
+                        outputStr += " -sps "
+                        outputStr += str(self.sPopEdit.text())
 
                 if self.preLbl.isChecked():
                     if self.preEdit.text() == "":
                         pass
                     else:
-                        outputFile.write(" -pre ")
-                        outputFile.write(str(self.preEdit.text()))
+                        outputStr += " -pre "
+                        outputStr += str(self.preEdit.text())
 
                 if self.gtrLbl.isChecked():
-                    outputFile.write(" -gtr (")
-                    outputFile.write(self.GTR["A"])
-                    outputFile.write(",")
-                    outputFile.write(self.GTR["C"])
-                    outputFile.write(",")
-                    outputFile.write(self.GTR["G"])
-                    outputFile.write(",")
-                    outputFile.write(self.GTR["T"])
-                    outputFile.write(",")
-                    outputFile.write(self.GTR["AC"])
-                    outputFile.write(",")
-                    outputFile.write(self.GTR["AG"])
-                    outputFile.write(",")
-                    outputFile.write(self.GTR["AT"])
-                    outputFile.write(",")
-                    outputFile.write(self.GTR["CG"])
-                    outputFile.write(",")
-                    outputFile.write(self.GTR["CT"])
-                    outputFile.write(",")
-                    outputFile.write(self.GTR["GT"])
-                    outputFile.write(")")
+                    outputStr += " -gtr ("
+                    outputStr += self.GTR["A"]
+                    outputStr += ","
+                    outputStr += self.GTR["C"]
+                    outputStr += ","
+                    outputStr += self.GTR["G"]
+                    outputStr += ","
+                    outputStr += self.GTR["T"]
+                    outputStr += ","
+                    outputStr += self.GTR["AC"]
+                    outputStr += ","
+                    outputStr += self.GTR["AG"]
+                    outputStr += ","
+                    outputStr += self.GTR["AT"]
+                    outputStr += ","
+                    outputStr += self.GTR["CG"]
+                    outputStr += ","
+                    outputStr += self.GTR["CT"]
+                    outputStr += ","
+                    outputStr += self.GTR["GT"]
+                    outputStr += ")"
 
                 if self.diploidLbl.isChecked():
                     if len(self.ListOfDiploid) == 0:
                         pass
                     else:
-                        outputFile.write(" -diploid (")
-                        outputFile.write(self.ListOfDiploid[0])
+                        outputStr += " -diploid ("
+                        outputStr += self.ListOfDiploid[0]
                         for species in self.ListOfDiploid[1:]:
-                            outputFile.write(",")
-                            outputFile.write(species)
-                        outputFile.write(")")
+                            outputStr += ","
+                            outputStr += species
+                        outputStr += ")"
 
-                outputFile.write(";\n")
-                outputFile.write("END;")
+                outputStr += ";\n"
+                outputStr += "END;"
+                #write to outputfile
+                outputFile.write(outputStr)
 
             # Validate the generated file.
             self.isValidated = validateFile(self, path)

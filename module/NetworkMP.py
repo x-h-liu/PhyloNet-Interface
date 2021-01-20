@@ -667,17 +667,18 @@ class NetworkMPPage(QWizardPage):
 
             # Ready to write PHYLONET block.
             with open(path, "a") as outputFile:
-                outputFile.write("\nBEGIN PHYLONET;\n\n")
-                outputFile.write("InferNetwork_MP (")
+                outputStr = ""
+                outputStr += "\nBEGIN PHYLONET;\n\n"
+                outputStr += "InferNetwork_MP ("
                 # Write out all the gene tree names.
-                outputFile.write(self.geneTreeNames[0])
+                outputStr += self.geneTreeNames[0]
                 for genetree in self.geneTreeNames[1:]:
-                    outputFile.write(",")
-                    outputFile.write(genetree)
-                outputFile.write(") ")
+                    outputStr += ","
+                    outputStr += genetree
+                outputStr += ") "
 
                 # Write out maximum number of reticulation to add.
-                outputFile.write(str(self.numReticulationsEdit.text()))
+                outputStr += str(self.numReticulationsEdit.text())
 
                 # -a taxa map command
                 if self.taxamapLbl.isChecked():
@@ -687,124 +688,126 @@ class NetworkMPPage(QWizardPage):
                         # Get a mapping from species to taxon.
                         speciesToTaxonMap = self.__inverseMapping(self.taxamap)
                         # Write taxa map.
-                        outputFile.write(" -a <")
+                        outputStr += " -a <"
                         for firstSpecies in speciesToTaxonMap:
-                            outputFile.write(firstSpecies)
-                            outputFile.write(":")
-                            outputFile.write(speciesToTaxonMap[firstSpecies][0])
+                            outputStr += firstSpecies
+                            outputStr += ":"
+                            outputStr += speciesToTaxonMap[firstSpecies][0]
                             for taxon in speciesToTaxonMap[firstSpecies][1:]:
-                                outputFile.write(",")
-                                outputFile.write(taxon)
+                                outputStr += ","
+                                outputStr += taxon
                             speciesToTaxonMap.pop(firstSpecies)
                             break
                         for species in speciesToTaxonMap:
-                            outputFile.write("; ")
-                            outputFile.write(species)
-                            outputFile.write(":")
-                            outputFile.write(speciesToTaxonMap[species][0])
+                            outputStr += "; "
+                            outputStr += species
+                            outputStr += ":"
+                            outputStr += speciesToTaxonMap[species][0]
                             for taxon in speciesToTaxonMap[species][1:]:
-                                outputFile.write(",")
-                                outputFile.write(taxon)
+                                outputStr += ","
+                                outputStr += taxon
 
-                        outputFile.write(">")
+                        outputStr += ">"
 
                 # -b threshold command
                 if self.thresholdLbl.isChecked():
                     if self.thresholdEdit.text() == "":
                         pass
                     else:
-                        outputFile.write(" -b ")
-                        outputFile.write(str(self.thresholdEdit.text()))
+                        outputStr += " -b "
+                        outputStr += str(self.thresholdEdit.text())
 
                 # -s startingNetwork command
                 if self.sNetLbl.isChecked():
                     if self.sNetEdit.text() == "":
                         pass
                     else:
-                        outputFile.write(" -s ")
-                        outputFile.write(str(self.sNetEdit.text()))
+                        outputStr += " -s "
+                        outputStr += str(self.sNetEdit.text())
 
                 # -n numNetReturned command
                 if self.nNetRetLbl.isChecked():
                     if self.nNetRetEdit.text() == "":
                         pass
                     else:
-                        outputFile.write(" -n ")
-                        outputFile.write(str(self.nNetRetEdit.text()))
+                        outputStr += " -n "
+                        outputStr += str(self.nNetRetEdit.text())
 
                 # -m maxNetExamined command  
                 if self.nNetExamLbl.isChecked():            
                     if self.nNetExamEdit.text() == "":
                         pass
                     else:
-                        outputFile.write(" -m ")
-                        outputFile.write(str(self.nNetExamEdit.text()))
+                        outputStr += " -m "
+                        outputStr += str(self.nNetExamEdit.text())
 
                 # -d maxDiameter command
                 if self.maxDiaLbl.isChecked():
                     if self.maxDiaEdit.text() == "":
                         pass
                     else:
-                        outputFile.write(" -rd ")
-                        outputFile.write(str(self.maxDiaEdit.text()))
+                        outputStr += " -rd "
+                        outputStr += str(self.maxDiaEdit.text())
 
                 # -h {s1 [, s2...]} command
                 if self.hybridLbl.isChecked():
                     if self.hybridLbl.text() == "":
                         pass
                     else:
-                        outputFile.write(" -h ")
-                        outputFile.write(str(self.hybridEdit.text()))
+                        outputStr += " -h "
+                        outputStr += str(self.hybridEdit.text())
 
                 # -w (w1, ..., w6) command
                 if self.wetOpLbl.isChecked():
                     if self.wetOpEdit.text() == "":
                         pass
                     else:
-                        outputFile.write(" -w ")
-                        outputFile.write(str(self.wetOpEdit.text()))
+                        outputStr += " -w "
+                        outputStr += str(self.wetOpEdit.text())
                    
                 # -f maxFailure command
                 if self.maxFLbl.isChecked():
                     if self.maxFEdit.text() == "":
                         pass
                     else:
-                        outputFile.write(" -f ")
-                        outputFile.write(str(self.maxFEdit.text()))
+                        outputStr += " -f "
+                        outputStr += str(self.maxFEdit.text())
 
                 # -x numRuns command
                 if self.numRunLbl.isChecked():
                     if self.numRunEdit.text() == "":
                         pass
                     else:
-                        outputFile.write(" -x ")
-                        outputFile.write(str(self.numRunEdit.text()))
+                        outputStr += " -x "
+                        outputStr += str(self.numRunEdit.text())
 
                 # -pl numProcessors command
                 if self.numProcLbl.isChecked():
                     if self.numProcEdit.text() == "":
                         pass
                     else:
-                        outputFile.write(" -pl ")
-                        outputFile.write(str(self.numProcEdit.text()))
+                        outputStr += " -pl "
+                        outputStr += str(self.numProcEdit.text())
 
                 # -di command
                 if self.diLbl.isChecked():
-                    outputFile.write(" -di")
+                    outputStr += " -di"
 
                 # resultOutputFile command
                 if self.fileDestEdit.text() == "":
                     pass
                 else:
-                    outputFile.write(" ")
-                    outputFile.write('"')
-                    outputFile.write(self.fileDestEdit.text())
-                    outputFile.write('"')
+                    outputStr += " "
+                    outputStr += '"'
+                    outputStr += self.fileDestEdit.text()
+                    outputStr += '"'
     
 
                 # End of NEXUS
-                outputFile.write(";\n\n")
-                outputFile.write("END;")
+                outputStr += ";\n\n"
+                outputStr += "END;"
+                #write to outputfile
+                outputFile.write(outputStr)
 
             # Validate the generated file.
             self.isValidated = validateFile(self, path)

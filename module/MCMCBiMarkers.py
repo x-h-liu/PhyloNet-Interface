@@ -763,72 +763,72 @@ class MCMCBiMarkersPage(QWizardPage):
 
             path = str(directory[0])
             with open(path, "a") as outputFile:
-                outputFile.write("#NEXUS\n")
-                outputFile.write("Begin data;\n")
+                outputStr = ""
+                outputStr += "#NEXUS\n"
+                outputStr += "Begin data;\n"
                 #the 2000 is a place holder, this function has many missing parts
-                outputFile.write("Dimensions ntax= 2000")
+                outputStr += "Dimensions ntax= 2000"
 
-                outputFile.write(" nchar=")
-                outputFile.write(str(self.nchar))
-                outputFile.write(";\n")
-                outputFile.write(
-                    'Format datatype=dna symbols="012" missing=? gap=-;\n')
-                outputFile.write("Matrix\n")
-                outputFile.write(";End;\n\n")
+                outputStr += " nchar="
+                outputStr += str(self.nchar)
+                outputStr += ";\n"
+                outputStr += 'Format datatype=dna symbols="012" missing=? gap=-;\n'
+                outputStr += "Matrix\n"
+                outputStr += ";End;\n\n"
 
                 # Write PHYLONET block.
-                outputFile.write("BEGIN PHYLONET;\n")
-                outputFile.write("MCMC_BiMarkers")
+                outputStr += "BEGIN PHYLONET;\n"
+                outputStr += "MCMC_BiMarkers"
 
                 # Write optional commands based on user selection.
                 if self.chainLengthLbl.isChecked():
                     if self.chainLengthEdit.text() == "":
                         pass
                     else:
-                        outputFile.write(" -cl ")
-                        outputFile.write(str(self.chainLengthEdit.text()))
+                        outputStr += " -cl "
+                        outputStr += str(self.chainLengthEdit.text())
 
                 if self.burnInLengthLbl.isChecked():
                     if self.burnInLengthEdit.text() == "":
                         pass
                     else:
-                        outputFile.write(" -bl ")
-                        outputFile.write(str(self.burnInLengthEdit.text()))
+                        outputStr += " -bl "
+                        outputStr += str(self.burnInLengthEdit.text())
 
                 if self.sampleFrequencyLbl.isChecked():
                     if self.sampleFrequencyEdit.text() == "":
                         pass
                     else:
-                        outputFile.write(" -sf ")
-                        outputFile.write(str(self.sampleFrequencyEdit.text()))
+                        outputStr += " -sf "
+                        outputStr += str(self.sampleFrequencyEdit.text())
 
                 if self.seedLbl.isChecked():
                     if self.seedEdit.text() == "":
                         pass
                     else:
-                        outputFile.write(" -sd ")
-                        outputFile.write(str(self.seedEdit.text()))
+                        outputStr += " -sd "
+                        outputStr += str(self.seedEdit.text())
 
                 if self.parThreadLbl.isChecked():
                     if self.parThreadEdit.text() == "":
                         pass
                     else:
-                        outputFile.write(" -pl ")
-                        outputFile.write(str(self.parThreadEdit.text()))
+                        outputStr += " -pl "
+                        outputStr += str(self.parThreadEdit.text())
 
                 if self.tempListLbl.isChecked():
                     if self.tempListEdit.text() == "":
                         pass
                     else:
-                        outputFile.write(" -mc3 ")
-                        outputFile.write(str(self.tempListEdit.text()))
+                        outputStr += " -mc3 "
+                        outputStr += str(self.tempListEdit.text())
 
                 if self.maxRetLbl.isChecked():
                     if self.maxRetEdit.text() == "":
                         pass
                     else:
-                        outputFile.write(" -mr ")
-                        outputFile.write(str(self.maxRetEdit.text()))
+                        outputStr += " -mr "
+                        outputStr += str(self.maxRetEdit.text())
 
                 if self.taxamapLbl.isChecked():
                     if len(self.taxamap) == 0:
@@ -837,79 +837,80 @@ class MCMCBiMarkersPage(QWizardPage):
                         # Get a mapping from species to taxon.
                         speciesToTaxonMap = self.__inverseMapping(self.taxamap)
                         # Write taxa map.
-                        outputFile.write(" -tm <")
+                        outputStr += " -tm <"
                         for firstSpecies in speciesToTaxonMap:
-                            outputFile.write(firstSpecies)
-                            outputFile.write(":")
-                            outputFile.write(
-                                speciesToTaxonMap[firstSpecies][0])
+                            outputStr += firstSpecies
+                            outputStr += ":"
+                            outputStr += speciesToTaxonMap[firstSpecies][0]
                             for taxon in speciesToTaxonMap[firstSpecies][1:]:
-                                outputFile.write(",")
-                                outputFile.write(taxon)
+                                outputStr += ","
+                                outputStr += taxon
                             speciesToTaxonMap.pop(firstSpecies)
                             break
                         for species in speciesToTaxonMap:
-                            outputFile.write("; ")
-                            outputFile.write(species)
-                            outputFile.write(":")
-                            outputFile.write(speciesToTaxonMap[species][0])
+                            outputStr += "; "
+                            outputStr += species
+                            outputStr += ":"
+                            outputStr += speciesToTaxonMap[species][0]
                             for taxon in speciesToTaxonMap[species][1:]:
-                                outputFile.write(",")
-                                outputFile.write(taxon)
-                        outputFile.write(">")
+                                outputStr += ","
+                                outputStr += taxon
+                        outputStr += ">"
 
                 if self.thetaLbl.isChecked():
                     if self.thetaEdit.text() == "" :
                         pass
                     else:
-                        outputFile.write(" -fixtheta ")
-                        outputFile.write(str(self.thetaEdit.text()))
+                        outputStr += " -fixtheta "
+                        outputStr += str(self.thetaEdit.text())
 
                 if self.varyThetaLbl.isChecked():
-                    outputFile.write(" -varytheta ")
+                    outputStr += " -varytheta "
 
                 if self.espThetaLbl.isChecked():
-                    outputFile.write(" -esptheta ")
+                    outputStr += " -esptheta "
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       
                 if self.ppLbl.isChecked():
                     if self.ppEdit.text() == "":
                         pass
                     else:
-                        outputFile.write(" -pp ")
-                        outputFile.write(str(self.ppEdit.text()))
+                        outputStr += " -pp "
+                        outputStr += str(self.ppEdit.text())
 
                 if self.ddLbl.isChecked():
-                    outputFile.write(" -dd")
+                    outputStr += " -dd"
 
                 if self.eeLbl.isChecked():
-                    outputFile.write(" -ee")                                                                           
+                    outputStr += " -ee"                                                                           
                 if self.sNetLbl.isChecked():
                     if self.sNetEdit.text() == "":
                         pass
                     else:
-                        outputFile.write(" -snet ")
-                        outputFile.write(str(self.sNetEdit.text()))
+                        outputStr += " -snet "
+                        outputStr += str(self.sNetEdit.text())
 
                 if self.startingThetaPriorLbl.isChecked():
                     if self.startingThetaPriorEdit.text() == "":
                         pass
                     else:
-                        outputFile.write(" -ptheta ")
-                        outputFile.write(str(self.startingThetaPriorEdit.text()))
+                        outputStr += " -ptheta "
+                        outputStr += str(self.startingThetaPriorEdit.text())
 
                 if self.diploidLbl.isChecked():
-                    outputFile.write(" -diploid")
+                    outputStr += " -diploid"
 
                 if self.dominantMarkerLbl.isChecked():
-                    outputFile.write(" -dominant ")
-                    outputFile.write(str(self.dominantMarkerEdit.currentText()))
+                    outputStr += " -dominant "
+                    outputStr += str(self.dominantMarkerEdit.currentText())
 
                 if self.opLbl.isChecked():
-                    outputFile.write(" -op")
+                    outputStr += " -op"
 
-                outputFile.write(";\n")
-                outputFile.write("END;")
-            
+                outputStr += ";\n"
+                outputStr += "END;"
+                #add string to output file
+                #write to outputfile
+                outputFile.write(outputStr)
             # Validate the generated file.
             self.isValidated = validateFile(self, path)
             #clears inputs if they are validated      

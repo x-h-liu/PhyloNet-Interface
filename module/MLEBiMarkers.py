@@ -685,69 +685,70 @@ class MLEBiMarkersPage(QWizardPage):
 
             path = str(directory[0])
             with open(path, "a") as outputFile:
-                outputFile.write("#NEXUS\n")
+                outputStr = ""
+                outputStr += "#NEXUS\n"
 
                 # Write headers of DATA block
-                outputFile.write("Begin data;\n")
+                outputStr += "Begin data;\n"
                 #2000 is a placeholder to be replaced with phased files
-                outputFile.write("Dimensions ntax= 2000")
+                outputStr += "Dimensions ntax= 2000"
                 
-                outputFile.write(" nchar=")
-                outputFile.write(str(self.nchar))
-                outputFile.write(";\n")
-                outputFile.write('Format datatype=dna symbols="012" missing=? gap=-;\n')
-                outputFile.write("Matrix\n")
-                outputFile.write(";END;\n")
+                outputStr += " nchar="
+                outputStr += str(self.nchar)
+                outputStr += ";\n"
+                outputStr += 'Format datatype=dna symbols="012" missing=? gap=-;\n'
+                outputStr += "Matrix\n"
+                outputStr += ";END;\n"
 
                 # Write PHYLONET block.
-                outputFile.write("BEGIN PHYLONET;\n")
-                outputFile.write("MLE_BiMarkers")
+                outputStr += "BEGIN PHYLONET;\n"
+                outputStr += "MLE_BiMarkers"
 
                 # Write optional commands based on user selection.
                 if self.pseudoLbl.isChecked():
-                    outputFile.write(" -pseudo")
+                    outputStr += " -pseudo"
 
                 if self.numRunLbl.isChecked():
                     if self.numRunEdit.text() == "":
                         pass
                     else:
-                        outputFile.write(" -mnr ")
-                        outputFile.write(str(self.numRunEdit.text()))
+                        outputStr += " -mnr "
+                        outputStr += str(self.numRunEdit.text())
 
                 if self.maxExamLbl.isChecked():
                     if self.maxRetEdit.text() == "":
                         pass
                     else:
-                        outputFile.write(" -mec ")
-                        outputFile.write(str(self.maxExamEdit.text()))
+                        outputStr += " -mec "
+                        outputStr += str(self.maxExamEdit.text())
 
                 if self.numOptimumsLbl.isChecked():
                     if self.numOptimumsEdit.text() == "":
                         pass
                     else:
-                        outputFile.write(" -mno ")
-                        outputFile.write(str(self.numOptimumsEdit.text()))
+                        outputStr += " -mno "
+                        outputStr += str(self.numOptimumsEdit.text())
 
                 if self.maxFailuresLbl.isChecked():
                     if self.maxFailuresEdit.text() == "":
                         pass
                     else:
-                        outputFile.write(" -mf ")
-                        outputFile.write(str(self.maxFailuresEdit.text()))
+                        outputStr += " -mf "
+                        outputStr += str(self.maxFailuresEdit.text())
 
                 if self.parThreadLbl.isChecked():
                     if self.parThreadEdit.text() == "":
                         pass
                     else:
-                        outputFile.write(" -pl ")
-                        outputFile.write(str(self.parThreadEdit.text()))
+                        outputStr += " -pl "
+                        outputStr += str(self.parThreadEdit.text())
 
                 if self.maxRetLbl.isChecked():
                     if self.maxRetEdit.text() == "":
                         pass
                     else:
-                        outputFile.write(" -mr ")
-                        outputFile.write(str(self.maxRetEdit.text()))
+                        outputStr += " -mr "
+                        outputStr += str(self.maxRetEdit.text())
 
                 if self.taxamapLbl.isChecked():
                     if len(self.taxamap) == 0:
@@ -756,59 +757,61 @@ class MLEBiMarkersPage(QWizardPage):
                         # Get a mapping from species to taxon.
                         speciesToTaxonMap = self.__inverseMapping(self.taxamap)
                         # Write taxa map.
-                        outputFile.write(" -tm <")
+                        outputStr += " -tm <"
                         for firstSpecies in speciesToTaxonMap:
-                            outputFile.write(firstSpecies)
-                            outputFile.write(":")
-                            outputFile.write(speciesToTaxonMap[firstSpecies][0])
+                            outputStr += firstSpecies
+                            outputStr += ":"
+                            outputStr += speciesToTaxonMap[firstSpecies][0]
                             for taxon in speciesToTaxonMap[firstSpecies][1:]:
-                                outputFile.write(",")
-                                outputFile.write(taxon)
+                                outputStr += ","
+                                outputStr += taxon
                             speciesToTaxonMap.pop(firstSpecies)
                             break
                         for species in speciesToTaxonMap:
-                            outputFile.write("; ")
-                            outputFile.write(species)
-                            outputFile.write(":")
-                            outputFile.write(speciesToTaxonMap[species][0])
+                            outputStr += "; "
+                            outputStr += species
+                            outputStr += ":"
+                            outputStr += speciesToTaxonMap[species][0]
                             for taxon in speciesToTaxonMap[species][1:]:
-                                outputFile.write(",")
-                                outputFile.write(taxon)
-                        outputFile.write(">")
+                                outputStr += ","
+                                outputStr += taxon
+                        outputStr += ">"
 
                 if self.thetaLbl.isChecked():
                     if self.thetaEdit.text() == "":
                         pass
                     else:
-                        outputFile.write(" -fixtheta ")
-                        outputFile.write(str(self.thetaEdit.text()))
+                        outputStr += " -fixtheta "
+                        outputStr += str(self.thetaEdit.text())
 
                 if self.espThetaLbl.isChecked():
-                    outputFile.write(" -esptheta")
+                    outputStr += " -esptheta"
 
                 if self.sNetLbl.isChecked():
                     if self.sNetEdit.text() == "":
                         pass
                     else:
-                        outputFile.write(" -snet ")
-                        outputFile.write(str(self.sNetEdit.text()))
+                        outputStr += " -snet "
+                        outputStr += str(self.sNetEdit.text())
 
                 if self.startingThetaPriorLbl.isChecked():
                     if self.startingThetaPriorEdit.text() == "":
                         pass
                     else:
-                        outputFile.write(" -ptheta ")
-                        outputFile.write(str(self.startingThetaPriorEdit.text()))
+                        outputStr += " -ptheta "
+                        outputStr += str(self.startingThetaPriorEdit.text())
 
                 if self.diploidLbl.isChecked():
-                    outputFile.write(" -diploid")
+                    outputStr += " -diploid"
 
                 if self.dominantMarkerLbl.isChecked():
-                    outputFile.write(" -dominant ")
-                    outputFile.write(str(self.dominantMarkerEdit.currentText()))
+                    outputStr += " -dominant "
+                    outputStr += str(self.dominantMarkerEdit.currentText())
 
                 if self.opLbl.isChecked():
-                    outputFile.write(" -op")
+                    outputStr += " -op"
+                #write to outputfile
+                outputFile.write(outputStr)
 
             # Validate the generated file
             self.isValidated = validateFile(self, path)

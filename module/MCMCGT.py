@@ -609,117 +609,118 @@ class MCMCGTPage(QWizardPage):
 
             # Ready to write PHYLONET block.
             with open(path, "a") as outputFile:
-                outputFile.write("\nBEGIN PHYLONET;\n\n")
-                outputFile.write("MCMC_GT (")
+                outputStr = ""
+                outputStr += "\nBEGIN PHYLONET;\n\n"
+                outputStr += "MCMC_GT ("
                 # Write out all the gene tree names.
                 if not self.multiTreesPerLocus:
                     # If there's only one tree per locus, write a comma delimited list of gene tree identifiers.
-                    outputFile.write(self.geneTreeNames[0])
+                    outputStr += self.geneTreeNames[0]
                     for genetree in self.geneTreeNames[1:]:
-                        outputFile.write(",")
-                        outputFile.write(genetree)
-                    outputFile.write(")")
+                        outputStr += ","
+                        outputStr += genetree
+                    outputStr += ")"
                 else:
                     # If there are multiple trees per locus, write a comma delimited list of sets of gene tree
                     # identifiers.
                     if type(self.geneTreeNames[0]) is list:
-                        outputFile.write("{")
-                        outputFile.write(self.geneTreeNames[0][0])
+                        outputStr += "{"
+                        outputStr += self.geneTreeNames[0][0]
                         for genetree in self.geneTreeNames[0][1:]:
-                            outputFile.write(",")
-                            outputFile.write(genetree)
-                        outputFile.write("}")
+                            outputStr += ","
+                            outputStr += genetree
+                        outputStr += "}"
                     else:
-                        outputFile.write("{")
-                        outputFile.write(self.geneTreeNames[0])
-                        outputFile.write("}")
+                        outputStr += "{"
+                        outputStr += self.geneTreeNames[0]
+                        outputStr += "}"
 
                     for locus in self.geneTreeNames[1:]:
-                        outputFile.write(",")
+                        outputStr += ","
                         if type(locus) is list:
-                            outputFile.write("{")
-                            outputFile.write(locus[0])
+                            outputStr += "{"
+                            outputStr += locus[0]
                             for genetree in locus[1:]:
-                                outputFile.write(",")
-                                outputFile.write(genetree)
-                            outputFile.write("}")
+                                outputStr += ","
+                                outputStr += genetree
+                            outputStr += "}"
                         else:
-                            outputFile.write("{")
-                            outputFile.write(locus)
-                            outputFile.write("}")
-                    outputFile.write(")")
+                            outputStr += "{"
+                            outputStr += locus
+                            outputStr += "}"
+                    outputStr += ")"
 
                 # -cl chainLength command
                 if self.chainLengthLbl.isChecked():  
                     if self.chainLengthEdit.text() == "":
                         pass
                     else:
-                        outputFile.write(" -cl ")
-                        outputFile.write(str(self.chainLengthEdit.text()))
+                        outputStr += " -cl "
+                        outputStr += str(self.chainLengthEdit.text())
 
                 # -bl chainLength command
                 if self.burnInLengthLbl.isChecked():
                     if self.burnInLengthEdit.text() == "":
                         pass
                     else:
-                        outputFile.write(" -bl ")
-                        outputFile.write(str(self.burnInLengthEdit.text()))
+                        outputStr += " -bl "
+                        outputStr += str(self.burnInLengthEdit.text())
 
                 # -sf sampleFrequency command
                 if self.sampleFrequencyLbl.isChecked():
                     if self.sampleFrequencyEdit.text() == "":
                         pass
                     else:
-                        outputFile.write(" -sf ")
-                        outputFile.write(str(self.sampleFrequencyEdit.text()))
+                        outputStr += " -sf "
+                        outputStr += str(self.sampleFrequencyEdit.text())
                       
                 # -sd seed command
                 if self.seedLbl.isChecked():
                     if self.seedEdit.text() == "":
                         pass
                     else:
-                        outputFile.write(" -sd ")
-                        outputFile.write(str(self.seedEdit.text()))
+                        outputStr += " -sd "
+                        outputStr += str(self.seedEdit.text())
 
                 # -pp poissonParameter command
                 if self.ppLbl.isChecked():
                     if self.ppEdit.text() == "":
                         pass
                     else:
-                        outputFile.write(" -pp ")
-                        outputFile.write(str(self.ppEdit.text()))
+                        outputStr += " -pp "
+                        outputStr += str(self.ppEdit.text())
 
                 # -mr maximumReticulation command
                 if self.maxRetLbl.isChecked():
                     if self.maxRetEdit.text() == "":
                         pass
                     else:
-                        outputFile.write(" -mr ")
-                        outputFile.write(str(self.maxRetEdit.text()))
+                        outputStr += " -mr "
+                        outputStr += str(self.maxRetEdit.text())
 
                 # -pl parallelThreads command
                 if self.numProcLbl.isChecked():
                     if self.numProcEdit.text() == "":
                         pass
                     else:
-                        outputFile.write(" -pl ")
-                        outputFile.write(str(self.numProcEdit.text()))
+                        outputStr += " -pl "
+                        outputStr += str(self.numProcEdit.text())
 
                 # -tp temperatureList command
                 if self.tempListLbl.isChecked():
                     if self.tempListEdit.text() == "":
                         pass
                     else:
-                        outputFile.write(" -tp ")
-                        outputFile.write(str(self.tempListEdit.text()))
+                        outputStr += " -tp "
+                        outputStr += str(self.tempListEdit.text())
 
                 # -sn startingNetworkList command
                 if self.sNetListLbl.isChecked():
                     if self.sNetListEdit.text() == "":
                         pass
                     else:
-                        outputFile.write(" -sn ")
-                        outputFile.write(str(self.sNetListEdit.text()))
+                        outputStr += " -sn "
+                        outputStr += str(self.sNetListEdit.text())
                         
                 # -tm taxa map command
                 if self.taxamapLbl.isChecked():
@@ -729,38 +730,40 @@ class MCMCGTPage(QWizardPage):
                         # Get a mapping from species to taxon.
                         speciesToTaxonMap = self.__inverseMapping(self.taxamap)
                         # Write taxa map.
-                        outputFile.write(" -tm <")
+                        outputStr += " -tm <"
                         for firstSpecies in speciesToTaxonMap:
-                            outputFile.write(firstSpecies)
-                            outputFile.write(":")
-                            outputFile.write(speciesToTaxonMap[firstSpecies][0])
+                            outputStr += firstSpecies
+                            outputStr += ":"
+                            outputStr += speciesToTaxonMap[firstSpecies][0]
                             for taxon in speciesToTaxonMap[firstSpecies][1:]:
-                                outputFile.write(",")
-                                outputFile.write(taxon)
+                                outputStr += ","
+                                outputStr += taxon
                             speciesToTaxonMap.pop(firstSpecies)
                             break
                         for species in speciesToTaxonMap:
-                            outputFile.write("; ")
-                            outputFile.write(species)
-                            outputFile.write(":")
-                            outputFile.write(speciesToTaxonMap[species][0])
+                            outputStr += "; "
+                            outputStr += species
+                            outputStr += ":"
+                            outputStr += speciesToTaxonMap[species][0]
                             for taxon in speciesToTaxonMap[species][1:]:
-                                outputFile.write(",")
-                                outputFile.write(taxon)
+                                outputStr += ","
+                                outputStr += taxon
 
-                        outputFile.write(">")
+                        outputStr += ">"
                     #clear checkbox
                     self.taxamapLbl.setChecked(False)
 
                 # -pseudo command
                 if self.pseudoLbl.isChecked():
-                    outputFile.write(" -pseudo")
+                    outputStr += " -pseudo"
                     #clear checkbox
                     self.pseudoLbl.setChecked(False)
 
                 # End of NEXUS
-                outputFile.write(";\n\n")
-                outputFile.write("END;")
+                outputStr += ";\n\n"
+                outputStr += "END;"
+                #write to outputfile
+                outputFile.write(outputStr)
 
             # Validate the generated file.
             #self.isValidated = validateFile(self, path)

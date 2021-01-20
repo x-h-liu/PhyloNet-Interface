@@ -904,17 +904,17 @@ class Worker(QtCore.QThread):
         """
         try:
             with open(self.path, "a") as outputFile:
-                outputFile.write("#NEXUS\n")
-                outputFile.write("Begin data;\n")
-                outputFile.write("Dimensions ntax=")
+                outputStr += ("#NEXUS\n")
+                outputStr += ("Begin data;\n")
+                outputStr += ("Dimensions ntax=")
 
                 # If data is unphased, number of taxa should double because of phasing.
                 if str(self.gui.dataTypeEdit.currentText()) == "unphased data":
-                    outputFile.write(str(2 * len(self.gui.data.taxon_namespace)))
+                    outputStr += (str(2 * len(self.gui.data.taxon_namespace)))
                 else:
-                    outputFile.write(str(len(self.gui.data.taxon_namespace)))
+                    outputStr += (str(len(self.gui.data.taxon_namespace)))
 
-                outputFile.write(" nchar=")
+                outputStr += (" nchar=")
 
                 # number of characters depends on data type
                 if str(self.gui.dataTypeEdit.currentText()) == "bi-allelic markers data":
@@ -928,89 +928,89 @@ class Worker(QtCore.QThread):
                     bimarkers = self.gui.phasedToBi(dendropy.DnaCharacterMatrix.from_dict(phased))
                     length = len(bimarkers.values()[0])
 
-                outputFile.write(str(length))
-                outputFile.write(";\n")
-                outputFile.write('Format datatype=dna symbols="012" missing=? gap=-;\n')
-                outputFile.write("Matrix\n\n")
+                outputStr += (str(length))
+                outputStr += (";\n")
+                outputStr += ('Format datatype=dna symbols="012" missing=? gap=-;\n')
+                outputStr += ("Matrix\n\n")
 
                 # If data is bi-allelic markers, simply write out the data.
                 if str(self.gui.dataTypeEdit.currentText()) == "bi-allelic markers data":
                     for taxon in self.gui.data:
-                        outputFile.write(taxon.label)
-                        outputFile.write(" ")
-                        outputFile.write(str(self.gui.data[taxon]))
-                        outputFile.write("\n")
+                        outputStr += (taxon.label)
+                        outputStr += (" ")
+                        outputStr += (str(self.gui.data[taxon]))
+                        outputStr += ("\n")
                 # If data is phased, convert into bi-allelic markers, and then write out.
                 elif str(self.gui.dataTypeEdit.currentText()) == "phased data":
                     for taxon in bimarkers:
-                        outputFile.write(taxon)
-                        outputFile.write(" ")
-                        outputFile.write(bimarkers[taxon])
-                        outputFile.write("\n")
+                        outputStr += (taxon)
+                        outputStr += (" ")
+                        outputStr += (bimarkers[taxon])
+                        outputStr += ("\n")
                 # If data is unphased, convert into phased data first, then convert the phased data into
                 # bi-allelic markers, and then write out.
                 elif str(self.gui.dataTypeEdit.currentText()) == "unphased data":
                     for taxon in bimarkers:
-                        outputFile.write(taxon)
-                        outputFile.write(" ")
-                        outputFile.write(bimarkers[taxon])
-                        outputFile.write("\n")
+                        outputStr += (taxon)
+                        outputStr += (" ")
+                        outputStr += (bimarkers[taxon])
+                        outputStr += ("\n")
 
-                outputFile.write(";End;\n\n")
+                outputStr += (";End;\n\n")
 
                 # Write PHYLONET block.
-                outputFile.write("BEGIN PHYLONET;\n")
-                outputFile.write("MCMC_BiMarkers")
+                outputStr += ("BEGIN PHYLONET;\n")
+                outputStr += ("MCMC_BiMarkers")
                 # Write taxa list used for inference.
-                outputFile.write(" -taxa (")
-                outputFile.write(self.gui.taxaList[0])
+                outputStr += (" -taxa (")
+                outputStr += (self.gui.taxaList[0])
                 for taxon in self.gui.taxaList[1:]:
-                    outputFile.write(",")
-                    outputFile.write(taxon)
-                outputFile.write(")")
+                    outputStr += (",")
+                    outputStr += (taxon)
+                outputStr += (")")
 
                 # Write optional commands based on user selection.
                 if self.gui.chainLengthLbl.isChecked():
                     if self.gui.chainLengthEdit.text().isEmpty():
                         pass
                     else:
-                        outputFile.write(" -cl ")
-                        outputFile.write(str(self.gui.chainLengthEdit.text()))
+                        outputStr += (" -cl ")
+                        outputStr += (str(self.gui.chainLengthEdit.text()))
 
                 if self.gui.burnInLbl.isChecked():
                     if self.gui.burnInEdit.text().isEmpty():
                         pass
                     else:
-                        outputFile.write(" -bl ")
-                        outputFile.write(str(self.gui.burnInEdit.text()))
+                        outputStr += (" -bl ")
+                        outputStr += (str(self.gui.burnInEdit.text()))
 
                 if self.gui.sampleFrequencyLbl.isChecked():
                     if self.gui.sampleFrequencyEdit.text().isEmpty():
                         pass
                     else:
-                        outputFile.write(" -sf ")
-                        outputFile.write(str(self.gui.sampleFrequencyEdit.text()))
+                        outputStr += (" -sf ")
+                        outputStr += (str(self.gui.sampleFrequencyEdit.text()))
 
                 if self.gui.parThreadLbl.isChecked():
                     if self.gui.parThreadEdit.text().isEmpty():
                         pass
                     else:
-                        outputFile.write(" -pl ")
-                        outputFile.write(str(self.gui.parThreadEdit.text()))
+                        outputStr += (" -pl ")
+                        outputStr += (str(self.gui.parThreadEdit.text()))
 
                 if self.gui.tempListLbl.isChecked():
                     if self.gui.tempListEdit.text().isEmpty():
                         pass
                     else:
-                        outputFile.write(" -mc3 ")
-                        outputFile.write(str(self.gui.tempListEdit.text()))
+                        outputStr += (" -mc3 ")
+                        outputStr += (str(self.gui.tempListEdit.text()))
 
                 if self.gui.maxRetLbl.isChecked():
                     if self.gui.maxRetEdit.text().isEmpty():
                         pass
                     else:
-                        outputFile.write(" -mr ")
-                        outputFile.write(str(self.gui.maxRetEdit.text()))
+                        outputStr += (" -mr ")
+                        outputStr += (str(self.gui.maxRetEdit.text()))
 
                 if self.gui.taxamapLbl.isChecked():
                     if len(self.gui.taxamap) == 0:
@@ -1019,82 +1019,82 @@ class Worker(QtCore.QThread):
                         # Get a mapping from species to taxon.
                         speciesToTaxonMap = self.gui.inverseMapping(self.gui.taxamap)
                         # Write taxa map.
-                        outputFile.write(" -tm <")
+                        outputStr += (" -tm <")
                         for firstSpecies in speciesToTaxonMap:
-                            outputFile.write(firstSpecies)
-                            outputFile.write(":")
-                            outputFile.write(speciesToTaxonMap[firstSpecies][0])
+                            outputStr += (firstSpecies)
+                            outputStr += (":")
+                            outputStr += (speciesToTaxonMap[firstSpecies][0])
                             for taxon in speciesToTaxonMap[firstSpecies][1:]:
-                                outputFile.write(",")
-                                outputFile.write(taxon)
+                                outputStr += (",")
+                                outputStr += (taxon)
                             speciesToTaxonMap.pop(firstSpecies)
                             break
                         for species in speciesToTaxonMap:
-                            outputFile.write("; ")
-                            outputFile.write(species)
-                            outputFile.write(":")
-                            outputFile.write(speciesToTaxonMap[species][0])
+                            outputStr += ("; ")
+                            outputStr += (species)
+                            outputStr += (":")
+                            outputStr += (speciesToTaxonMap[species][0])
                             for taxon in speciesToTaxonMap[species][1:]:
-                                outputFile.write(",")
-                                outputFile.write(taxon)
-                        outputFile.write(">")
+                                outputStr += (",")
+                                outputStr += (taxon)
+                        outputStr += (">")
 
                 if self.gui.thetaLbl.isChecked():
                     if self.gui.thetaEdit.text().isEmpty():
                         pass
                     else:
-                        outputFile.write(" -fixtheta ")
-                        outputFile.write(str(self.gui.thetaEdit.text()))
+                        outputStr += (" -fixtheta ")
+                        outputStr += (str(self.gui.thetaEdit.text()))
 
                 if self.gui.varyThetaLbl.isChecked():
-                    outputFile.write(" -varytheta")
+                    outputStr += (" -varytheta")
 
                 if self.gui.espThetaLbl.isChecked():
-                    outputFile.write(" -esptheta")
+                    outputStr += (" -esptheta")
 
                 if self.gui.ppLbl.isChecked():
                     if self.gui.ppEdit.text().isEmpty():
                         pass
                     else:
-                        outputFile.write(" -pp ")
-                        outputFile.write(str(self.gui.ppEdit.text()))
+                        outputStr += (" -pp ")
+                        outputStr += (str(self.gui.ppEdit.text()))
 
                 if self.gui.ddLbl.isChecked():
-                    outputFile.write(" -dd")
+                    outputStr += (" -dd")
 
                 if self.gui.eeLbl.isChecked():
                     if self.gui.eeEdit.text().isEmpty():
                         pass
                     else:
-                        outputFile.write(" -ee ")
-                        outputFile.write(str(self.gui.eeEdit.text()))
+                        outputStr += (" -ee ")
+                        outputStr += (str(self.gui.eeEdit.text()))
 
                 if self.gui.sNetLbl.isChecked():
                     if self.gui.sNetEdit.text().isEmpty():
                         pass
                     else:
-                        outputFile.write(" -snet ")
-                        outputFile.write(str(self.gui.sNetEdit.text()))
+                        outputStr += (" -snet ")
+                        outputStr += (str(self.gui.sNetEdit.text()))
 
                 if self.gui.startingThetaPriorLbl.isChecked():
                     if self.gui.startingThetaPriorEdit.text().isEmpty():
                         pass
                     else:
-                        outputFile.write(" -ptheta ")
-                        outputFile.write(str(self.gui.startingThetaPriorEdit.text()))
+                        outputStr += (" -ptheta ")
+                        outputStr += (str(self.gui.startingThetaPriorEdit.text()))
 
                 if self.gui.diploidLbl.isChecked():
-                    outputFile.write(" -diploid")
+                    outputStr += (" -diploid")
 
                 if self.gui.dominantMarkerLbl.isChecked():
-                    outputFile.write(" -dominant ")
-                    outputFile.write(str(self.gui.dominantMarkerEdit.currentText()))
+                    outputStr += (" -dominant ")
+                    outputStr += (str(self.gui.dominantMarkerEdit.currentText()))
 
                 if self.gui.opLbl.isChecked():
-                    outputFile.write(" -op")
+                    outputStr += (" -op")
 
-                outputFile.write(";\n")
-                outputFile.write("END;")
+                outputStr += (";\n")
+                outputStr += ("END;")
 
             # Clear all data after one write.
             self.gui.cleanData()
