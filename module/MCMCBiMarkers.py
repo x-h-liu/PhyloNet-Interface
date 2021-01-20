@@ -108,7 +108,13 @@ class MCMCBiMarkersPage(QWizardPage):
         self.nexus.setObjectName("nexus")
         self.fasta = QCheckBox(".fasta")
         self.fasta.setObjectName("fasta")
-        numReticulationsLbl = QLabel("Maximum number of reticulations to add:")
+
+        self.dataTypeEdit = QComboBox(self)
+        self.dataTypeEdit.addItem("phased data")
+        self.dataTypeEdit.addItem("unphased data")
+        self.dataTypeEdit.addItem("bi-allelic markers data")
+
+        self.inferTaxaBtn = QPushButton("Select taxa used for inference")
         
         # Implement mutually exclusive check boxes
         self.nexus.stateChanged.connect(self.format)
@@ -124,32 +130,38 @@ class MCMCBiMarkersPage(QWizardPage):
         fileSelctionBtn.setText("Browse")
         fileSelctionBtn.clicked.connect(self.selectFile)
 
-        self.numReticulationsEdit = QLineEdit()
-        self.numReticulationsEdit.textChanged.connect(self.inspectInputs)
-        self.numReticulationsEdit.setValidator(NumValidator())
-        self.numReticulationsEdit.setToolTip("Please enter a non-negative integer")
-
         #Initialize Layouts each parameter
 
         fileFormatLayout = QVBoxLayout()
-        fileFormatLayout.addWidget(instructionLabel)
         fileFormatLayout.addWidget(self.nexus)
         fileFormatLayout.addWidget(self.fasta)
         geneTreeDataLayout = QHBoxLayout()
         geneTreeDataLayout.addWidget(self.sequenceFileEdit)
         geneTreeDataLayout.addWidget(fileSelctionBtn)
-      
-        numReticulationsLayout = QHBoxLayout()
-        numReticulationsLayout.addWidget(numReticulationsLbl)
-        numReticulationsLayout.addWidget(self.numReticulationsEdit)
+        dataTypeLayout = QVBoxLayout()
+        dataTypeLayout.addWidget(self.dataTypeEdit)
 
+        fileFormatGroup = QGroupBox("Data Format")
+        fileFormatGroup.setLayout(fileFormatLayout)
+
+        dataTypeGroup = QGroupBox("Data Type")
+        dataTypeGroup.setLayout(dataTypeLayout)
+
+        fileDataLayout = QHBoxLayout()
+        fileDataLayout.addWidget(fileFormatGroup)
+        fileDataLayout.addWidget(dataTypeGroup)
+
+        #setStyleSheet("QGroupBox{border: 2px solid #2196f3;}" +"QGroupBox:title{ subcontrol-position: top center;}")
+        
         # Main layout for tab one
         tabOneLayout = QVBoxLayout()
-        tabOneLayout.addLayout(fileFormatLayout)
+        tabOneLayout.addWidget(instructionLabel)
+        tabOneLayout.addLayout(fileDataLayout)
         tabOneLayout.addLayout(geneTreeDataLayout)
-        tabOneLayout.addLayout(numReticulationsLayout)
+        tabOneLayout.addWidget(self.inferTaxaBtn)
 
         tabOne.setLayout(tabOneLayout)
+
 
         #Add tab One
         self.tabWidget.addTab(tabOne, 'Mandatory')
@@ -498,7 +510,7 @@ class MCMCBiMarkersPage(QWizardPage):
         Inspects whether mandatory fields have been filled
         emits signal if so
         """
-        if self.sequenceFileEdit.document().isEmpty() or self.numReticulationsEdit.text() == "":
+        if self.sequenceFileEdit.document().isEmpty():
             self.tabWidget.tabBar().setDisabled(True)
             #set appropriate tool tip based on page location
             if self.tabWidget.currentIndex() == 0:
@@ -944,7 +956,6 @@ class MCMCBiMarkersPage(QWizardPage):
         self.nexus.setChecked(False)
         self.fasta.setChecked(False)
         self.sequenceFileEdit.clear()
-        self.numReticulationsEdit.clear()
         
         self.chainLengthLbl.setChecked(False)
         self.chainLengthEdit.clear()
